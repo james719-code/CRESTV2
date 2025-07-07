@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -62,38 +63,20 @@ fun AccountsScreen(
     }
 
     // --- MAIN UI ---
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            // The search bar is now part of the Scaffold's TopAppBar for a cleaner look
-            TopAppBar(
-                title = {
-                    OutlinedTextField(
-                        value = uiState.searchQuery,
-                        onValueChange = viewModel::onSearchQueryChanged,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Search name or email...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                        ),
-                        shape = CircleShape
-                    )
-                },
-                actions = {
-                    IconButton(onClick = viewModel::showFilterDialog) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // --- Standalone Search Bar ---
+        SearchBarWithFilter(
+            query = uiState.searchQuery,
+            onQueryChange = viewModel::onSearchQueryChanged,
+            onFilterClick = viewModel::showFilterDialog
+        )
+
+        // --- Content Area with List ---
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .pullRefresh(pullRefreshState)
         ) {
             if (uiState.isLoading) {
@@ -106,7 +89,7 @@ fun AccountsScreen(
                 }
             } else if (accountsToShow.isEmpty()) {
                 EmptyState(
-                    icon = Icons.Default.People,
+                    icon = Icons.Default.SearchOff,
                     message = "No accounts found.\nTry a different search or filter."
                 )
             } else {
@@ -123,6 +106,35 @@ fun AccountsScreen(
                 }
             }
             PullRefreshIndicator(uiState.isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
+        }
+    }
+}
+
+// A consistent, reusable Search Bar composable
+@Composable
+private fun SearchBarWithFilter(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onFilterClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp), // Adjusted padding
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Search name or email...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            singleLine = true,
+            shape = RoundedCornerShape(50)
+        )
+        IconButton(onClick = onFilterClick) {
+            Icon(Icons.Default.FilterList, contentDescription = "Filter and Sort")
         }
     }
 }

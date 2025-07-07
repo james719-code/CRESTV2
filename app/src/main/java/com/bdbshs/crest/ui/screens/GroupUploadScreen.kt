@@ -86,7 +86,8 @@ fun GroupUploadScreen(
             FilePicker(
                 fileName = uiState.selectedFileName,
                 onPickFileClick = { filePickerLauncher.launch("application/pdf") },
-                onClearFileClick = viewModel::onFileCleared
+                onClearFileClick = viewModel::onFileCleared,
+                enabled = !uiState.isLoading,
             )
 
             Spacer(Modifier.weight(1f))

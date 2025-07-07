@@ -1,5 +1,6 @@
 package com.bdbshs.crest.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,10 +42,9 @@ import kotlinx.coroutines.launch
 fun ResearchesScreen(
     userRole: UserType?,
     isOnline: Boolean,
-    // Correct, idiomatic function type for navigation
     onNavigateToDetails: (researchId: String) -> Unit,
     viewModel: ResearchesViewModel = viewModel(),
-    modifier: Modifier = Modifier
+    @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val researchesToShow by viewModel.filteredAndSortedResearches.collectAsState()
@@ -91,26 +91,25 @@ fun ResearchesScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            // ✨ IMPROVEMENT: A sleek, compact TopAppBar houses the search field.
-            ResearchesTopBar(
-                query = uiState.searchQuery,
-                onQueryChange = viewModel::onSearchQueryChanged,
-                onFilterClick = viewModel::showFilterDialog
-            )
-        },
-        modifier = modifier
-    )  { paddingValues ->
+    // The entire screen is now a Column
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // The Search Bar is the first item
+        SearchBarWithFilter(
+            query = uiState.searchQuery,
+            onQueryChange = viewModel::onSearchQueryChanged,
+            onFilterClick = viewModel::showFilterDialog
+        )
+
+        // The content area with pull-to-refresh
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .pullRefresh(pullRefreshState)
         ) {
             when {
                 uiState.isLoading -> {
-                    // Shimmer Loading UI
                     LazyVerticalStaggeredGrid(
                         columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
                         modifier = Modifier.fillMaxSize(),
@@ -122,11 +121,9 @@ fun ResearchesScreen(
                     }
                 }
                 researchesToShow.isEmpty() -> {
-                    // Illustrated Empty State
                     EmptyState(message = "No researches found.\nTry adjusting your search or filters.")
                 }
                 else -> {
-                    // The actual content
                     LazyVerticalStaggeredGrid(
                         columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
                         modifier = Modifier.fillMaxSize(),
@@ -144,7 +141,6 @@ fun ResearchesScreen(
                     }
                 }
             }
-
             PullRefreshIndicator(
                 refreshing = uiState.isRefreshing,
                 state = pullRefreshState,
@@ -154,48 +150,35 @@ fun ResearchesScreen(
             )
         }
     }
-
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// --- NEW: A consistent, reusable Search Bar composable ---
 @Composable
-private fun ResearchesTopBar(
+private fun SearchBarWithFilter(
     query: String,
     onQueryChange: (String) -> Unit,
     onFilterClick: () -> Unit
 ) {
-    // This TopAppBar is designed to be compact and integrate the search field seamlessly.
-    TopAppBar(
-        title = {
-            // Using TextField for a sleeker, more integrated look than OutlinedTextField here.
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search title or author...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                singleLine = true,
-                shape = CircleShape,
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    // Blend the background with the TopAppBar
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                ),
-            )
-        },
-        actions = {
-            IconButton(onClick = onFilterClick) {
-                Icon(Icons.Default.FilterList, contentDescription = "Filter and Sort")
-            }
-        },
-        // Standard TopAppBar colors for a consistent look.
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("Search title or author...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            singleLine = true,
+            shape = RoundedCornerShape(50)
         )
-    )
+        IconButton(onClick = onFilterClick) {
+            Icon(Icons.Default.FilterList, contentDescription = "Filter and Sort")
+        }
+    }
 }
 
 
@@ -210,7 +193,7 @@ private fun ResearchCard(
         "STEM" -> STEMColor
         "HUMSS" -> HUMSSColor
         "ABM" -> ABMColor
-        "TVL-ICT" -> TVLColor
+        "TVL" -> TVLColor
         "GAS" -> GASColor
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
@@ -220,17 +203,18 @@ private fun ResearchCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
+        // Use intrinsic height to ensure the Box fills the Row's height
         Row(
-            Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            Modifier
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .height(IntrinsicSize.Min)
         ) {
-            // Colored side-border for a subtle, elegant accent
             Box(
                 modifier = Modifier
                     .width(6.dp)
-                    .fillMaxHeight()
+                    .fillMaxHeight() // This now works correctly with IntrinsicSize.Min
                     .background(strandColor)
             )
-
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = research.title,
@@ -240,7 +224,6 @@ private fun ResearchCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = "by ${research.members.joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall,
@@ -249,7 +232,6 @@ private fun ResearchCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -261,7 +243,6 @@ private fun ResearchCard(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
-
                     if (research.unfinished) {
                         Icon(
                             imageVector = Icons.Default.Construction,
@@ -270,9 +251,7 @@ private fun ResearchCard(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-
                     Spacer(modifier = Modifier.weight(1f))
-
                     Icon(
                         imageVector = Icons.Default.Visibility,
                         contentDescription = "Views",

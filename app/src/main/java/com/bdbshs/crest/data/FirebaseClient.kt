@@ -30,4 +30,5 @@ object FirebaseClient {
         // Return the instance so firestore property is usable
         instance
     }
+
 }

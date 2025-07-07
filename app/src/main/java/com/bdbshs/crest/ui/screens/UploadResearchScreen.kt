@@ -139,7 +139,8 @@ fun UploadResearchScreen(
                     FilePicker(
                         fileName = uiState.selectedFileName,
                         onPickFileClick = { filePickerLauncher.launch("application/pdf") },
-                        onClearFileClick = viewModel::onFileCleared
+                        onClearFileClick = viewModel::onFileCleared,
+                        enabled = !uiState.isLoading,
                     )
                 }
             }
@@ -218,7 +219,8 @@ private fun MemberInputField(
 fun FilePicker(
     fileName: String?,
     onPickFileClick: () -> Unit,
-    onClearFileClick: () -> Unit
+    onClearFileClick: () -> Unit,
+    enabled: Boolean
 ) {
     val shape = RoundedCornerShape(12.dp)
 

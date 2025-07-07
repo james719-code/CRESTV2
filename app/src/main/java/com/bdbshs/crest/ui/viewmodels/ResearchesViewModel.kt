@@ -49,7 +49,7 @@ data class ResearchesUiState(
     val isRefreshing: Boolean = false,
     val selectedResearchType: ResearchType? = null,
     val strands: List<Strand> = listOf(
-        Strand("STEM"), Strand("HUMSS"), Strand("ABM"), Strand("TVL-ICT"), Strand("GAS")
+        Strand("STEM"), Strand("HUMSS"), Strand("ABM"), Strand("TVL"), Strand("GAS")
     ),
     val selectedSortOption: SortOption = SortOption.DateNewest,
     val error: String? = null,

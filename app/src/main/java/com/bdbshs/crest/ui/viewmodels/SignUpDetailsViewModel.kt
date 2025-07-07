@@ -14,9 +14,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-// Enum for User Type (can be in a shared file)
-enum class UserType { STUDENT, TEACHER }
-
 // Sealed class to hold the specific details for each user type
 sealed class UserDetails {
     data class Student(
@@ -36,9 +33,14 @@ sealed class UserDetails {
 // UI State for the screen
 data class SignUpDetailsUiState(
     val selectedRole: UserType? = null,
-    val isRoleSelectionDialogVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // Fields for strand dropdown
+    val selectedStrand: String = "", // Holds the selected strand text
+    val isStrandDropdownExpanded: Boolean = false, // Controls dropdown expansion
+    // New fields for gender dropdown
+    val selectedGender: String = "", // Holds the selected gender text
+    val isGenderDropdownExpanded: Boolean = false // Controls gender dropdown expansion
 )
 
 class SignUpDetailsViewModel : ViewModel() {
@@ -49,77 +51,99 @@ class SignUpDetailsViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SignUpDetailsUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val _navigateToHome = MutableSharedFlow<Unit>()
-    val navigateToHome = _navigateToHome.asSharedFlow()
+    // Changed: This flow now emits a LoginResult to indicate the post-signup navigation.
+    // This aligns with the LoginViewModel's navigation logic for consistency.
+    private val _signUpNavigationEvent = MutableSharedFlow<LoginResult>()
+    val signUpNavigationEvent = _signUpNavigationEvent.asSharedFlow()
 
+    // Function to set the selected role
     fun onRoleSelected(role: UserType) {
-        _uiState.update { it.copy(selectedRole = role) }
+        _uiState.update { it.copy(
+            selectedRole = role,
+            // Reset strand/gender if role changes, ensuring a clean form state
+            selectedStrand = "",
+            isStrandDropdownExpanded = false,
+            selectedGender = "",
+            isGenderDropdownExpanded = false
+        ) }
+    }
+
+    // Functions for strand dropdown
+    fun onStrandSelected(strand: String) {
+        _uiState.update { it.copy(selectedStrand = strand, isStrandDropdownExpanded = false) }
+    }
+
+    fun onStrandDropdownExpandedChange(expanded: Boolean) {
+        _uiState.update { it.copy(isStrandDropdownExpanded = expanded) }
+    }
+
+    // Functions for gender dropdown
+    fun onGenderSelected(gender: String) {
+        _uiState.update { it.copy(selectedGender = gender, isGenderDropdownExpanded = false) }
+    }
+
+    fun onGenderDropdownExpandedChange(expanded: Boolean) {
+        _uiState.update { it.copy(isGenderDropdownExpanded = expanded) }
     }
 
     fun saveUserDetails(details: UserDetails) {
-        // Launch a coroutine on the Main dispatcher. This is the default for viewModelScope.
         viewModelScope.launch {
-            // 1. Immediately update the UI state to show the loading indicator.
-            // This happens on the main thread for instant feedback.
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                // 2. Switch to the IO dispatcher for all logic and network calls.
+                // Get current user in IO dispatcher
+                val user = withContext(Dispatchers.IO) {
+                    auth.currentUser
+                }
+
+                if (user == null) {
+                    _uiState.update { it.copy(isLoading = false, error = "No user is logged in.") }
+                    return@launch // Exit if no user is logged in
+                }
+
+                val collectionPath: String
+                val data: Map<String, Any>
+
+                when (details) {
+                    is UserDetails.Student -> {
+                        collectionPath = "users/user_details/students"
+                        data = mapOf(
+                            "name" to details.name,
+                            "lrn" to details.lrn,
+                            "strand" to details.strand,
+                            "gender" to details.gender,
+                            "group_id" to details.groupId,
+                            "accepted" to false, // Correctly set to false, awaiting admin approval
+                            "research_accepted" to false, // Assuming initial status
+                            "uid" to user.uid
+                        )
+                    }
+                    is UserDetails.Teacher -> {
+                        collectionPath = "users/user_details/teachers"
+                        data = mapOf(
+                            "name" to details.name,
+                            "email" to details.email,
+                            "access" to false, // Correctly set to false, awaiting admin approval
+                            "upload_count" to 0,
+                            "uid" to user.uid
+                        )
+                    }
+                }
+
+                // Perform Firestore write operation in the IO dispatcher
                 withContext(Dispatchers.IO) {
-                    val user = auth.currentUser
-                    if (user == null) {
-                        // We can't proceed, so we switch back to update the UI with an error.
-                        // We need to do this on the main thread.
-                        withContext(Dispatchers.Main) {
-                            _uiState.update { it.copy(isLoading = false, error = "No user is logged in.") }
-                        }
-                        return@withContext // Exit the withContext(Dispatchers.IO) block
-                    }
-
-                    // This logic is now guaranteed to be on a background thread.
-                    val collectionPath: String
-                    val data: Map<String, Any>
-
-                    when (details) {
-                        is UserDetails.Student -> {
-                            collectionPath = "users/user_details/students"
-                            data = mapOf(
-                                "name" to details.name,
-                                "lrn" to details.lrn,
-                                "strand" to details.strand,
-                                "gender" to details.gender,
-                                "group_id" to details.groupId,
-                                "accepted" to false,
-                                "research_accepted" to false,
-                                "uid" to user.uid
-                            )
-                        }
-                        is UserDetails.Teacher -> {
-                            collectionPath = "users/user_details/teachers"
-                            data = mapOf(
-                                "name" to details.name,
-                                "email" to details.email,
-                                "access" to false,
-                                "upload_count" to 0,
-                                "uid" to user.uid
-                            )
-                        }
-                    }
-
-                    // The network call to Firestore is now also explicitly on the IO dispatcher.
                     firestore.collection(collectionPath).document(user.uid).set(data).await()
                 }
 
-                // 3. After the background work is done, execution resumes on the Main dispatcher.
-                // We can now safely emit the navigation event.
-                _navigateToHome.emit(Unit)
+                // After successfully saving details with initial 'false' status,
+                // navigate to the pending approval screen.
+                _signUpNavigationEvent.emit(LoginResult.NavigateToPendingApproval)
 
             } catch (e: Exception) {
-                // 4. If any exception occurred (either in the IO block or elsewhere),
-                // update the UI with the error message.
-                _uiState.update { it.copy(isLoading = false, error = "Failed to save details: ${e.message}") }
+                // Catch any exception during the process and update the UI with an error message.
+                _uiState.update { it.copy(isLoading = false, error = "Failed to save details: ${e.localizedMessage ?: e.message}") }
             } finally {
-                // 5. Regardless of success or failure, ensure the loading state is turned off.
+                // Ensure isLoading is always set to false regardless of success or failure.
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
@@ -127,5 +151,18 @@ class SignUpDetailsViewModel : ViewModel() {
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    // New function to allow changing role after initial selection
+    fun resetRoleSelection() {
+        _uiState.update {
+            it.copy(
+                selectedRole = null,
+                selectedStrand = "",
+                isStrandDropdownExpanded = false,
+                selectedGender = "",
+                isGenderDropdownExpanded = false
+            )
+        }
     }
 }

@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 private const val BUCKET_ID = "686a262b0024b8e10a35"
 
+// DATA CLASS is unchanged
 data class ResearchDetailUiState(
     val researchItem: ResearchItem? = null,
     val pdfBytes: ByteArray? = null,
@@ -59,72 +59,85 @@ class ResearchDetailViewModel(
 
     private val firestore = FirebaseClient.firestore
     private val appwriteStorage = AppwriteClient.storage
-
-    private var researchListener: ListenerRegistration? = null
+    private var qualitativeListener: ListenerRegistration? = null
+    private var quantitativeListener: ListenerRegistration? = null
 
     private val _uiState = MutableStateFlow(ResearchDetailUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val researchId: String = savedStateHandle.get<String>(AppDestination.ResearchDetails.researchIdArg)!!
-    // Keep a reference to the doc for the download counter
-    private var researchDocRef: DocumentReference? = null
+    private val researchId: String? = savedStateHandle.get<String>(AppDestination.ResearchDetails.researchIdArg)
+    // To keep track of whether we've already incremented the count for this session
+    private var hasIncrementedCount = false
 
     init {
-        if (researchId.isNotBlank()) {
-            setupResearchListener()
+        if (!researchId.isNullOrBlank()) {
+            setupListeners()
         } else {
             _uiState.update { it.copy(isDetailsLoading = false, error = "Research ID is missing.") }
         }
     }
 
-    private fun setupResearchListener() {
+    private fun setupListeners() {
+        if (researchId == null) return
         _uiState.update { it.copy(isDetailsLoading = true, error = null) }
-        researchListener?.remove()
+        qualitativeListener?.remove()
+        quantitativeListener?.remove()
 
+        qualitativeListener = firestore.collection("researches/research_details/qualitative").document(researchId)
+            .addSnapshotListener { snapshot, e ->
+                if (snapshot != null && snapshot.exists()) {
+                    handleSnapshot(snapshot, e, ResearchType.QUALITATIVE)
+                }
+            }
+
+        quantitativeListener = firestore.collection("researches/research_details/quantitative").document(researchId)
+            .addSnapshotListener { snapshot, e ->
+                if (snapshot != null && snapshot.exists()) {
+                    handleSnapshot(snapshot, e, ResearchType.QUANTITATIVE)
+                }
+            }
+    }
+
+    private fun handleSnapshot(snapshot: com.google.firebase.firestore.DocumentSnapshot?, e: FirebaseFirestoreException?, type: ResearchType) {
+        if (e != null) {
+            val errorMessage = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                "You are offline. Showing cached details."
+            } else { "Error loading details: ${e.message}" }
+            if (_uiState.value.researchItem == null) {
+                _uiState.update { it.copy(isDetailsLoading = false, error = errorMessage) }
+            }
+            return
+        }
+
+        if (snapshot != null && snapshot.exists()) {
+            val research = snapshot.toObject(ResearchItem::class.java)?.copy(
+                id = snapshot.id,
+                type = type
+            )
+            _uiState.update { it.copy(isDetailsLoading = false, researchItem = research, error = null) }
+            // --- REMOVED from here ---
+            // The download count is no longer incremented on view.
+        }
+    }
+
+    private fun incrementDownloadCount() {
+        // Only run if we haven't already done it for this screen instance
+        if (hasIncrementedCount || researchId == null) return
+        hasIncrementedCount = true // Set flag to true immediately
+
+        // Find the correct document reference again to be safe
         val qualitativeRef = firestore.collection("researches/research_details/qualitative").document(researchId)
         qualitativeRef.get().addOnSuccessListener { doc ->
-            if (doc.exists()) {
-                researchDocRef = qualitativeRef // Store reference
-                attachListener(qualitativeRef, ResearchType.QUALITATIVE)
+            val refToUpdate = if (doc.exists()) {
+                qualitativeRef
             } else {
-                val quantitativeRef = firestore.collection("researches/research_details/quantitative").document(researchId)
-                researchDocRef = quantitativeRef // Store reference
-                attachListener(quantitativeRef, ResearchType.QUANTITATIVE)
+                firestore.collection("researches/research_details/quantitative").document(researchId)
             }
-        }.addOnFailureListener { e ->
-            _uiState.update { it.copy(isDetailsLoading = false, error = "Failed to find research: ${e.message}") }
-        }
-    }
-
-    private fun attachListener(docRef: DocumentReference, type: ResearchType) {
-        researchListener = docRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                val errorMessage = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
-                    "You are offline. Showing cached details."
-                } else { "Error loading details: ${e.message}" }
-                _uiState.update { it.copy(isDetailsLoading = false, error = errorMessage) }
-                return@addSnapshotListener
-            }
-            if (snapshot != null && snapshot.exists()) {
-                val research = snapshot.toObject(ResearchItem::class.java)?.copy(
-                    id = snapshot.id,
-                    type = type
-                )
-                _uiState.update { it.copy(isDetailsLoading = false, researchItem = research, error = null) }
-                // We no longer increment the counter on view
-            } else {
-                _uiState.update { it.copy(isDetailsLoading = false, error = "Research not found.") }
-            }
-        }
-    }
-
-    // --- NEW: Function to increment the download counter ---
-    private fun incrementDownloadCount() {
-        researchDocRef?.let { docRef ->
+            // Fire-and-forget transaction
             firestore.runTransaction { transaction ->
-                val snapshot = transaction.get(docRef)
+                val snapshot = transaction.get(refToUpdate)
                 val newCount = (snapshot.getLong("downloads") ?: 0L) + 1
-                transaction.update(docRef, "downloads", newCount)
+                transaction.update(refToUpdate, "downloads", newCount)
                 null
             }.addOnFailureListener { e ->
                 Log.w("ResearchDetailVM", "Failed to increment download count", e)
@@ -133,19 +146,24 @@ class ResearchDetailViewModel(
     }
 
     override fun onCleared() {
-        researchListener?.remove()
+        qualitativeListener?.remove()
+        quantitativeListener?.remove()
         super.onCleared()
     }
 
     fun loadPdf(isOnline: Boolean) {
         val fileId = _uiState.value.researchItem?.file_link
-        if (fileId.isNullOrBlank() || researchId.isBlank()) { /* ... */ return }
+        if (fileId.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "No PDF file associated with this research.") }
+            return
+        }
         if (_uiState.value.pdfBytes != null) return
 
         _uiState.update { it.copy(isPdfLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                // --- MODIFIED: Increment counter before fetching file ---
+                // --- THIS IS THE FIX ---
+                // Increment the download count only when this function is called.
                 incrementDownloadCount()
 
                 val cachedFile = FileCache.getFile(getApplication(), fileId)
@@ -166,5 +184,10 @@ class ResearchDetailViewModel(
                 _uiState.update { it.copy(isPdfLoading = false, error = "Could not load PDF: ${e.message}") }
             }
         }
+    }
+
+    // This function is still needed to switch back from the PDF viewer
+    fun clearPdfBytes() {
+        _uiState.update { it.copy(pdfBytes = null) }
     }
 }

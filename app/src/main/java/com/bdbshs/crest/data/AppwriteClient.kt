@@ -24,4 +24,8 @@ object AppwriteClient {
 
         storage = Storage(client)
     }
+
+    fun getDownloadUrl(bucketId: String, fileId: String): String {
+        return "$ENDPOINT/storage/buckets/$bucketId/files/$fileId/download?project=$PROJECT_ID"
+    }
 }

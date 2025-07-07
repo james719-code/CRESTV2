@@ -23,6 +23,7 @@ material = "1.9.0-alpha04"
 sdkForAndroid = "8.1.0"
 pdfiumAndroid = "1.9.0"
 androidPdfViewer = "2.8.2"
+datastorePreferences = "1.2.0-alpha02"
 
 [libraries]
 # ... existing libraries ...
@@ -57,6 +58,7 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 androidx-material = { group = "androidx.compose.material", name = "material", version.ref = "material" }
 sdk-for1-android = { group = "io.appwrite", name = "sdk-for-android", version.ref = "sdkForAndroid" }
 pdfium-android = { group = "com.github.barteksc", name = "pdfium-android", version.ref = "pdfiumAndroid" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

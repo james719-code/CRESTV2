@@ -96,7 +96,7 @@ class GroupUploadViewModel(application: Application) : AndroidViewModel(applicat
         return try {
             val context = getApplication<Application>().applicationContext
             val inputStream = context.contentResolver.openInputStream(uri)
-            val tempFile = File.createTempFile("upload_", ".pdf", context.cacheDir)
+            val tempFile = File.createTempFile("upload_doc_", "", context.cacheDir) // <-- FIX HERE
             val fileOutputStream = FileOutputStream(tempFile)
             inputStream?.use { input -> fileOutputStream.use { output -> input.copyTo(output) } }
             tempFile

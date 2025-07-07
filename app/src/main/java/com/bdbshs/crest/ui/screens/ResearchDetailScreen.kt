@@ -119,8 +119,6 @@ fun ResearchDetailScreen(
                             item {
                                 LoadPdfButton(
                                     isLoading = uiState.isPdfLoading,
-                                    // --- THIS IS THE FIX ---
-                                    // Pass the network status to the ViewModel function
                                     onClick = { viewModel.loadPdf(isOnline) },
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
