@@ -1,0 +1,93 @@
+{
+  "project_info": {
+    "project_number": "247751332436",
+    "firebase_url": "https://crest-4fb99-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "crest-4fb99",
+    "storage_bucket": "crest-4fb99.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:247751332436:android:18e66ffdc4c618910bd3c1",
+        "android_client_info": {
+          "package_name": "com.bdbshs.crest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "247751332436-dvuigs0qb2chrk7krrs0e4kr744m0mb7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bdbshs.crest",
+            "certificate_hash": "ce7b59694db3820929137c2f60153bfe632fd1bb"
+          }
+        },
+        {
+          "client_id": "247751332436-l8f5bdiv999k3sncj9c0t392s1shvhtk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOKpEwEeJ4-HWx18-76QgyP5FChEJB32M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "247751332436-l8f5bdiv999k3sncj9c0t392s1shvhtk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:247751332436:android:e72ad99b8f512c280bd3c1",
+        "android_client_info": {
+          "package_name": "com.james.crest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "247751332436-7up6n3k3j9mos56q7ck025vv0v3v93s1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.james.crest",
+            "certificate_hash": "ce7b59694db3820929137c2f60153bfe632fd1bb"
+          }
+        },
+        {
+          "client_id": "247751332436-gg9pimga3k46t9323u1m9i8sfuts47kl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.james.crest",
+            "certificate_hash": "b189186742182ab52b427ccaf50ef4e8ea9460a1"
+          }
+        },
+        {
+          "client_id": "247751332436-l8f5bdiv999k3sncj9c0t392s1shvhtk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOKpEwEeJ4-HWx18-76QgyP5FChEJB32M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "247751332436-l8f5bdiv999k3sncj9c0t392s1shvhtk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand Colors -->
+    <color name="primary_blue">#060695</color>
+    <color name="primary_light_blue">#2099F9</color>
+    <color name="primary_highlight">#21DDFB</color>
+
+    <!-- Strand Color Coding -->
+    <color name="tvl_color">#664CAD</color>
+    <color name="stem_color">#1D9C7C</color>
+    <color name="humss_color">#9C421D</color>
+    <color name="abm_color">#9C1D2D</color>
+    <color name="gas_color">#299036</color>
+
+    <!-- Neutrals -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="gray100">#F5F5F5</color>
+    <color name="gray200">#E0E0E0</color>
+    <color name="gray300">#BDBDBD</color>
+    <color name="gray600">#757575</color>
+    <color name="gray900">#212121</color>
+
+    <!-- Backgrounds & Surfaces -->
+    <color name="background_light">#FFFFFF</color>
+    <color name="background_dark">#121212</color>
+    <color name="surface_light">#F2F2F2</color>
+    <color name="surface_dark">#1E1E1E</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#616161</color>
+    <color name="text_inverse">#FFFFFF</color>
+
+    <!-- Action Colors -->
+    <color name="success_green">#4CAF50</color>
+    <color name="warning_orange">#FF9800</color>
+    <color name="error_red">#F44336</color>
+    <color name="info_blue">#2196F3</color>
+
+    <!-- Disabled / State Colors -->
+    <color name="disabled_gray">#BDBDBD</color>
+    <color name="divider_color">#E0E0E0</color>
+</resources>
