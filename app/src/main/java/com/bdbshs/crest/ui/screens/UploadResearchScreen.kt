@@ -36,7 +36,6 @@ fun UploadResearchScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // --- State and Launchers ---
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -46,7 +45,6 @@ fun UploadResearchScreen(
         }
     }
 
-    // Show error snackbar
     uiState.error?.let {
         LaunchedEffect(it) {
             snackbarHostState.showSnackbar(it, withDismissAction = true)
@@ -54,17 +52,13 @@ fun UploadResearchScreen(
         }
     }
 
-    // Navigate back on successful upload
     if (uiState.isSuccess) {
         LaunchedEffect(Unit) {
             snackbarHostState.showSnackbar("Upload Successful!")
-            // A small delay can feel better than an instant navigation
-            // kotlinx.coroutines.delay(500)
             onNavigateBack()
         }
     }
 
-    // --- Main UI ---
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -82,10 +76,9 @@ fun UploadResearchScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(24.dp), // Increased spacing for sections
+            verticalArrangement = Arrangement.spacedBy(24.dp),
             contentPadding = PaddingValues(16.dp)
         ) {
-            // --- Research Details Section ---
             item {
                 FormSection(title = "Research Details") {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -108,7 +101,6 @@ fun UploadResearchScreen(
                 }
             }
 
-            // --- Authors Section ---
             item {
                 FormSection(title = "Authors") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -133,7 +125,6 @@ fun UploadResearchScreen(
                 }
             }
 
-            // --- Document Section ---
             item {
                 FormSection(title = "Document") {
                     FilePicker(
@@ -145,7 +136,6 @@ fun UploadResearchScreen(
                 }
             }
 
-            // --- Upload Button ---
             item {
                 Spacer(Modifier.height(8.dp))
                 Button(
@@ -169,9 +159,6 @@ fun UploadResearchScreen(
         }
     }
 }
-
-
-// --- Modern Helper Composables ---
 
 @Composable
 private fun FormSection(
@@ -209,7 +196,6 @@ private fun MemberInputField(
                 Icon(Icons.Default.Close, contentDescription = "Remove Member")
             }
         } else {
-            // Spacer to keep alignment consistent when remove button is not present
             Spacer(modifier = Modifier.width(48.dp))
         }
     }
@@ -246,11 +232,9 @@ fun FilePicker(
             )
             Spacer(Modifier.width(12.dp))
             Text("Select PDF File", modifier = Modifier.weight(1f))
-            // Add a spacer to align with the clear button in the other state
             Spacer(Modifier.width(48.dp))
         } else {
             Icon(
-                // A more specific icon for PDFs
                 Icons.Default.PictureAsPdf,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error
@@ -283,7 +267,6 @@ private fun StrandDropdown(
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         OutlinedTextField(
-            // FIX: Use empty string for no selection; label provides context.
             value = selectedStrand?.name ?: "",
             onValueChange = {},
             readOnly = true,
@@ -291,7 +274,6 @@ private fun StrandDropdown(
             leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(),
-            // FIX: Correct way to set text color for read-only fields for better visibility.
             colors = TextFieldDefaults.colors(
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 focusedTextColor = MaterialTheme.colorScheme.onSurface
@@ -317,13 +299,11 @@ fun ResearchTypeDropdown(
     selectedType: ResearchType?,
     onTypeSelected: (ResearchType) -> Unit
 ) {
-    // FIX: .entries returns a List, no need for .toTypedArray()
     val types = ResearchType.entries
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
         OutlinedTextField(
-            // FIX: Use empty string for no selection.
             value = selectedType?.name?.replaceFirstChar { it.uppercase() } ?: "",
             onValueChange = {},
             readOnly = true,
@@ -331,7 +311,6 @@ fun ResearchTypeDropdown(
             leadingIcon = { Icon(Icons.Default.Book, contentDescription = null) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(),
-            // FIX: Correct way to set text color.
             colors = TextFieldDefaults.colors(
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                 focusedTextColor = MaterialTheme.colorScheme.onSurface
@@ -351,9 +330,6 @@ fun ResearchTypeDropdown(
     }
 }
 
-// FIX: This incorrect function has been removed.
-
-// Utility function (unchanged)
 fun getFileNameFromUri(uri: Uri, context: Context): String? {
     var fileName: String? = null
     context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->

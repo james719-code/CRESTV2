@@ -37,14 +37,12 @@ fun LoginScreen(
 
     val uiState by loginViewModel.uiState.collectAsState()
 
-    // --- Modern Credential Manager Logic ---
     val credentialManager = remember { CredentialManager.create(context) }
 
     val signIn: () -> Unit = {
         coroutineScope.launch {
-            // 1. Create the request for a Google ID token
             val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false) // Show all Google accounts on the device
+                .setFilterByAuthorizedAccounts(false)
                 .setServerClientId(context.getString(R.string.default_web_client_id))
                 .build()
 
@@ -52,25 +50,20 @@ fun LoginScreen(
                 .addCredentialOption(googleIdOption)
                 .build()
 
-            // 2. Launch the One-Tap UI
             try {
                 val result = credentialManager.getCredential(
                     request = request,
                     context = context,
                 )
-                // 3. On success, send the result to the ViewModel
                 loginViewModel.signInWithGoogleCredential(result)
 
             } catch (e: GetCredentialException) {
-                // Handle errors, such as user canceling the flow
                 Log.e("LoginScreen", "GetCredentialException", e)
                 snackbarHostState.showSnackbar("Sign-in was canceled or failed.")
             }
         }
     }
-    // --- End Credential Manager Logic ---
 
-    // Listen for navigation events from the ViewModel (This logic is unchanged)
     LaunchedEffect(key1 = Unit) {
         loginViewModel.loginResult.collect { result ->
             when (result) {
@@ -81,7 +74,6 @@ fun LoginScreen(
         }
     }
 
-    // Show error snackbar (This logic is unchanged)
     uiState.error?.let { errorMessage ->
         LaunchedEffect(errorMessage) {
             snackbarHostState.showSnackbar(errorMessage)
@@ -99,11 +91,10 @@ fun LoginScreen(
             contentAlignment = Alignment.Center
         ) {
             if (uiState.isLoading) {
-                // This will now show for the initial session check, hiding the button
                 CircularProgressIndicator()
             } else {
                 LoginScreenContent(
-                    isLoading = uiState.isLoading, // This will be false here
+                    isLoading = uiState.isLoading,
                     onGoogleLoginClick = signIn
                 )
             }
@@ -111,14 +102,11 @@ fun LoginScreen(
     }
 }
 
-// The actual UI content composable remains completely unchanged.
 @Composable
 private fun LoginScreenContent(
     isLoading: Boolean,
     onGoogleLoginClick: () -> Unit
 ) {
-    // ... This function is identical to the one you provided ...
-    // ... No changes are needed here at all. ...
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -127,7 +115,6 @@ private fun LoginScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Logo
         Image(
             painter = painterResource(id = R.drawable.ic_launcher_foreground),
             contentDescription = "App Logo",
@@ -138,7 +125,6 @@ private fun LoginScreenContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Welcome Header
         Text(
             text = "Welcome to Crest",
             style = MaterialTheme.typography.headlineLarge,
@@ -148,7 +134,6 @@ private fun LoginScreenContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Sub-header
         Text(
             text = "Sign in to continue and access all features.",
             style = MaterialTheme.typography.bodyLarge,
@@ -158,10 +143,9 @@ private fun LoginScreenContent(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Google Login Button
         Button(
             onClick = onGoogleLoginClick,
-            enabled = !isLoading, // Disable button when loading
+            enabled = !isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -194,7 +178,6 @@ private fun LoginScreenContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Optional: Terms and Conditions text
         Text(
             text = "By continuing, you agree to our Terms of Service and Privacy Policy.",
             style = MaterialTheme.typography.bodySmall,

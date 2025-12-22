@@ -15,6 +15,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -40,8 +41,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.*
 import androidx.core.graphics.createBitmap
+import kotlinx.coroutines.android.awaitFrame
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-// --- HELPER FOR NETWORK STATE ---
 @Composable
 private fun rememberNetworkState(): State<Boolean> {
     val context = LocalContext.current
@@ -70,7 +73,6 @@ fun ResearchDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val researchItem = uiState.researchItem
-    // Get the real-time network status
     val isOnline by rememberNetworkState()
 
     Scaffold(
@@ -101,6 +103,43 @@ fun ResearchDetailScreen(
                 uiState.isDetailsLoading -> CircularProgressIndicator()
                 uiState.error != null -> ErrorState(message = uiState.error!!)
                 researchItem != null -> {
+                    val context = LocalContext.current
+                    var pdfRenderer by remember { mutableStateOf<PdfRenderer?>(null) }
+                    var pageCount by remember { mutableStateOf(0) }
+                    var pdfLoading by remember { mutableStateOf(false) }
+                    val pdfMutex = remember { Mutex() }
+
+                    LaunchedEffect(uiState.pdfBytes) {
+                        val bytes = uiState.pdfBytes
+                        if (bytes != null) {
+                            pdfLoading = true
+                            withContext(Dispatchers.IO) {
+                                try {
+                                    val tempFile = File(context.cacheDir, "temp_view_${System.currentTimeMillis()}.pdf")
+                                    tempFile.writeBytes(bytes)
+                                    val descriptor = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                                    val renderer = PdfRenderer(descriptor)
+                                    withContext(Dispatchers.Main) {
+                                        pdfRenderer = renderer
+                                        pageCount = renderer.pageCount
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            pdfLoading = false
+                        }
+                    }
+
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            try {
+                                pdfRenderer?.close()
+                            } catch (e: Exception) {
+                            }
+                        }
+                    }
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 16.dp)
@@ -114,7 +153,30 @@ fun ResearchDetailScreen(
                         }
 
                         if (uiState.pdfBytes != null) {
-                            item { NativePdfViewer(pdfBytes = uiState.pdfBytes!!) }
+                            if (pdfLoading) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                        Spacer(Modifier.height(8.dp))
+                                        Text("Preparing PDF...", modifier = Modifier.padding(top = 48.dp))
+                                    }
+                                }
+                            } else if (pdfRenderer != null) {
+                                items(pageCount) { index ->
+                                    PdfPageItem(
+                                        renderer = pdfRenderer!!,
+                                        pageIndex = index,
+                                        mutex = pdfMutex
+                                    )
+                                }
+                            } else {
+                                item {
+                                    ErrorState("Failed to load PDF renderer.")
+                                }
+                            }
                         } else {
                             item {
                                 LoadPdfButton(
@@ -131,45 +193,96 @@ fun ResearchDetailScreen(
     }
 }
 
-// --- METADATA COMPOSABLES ---
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResearchMetadata(researchItem: ResearchItem, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = researchItem.title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Authors", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            researchItem.members.forEach { member ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = member,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = researchItem.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    InfoChip(icon = Icons.Default.School, text = researchItem.strand)
+                    InfoChip(icon = Icons.Default.Book, text = researchItem.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() })
                 }
             }
         }
+
         Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = "${researchItem.downloads} views",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Authors",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    researchItem.members.forEach { member ->
+                        AuthorChip(name = member)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthorChip(name: String) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            InfoChip(icon = Icons.Default.School, text = researchItem.strand)
-            InfoChip(icon = Icons.Default.Book, text = researchItem.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() })
-            InfoChip(icon = Icons.Default.Visibility, text = "${researchItem.downloads} views")
+            Icon(
+                Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }
@@ -177,7 +290,7 @@ private fun ResearchMetadata(researchItem: ResearchItem, modifier: Modifier = Mo
 @Composable
 private fun InfoChip(icon: ImageVector, text: String) {
     AssistChip(
-        onClick = { /* No action needed */ },
+        onClick = { },
         label = { Text(text) },
         leadingIcon = {
             Icon(
@@ -193,97 +306,64 @@ private fun InfoChip(icon: ImageVector, text: String) {
     )
 }
 
-// --- PDF-RELATED COMPOSABLES ---
-
 @Composable
-private fun NativePdfViewer(pdfBytes: ByteArray) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var bitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    DisposableEffect(pdfBytes) {
-        val tempFile = File(context.cacheDir, "temp_detail_view.pdf")
-        tempFile.writeBytes(pdfBytes)
-        val job = scope.launch {
-            isLoading = true
-            bitmaps = withContext(Dispatchers.IO) {
+private fun PdfPageItem(
+    renderer: PdfRenderer,
+    pageIndex: Int,
+    mutex: Mutex
+) {
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    
+    LaunchedEffect(renderer, pageIndex) {
+        mutex.withLock {
+            withContext(Dispatchers.IO) {
                 try {
-                    val renderer = PdfRenderer(ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY))
-                    val pageBitmaps = mutableListOf<Bitmap>()
-                    for (i in 0 until renderer.pageCount) {
-                        renderer.openPage(i).use { page ->
-                            val bitmap = createBitmap(page.width, page.height)
-                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            pageBitmaps.add(bitmap)
-                        }
+                    renderer.openPage(pageIndex).use { page ->
+                        val w = page.width
+                        val h = page.height
+                        
+                        val scale = if (w > 2048) 2048f / w else 1f
+                        val rw = (w * scale).toInt()
+                        val rh = (h * scale).toInt()
+                        
+                        val bm = createBitmap(rw, rh)
+                        page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        bitmap = bm
                     }
-                    renderer.close()
-                    pageBitmaps
                 } catch (e: Exception) {
-                    emptyList()
+                    e.printStackTrace()
                 }
             }
-            isLoading = false
-        }
-        onDispose {
-            job.cancel()
-            bitmaps.forEach { it.recycle() }
-            tempFile.delete()
         }
     }
 
-    AnimatedVisibility(
-        visible = isLoading,
-        enter = fadeIn(),
-        exit = fadeOut(animationSpec = tween(durationMillis = 200))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator()
-            Text("Processing PDF...")
-        }
-    }
-
-    AnimatedVisibility(
-        visible = !isLoading && bitmaps.isNotEmpty(),
-        enter = fadeIn(animationSpec = tween(delayMillis = 200)),
-        exit = fadeOut()
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            bitmaps.forEachIndexed { index, bitmap ->
-                PdfPage(bitmap = bitmap, pageNumber = index + 1)
-            }
-        }
-    }
-
-    if (!isLoading && bitmaps.isEmpty()) {
-        ErrorState(message = "Could not render the PDF file. It may be corrupted or in an unsupported format.")
-    }
-}
-
-@Composable
-private fun PdfPage(bitmap: Bitmap, pageNumber: Int) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
     ) {
-        Image(
-            bitmap = bitmap.asImageBitmap(),
-            contentDescription = "PDF Page $pageNumber",
-            contentScale = ContentScale.FillWidth,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap!!.asImageBitmap(),
+                contentDescription = "PDF Page ${pageIndex + 1}",
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        }
         Text(
-            text = "Page $pageNumber",
+            text = "Page ${pageIndex + 1}",
             modifier = Modifier
                 .align(Alignment.End)
                 .padding(8.dp),
@@ -292,6 +372,7 @@ private fun PdfPage(bitmap: Bitmap, pageNumber: Int) {
         )
     }
 }
+
 
 @Composable
 private fun LoadPdfButton(isLoading: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -323,8 +404,6 @@ private fun LoadPdfButton(isLoading: Boolean, onClick: () -> Unit, modifier: Mod
         }
     }
 }
-
-// --- UTILITY COMPOSABLES ---
 
 @Composable
 private fun ErrorState(message: String) {

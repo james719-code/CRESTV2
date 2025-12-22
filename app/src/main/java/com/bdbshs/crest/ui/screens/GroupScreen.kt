@@ -17,13 +17,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.ui.screens.common.EmptyState
@@ -43,11 +41,9 @@ fun GroupsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val groupsToShow by viewModel.filteredAndSortedGroups.collectAsState()
     val pullRefreshState = rememberPullRefreshState(uiState.isRefreshing, viewModel::onRefresh)
-    val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isSheetOpen by remember { mutableStateOf(false) }
 
-    // --- DIALOGS ---
     if (uiState.isActionDialogVisible && uiState.selectedGroup != null) {
         GroupActionDialog(
             group = uiState.selectedGroup!!,
@@ -60,7 +56,6 @@ fun GroupsScreen(
         )
     }
 
-    // --- BOTTOM SHEET FOR FILTERS ---
     if (isSheetOpen) {
         FilterSortBottomSheet(
             sheetState = sheetState,
@@ -72,18 +67,15 @@ fun GroupsScreen(
         )
     }
 
-    // --- MAIN UI ---
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        // --- Standalone Search Bar ---
         SearchBarWithFilter(
             query = uiState.searchQuery,
             onQueryChange = viewModel::onSearchQueryChanged,
             onFilterClick = { isSheetOpen = true }
         )
 
-        // --- CONTENT AREA ---
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -94,7 +86,7 @@ fun GroupsScreen(
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        userScrollEnabled = false // Disable scroll on shimmer
+                        userScrollEnabled = false
                     ) {
                         items(10) { ShimmerListItemPlaceholder() }
                     }
@@ -110,9 +102,6 @@ fun GroupsScreen(
                         items(groupsToShow, key = { it.id }) { group ->
                             GroupCard(
                                 group = group,
-                                // THIS IS THE CORRECT IMPLEMENTATION:
-                                // The onClick lambda now directly calls the navigation function
-                                // that was passed into the screen.
                                 onClick = { onNavigateToDetails(group.id) }
                             )
                         }
@@ -125,7 +114,6 @@ fun GroupsScreen(
 }
 
 
-// A consistent, reusable Search Bar composable
 @Composable
 private fun SearchBarWithFilter(
     query: String,
@@ -172,13 +160,11 @@ private fun FilterSortBottomSheet(
         Column(
             modifier = Modifier
                 .padding(16.dp)
-                .padding(bottom = 32.dp), // Extra padding for nav bar
+                .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Title
             Text("Filter & Sort", style = MaterialTheme.typography.titleLarge)
 
-            // Filter Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Filter by Status", style = MaterialTheme.typography.titleMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -191,7 +177,6 @@ private fun FilterSortBottomSheet(
                 }
             }
 
-            // Sort Section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Sort By", style = MaterialTheme.typography.titleMedium)
                 GroupSortOption.entries.forEach { option ->
@@ -208,7 +193,7 @@ private fun FilterSortBottomSheet(
                     ) {
                         RadioButton(
                             selected = (uiState.selectedSortOption == option),
-                            onClick = null // Recommended for accessibility
+                            onClick = null
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(option.displayName)

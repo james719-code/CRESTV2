@@ -10,17 +10,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.R
@@ -30,70 +29,82 @@ import com.bdbshs.crest.ui.viewmodels.UserType
 @Composable
 fun AboutUsScreen(
     modifier: Modifier = Modifier,
-    userRole: UserType? = null // Keeping consistent with other MainScreen children, though not used here
+    userRole: UserType? = null
 ) {
-    // Make the content scrollable
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()), // THIS MAKES IT SCROLLABLE
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // NEW: Logo Image at the very top
-        Spacer(modifier = Modifier.height(24.dp)) // Add some top padding
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Placeholder for your actual logo
+        // App Logo Section
         Box(
             modifier = Modifier
-                .size(100.dp) // Adjust size as needed
-                .clip(RoundedCornerShape(20.dp)) // Or CircleShape, or no clip for square logo
+                .size(120.dp)
+                .clip(RoundedCornerShape(24.dp))
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            // Replace this Image composable with your actual logo:
-            // Example: Image(painter = painterResource(id = R.drawable.your_crest_logo), contentDescription = "CREST Logo")
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground), // Replace with actual logo
                 contentDescription = "App Logo",
                 modifier = Modifier
-                    .size(320.dp)
+                    .size(90.dp)
                     .clip(CircleShape)
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp)) // Space between logo and text
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // App Description Section
+        // App Title and Description
         Text(
             text = "CREST",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 4.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
         )
         Text(
             text = "Compiled Research as an Educational Application for Students and Teachers",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        // Application Purpose Description
-        Text(
-            text = "CREST serves as a comprehensive platform designed to empower educators and students by providing centralized access to compiled research and educational documents. Its primary purpose is to streamline the organization, retrieval, and sharing of valuable academic resources, fostering an environment of collaborative learning and efficient knowledge dissemination.",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Justify,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        // Developer Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp), // Increased vertical padding for card
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                .padding(vertical = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Text(
+                text = "CREST serves as a comprehensive platform designed to empower educators and students by providing centralized access to compiled research and educational documents. Its primary purpose is to streamline the organization, retrieval, and sharing of valuable academic resources.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Justify,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- Main Developer Card ---
+        Text(
+            text = "Lead Developer",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
             Column(
                 modifier = Modifier
@@ -102,119 +113,130 @@ fun AboutUsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Placeholder Image for Developer
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(100.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "Developer Placeholder",
-                        modifier = Modifier.size(80.dp),
-                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer)
+                        contentDescription = "Developer Photo",
+                        modifier = Modifier.size(64.dp),
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer)
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "James Ryan S. Gallego",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "Developer",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Full Stack Developer",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Co-Researchers Section
+        // --- Co-Researchers Grid ---
         Text(
             text = "Co-Researchers",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // 2x2 grid of Co-Researcher Placeholders
+        val researchers = listOf(
+            "Ralph Windel Azana",
+            "Grant Gabriel Versoza",
+            "Herald Ian Lejarde",
+            "Uriel Sapian"
+        )
+
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Row 1
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CoResearcherCard(name = "Ralph Windel Azana")
-                CoResearcherCard(name = "Grant Gabriel Versoza")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            // Row 2
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CoResearcherCard(name = "Herald Ian Lejarde")
-                CoResearcherCard(name = "Uriel Sapian")
+            // Chunk the list into pairs (rows of 2)
+            researchers.chunked(2).forEach { rowResearchers ->
+                // IntrinsicSize.Max ensures both cards in this row are the same height
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowResearchers.forEach { name ->
+                        CoResearcherCard(
+                            name = name,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight() // Critical for vertical centering alignment relative to neighbor
+                        )
+                    }
+                    // If odd number of researchers, fill the empty space
+                    if (rowResearchers.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
-        Spacer(modifier = Modifier.height(24.dp)) // Add space at the bottom for scrolling
+        Spacer(modifier = Modifier.height(48.dp))
     }
 }
 
 @Composable
-private fun CoResearcherCard(name: String) {
+private fun CoResearcherCard(
+    name: String,
+    modifier: Modifier = Modifier
+) {
     Card(
-        modifier = Modifier
-            .width(160.dp)
-            .height(120.dp)
-            .padding(4.dp),
+        modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
+        // CRITICAL CHANGE 3: Center the content
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxSize() // Fill the card's available space
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, // Center Horizontally
+            verticalArrangement = Arrangement.Center // Center Vertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(60.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     imageVector = Icons.Default.Person,
-                    contentDescription = "$name Placeholder",
-                    modifier = Modifier.size(40.dp),
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSecondaryContainer)
+                    contentDescription = "$name Photo",
+                    modifier = Modifier.size(36.dp),
+                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSecondaryContainer)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = name,
-                style = MaterialTheme.typography.titleSmall,
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, heightDp = 1000)
 @Composable
 fun PreviewAboutUsScreen() {
-    CRESTTheme { // Use your app's theme here
+    CRESTTheme {
         AboutUsScreen()
     }
 }
