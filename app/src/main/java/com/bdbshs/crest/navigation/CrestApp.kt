@@ -66,12 +66,10 @@ class NavigationActions(private val navController: NavController) {
     }
     fun navigateToHome() = navigateTo(AppDestination.Home)
     fun navigateToSignUpDetails() = navController.navigate(AppDestination.SignUpDetails.route) {
-        // When going to signup details from login, replace login screen
         popUpTo(AppDestination.Login.route) { inclusive = true }
     }
     fun navigateToPendingApproval() = navController.navigate(AppDestination.PendingApproval.route) {
-        // When going to pending approval from login or signup, replace the previous screens
-        popUpTo(AppDestination.Login.route) { inclusive = true } // Pop up to login route (clearing it)
+        popUpTo(AppDestination.Login.route) { inclusive = true }
     }
     fun navigateToGroupUpload() = navController.navigate(AppDestination.GroupUpload.route)
     fun navigateToTeacherUpload() = navController.navigate(AppDestination.TeacherUpload.route)
@@ -109,29 +107,21 @@ fun CrestApp() {
     val isOnline      by rememberNetworkState()
     val auth          = FirebaseClient.auth
 
-    // Correct way to get AndroidViewModel instance
     val mainVm  : MainViewModel = viewModel()
     val uiState by mainVm.uiState.collectAsState()
 
-    // Show a loading spinner until MainViewModel has determined the initial user state
     if (uiState.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        return // Don't proceed with NavHost until loading is complete
+        return
     }
 
-    // Determine the start route based on authentication, approval status, and network state
     val startRoute = remember(auth.currentUser, uiState.isAllowedOffline, isOnline) {
         when {
-            // 1. No user authenticated: always go to Login
             auth.currentUser == null -> AppDestination.Login.route
-            // 2. User authenticated, but not allowed (i.e., not accepted/approved): always go to PendingApproval
             !uiState.isAllowedOffline -> AppDestination.PendingApproval.route
-            // 3. User authenticated AND allowed:
-            //    a. If offline, go to Researches (to access cached content)
             !isOnline -> AppDestination.Researches.route
-            //    b. Otherwise (online and allowed), go to Home
             else -> AppDestination.Home.route
         }
     }
@@ -140,10 +130,8 @@ fun CrestApp() {
     DisposableEffect(auth) {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
             if (firebaseAuth.currentUser == null) {
-                // Navigate to login and clear back stack when user logs out
                 navController.navigate(AppDestination.Login.route) {
                     popUpTo(navController.graph.id) { inclusive = true }
-                    // Do not save state here if logging out, start fresh.
                     launchSingleTop = true
                 }
             }
@@ -152,7 +140,6 @@ fun CrestApp() {
         onDispose { auth.removeAuthStateListener(listener) }
     }
 
-    // Once the startRoute is determined and loading is complete, build the NavHost
     CrestNavHost(navController, actions, startRoute, isOnline)
 }
 
@@ -163,15 +150,13 @@ fun CrestApp() {
 private fun CrestNavHost(
     navController: NavHostController,
     navigationActions: NavigationActions,
-    startDestination: String, // This now comes directly from CrestApp's initial determination
+    startDestination: String,
     isOnline: Boolean
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
 
         // --- AUTH FLOW ROUTES ---
         composable(AppDestination.Login.route) {
-            // LoginScreen's ViewModel handles its own initial checks for user status (if online).
-            // It will then emit the correct LoginResult for navigation.
             LoginScreen(
                 onNavigateToHome = navigationActions::navigateToHome,
                 onNavigateToSignUpDetails = navigationActions::navigateToSignUpDetails,
@@ -198,8 +183,6 @@ private fun CrestNavHost(
                             }
                         }
                         LoginResult.NavigateToSignUpDetails -> {
-                            // This scenario should not occur from SignUpDetails itself
-                            // It would mean staying on the current screen or an unexpected loop.
                         }
                     }
                 },
@@ -230,7 +213,7 @@ private fun CrestNavHost(
             GroupDetailScreen(onNavigateBack = navigationActions::navigateBack)
         }
 
-        // --- PRIMARY ROUTES (Individually wrapped in the MainScreen layout) ---
+        // --- PRIMARY ROUTES ---
         composable(AppDestination.Home.route) {
             MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.Home.route, isOnline = isOnline) { padding, userRole ->
                 HomeScreen(
@@ -267,7 +250,6 @@ private fun CrestNavHost(
         }
         composable(AppDestination.Documents.route) {
             MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.Documents.route, isOnline = isOnline) { padding, userRole ->
-                // Ensure userRole is passed to DocumentsScreen
                 DocumentsScreen(
                     modifier = Modifier.padding(padding),
                     userRole = userRole,

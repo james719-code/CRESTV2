@@ -5,13 +5,11 @@ import io.appwrite.Client
 import io.appwrite.services.Storage
 
 object AppwriteClient {
-    private const val ENDPOINT = "https://fra.cloud.appwrite.io/v1" // Your Appwrite API Endpoint
-    private const val PROJECT_ID = "686a25c60006e47cfbea"           // Your Appwrite Project ID
+    private const val ENDPOINT = "https://fra.cloud.appwrite.io/v1"
+    private const val PROJECT_ID = "686a25c60006e47cfbea"
 
-    // Lazy initialization for the client
     private lateinit var client: Client
 
-    // Lazy initialization for services
     lateinit var storage: Storage
         private set
 

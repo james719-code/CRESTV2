@@ -277,7 +277,7 @@ private fun StrandDropdown(
     onStrandSelected: (Strand) -> Unit
 ) {
     val strands = listOf(
-        Strand("STEM"), Strand("HUMSS"), Strand("ABM"), Strand("TVL-ICT"), Strand("GAS")
+        Strand("STEM"), Strand("HUMSS"), Strand("ABM"), Strand("TVL"), Strand("GAS")
     )
     var expanded by remember { mutableStateOf(false) }
 

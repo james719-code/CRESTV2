@@ -26,7 +26,6 @@ androidPdfViewer = "2.8.2"
 datastorePreferences = "1.2.0-alpha02"
 
 [libraries]
-# ... existing libraries ...
 # You can keep this if you need it for other purposes, or if android-pdf-viewer needs it as a transitive dependency (often it bundles what it needs)
 android-pdf-viewer = { group = "com.github.barteksc", name = "android-pdf-viewer", version.ref = "androidPdfViewer" } # Add this line
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

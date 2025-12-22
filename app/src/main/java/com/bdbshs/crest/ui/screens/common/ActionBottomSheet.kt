@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-// Data class to define an action in the bottom sheet
 data class SheetAction(
     val title: String,
     val icon: ImageVector,

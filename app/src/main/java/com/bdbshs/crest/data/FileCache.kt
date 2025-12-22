@@ -12,7 +12,6 @@ object FileCache {
 
     private const val PDF_CACHE_DIR = "pdf_cache"
 
-    // Returns the cache directory for PDFs, creating it if it doesn't exist.
     private fun getCacheDir(context: Context): File {
         return File(context.cacheDir, PDF_CACHE_DIR).apply { mkdirs() }
     }
@@ -29,7 +28,6 @@ object FileCache {
             file.writeBytes(data)
         } catch (e: IOException) {
             e.printStackTrace()
-            // Handle exceptions, e.g., log the error
         }
     }
 

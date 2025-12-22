@@ -17,7 +17,6 @@ object FirebaseClient {
         // Initialize Firestore
         val instance = Firebase.firestore
 
-        // Configure persistent on‑disk cache (100MB)
         val settings = FirebaseFirestoreSettings.Builder()
             .setLocalCacheSettings(
                 PersistentCacheSettings.newBuilder()
@@ -26,8 +25,6 @@ object FirebaseClient {
             )
             .build()
         instance.firestoreSettings = settings
-
-        // Return the instance so firestore property is usable
         instance
     }
 
