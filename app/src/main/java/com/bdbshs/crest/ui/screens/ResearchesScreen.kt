@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -31,6 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bdbshs.crest.ui.components.ModernSearchBar
+import com.bdbshs.crest.ui.components.FilterChipsRow
+import com.bdbshs.crest.ui.components.FilterChipData
+import com.bdbshs.crest.ui.components.ModernResearchCard
+import com.bdbshs.crest.ui.components.ResearchEmptyState
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerResearchCardPlaceholder
 import com.bdbshs.crest.ui.theme.*
@@ -95,11 +101,37 @@ fun ResearchesScreen(
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        // The Search Bar is the first item
-        SearchBarWithFilter(
+        // Modern Search Bar with filter button
+        ModernSearchBar(
             query = uiState.searchQuery,
             onQueryChange = viewModel::onSearchQueryChanged,
-            onFilterClick = viewModel::showFilterDialog
+            placeholder = "Search by title or author...",
+            onFilterClick = viewModel::showFilterDialog,
+            activeFilterCount = calculateActiveFilterCount(uiState),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        
+        // Quick filter chips for strands
+        FilterChipsRow(
+            chips = uiState.strands.map { strand ->
+                FilterChipData(
+                    id = strand.name,
+                    label = strand.name,
+                    isSelected = strand.isSelected,
+                    icon = when (strand.name.uppercase()) {
+                        "STEM" -> Icons.Outlined.Science
+                        "HUMSS" -> Icons.Outlined.Psychology
+                        "ABM" -> Icons.Outlined.BusinessCenter
+                        "TVL" -> Icons.Outlined.Construction
+                        "GAS" -> Icons.Outlined.School
+                        else -> null
+                    }
+                )
+            },
+            onChipClick = { chip ->
+                viewModel.onStrandCheckedChange(chip.id, !chip.isSelected)
+            },
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         // The content area with pull-to-refresh
@@ -121,7 +153,11 @@ fun ResearchesScreen(
                     }
                 }
                 researchesToShow.isEmpty() -> {
-                    EmptyState(message = "No researches found.\nTry adjusting your search or filters.")
+                    ResearchEmptyState(
+                        isSearchResult = uiState.searchQuery.isNotEmpty(),
+                        searchQuery = uiState.searchQuery,
+                        onClearSearch = { viewModel.onSearchQueryChanged("") }
+                    )
                 }
                 else -> {
                     LazyVerticalStaggeredGrid(
@@ -132,7 +168,7 @@ fun ResearchesScreen(
                         verticalItemSpacing = 12.dp
                     ) {
                         items(researchesToShow, key = { it.id }) { research ->
-                            ResearchCard(
+                            ModernResearchCard(
                                 research = research,
                                 onClick = { onNavigateToDetails(research.id) },
                                 onLongClick = { viewModel.onResearchLongPressed(research) }
@@ -152,35 +188,16 @@ fun ResearchesScreen(
     }
 }
 
-// --- NEW: A consistent, reusable Search Bar composable ---
-@Composable
-private fun SearchBarWithFilter(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onFilterClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("Search title or author...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            singleLine = true,
-            shape = RoundedCornerShape(50)
-        )
-        IconButton(onClick = onFilterClick) {
-            Icon(Icons.Default.FilterList, contentDescription = "Filter and Sort")
-        }
-    }
+// Helper function to calculate active filter count
+private fun calculateActiveFilterCount(uiState: ResearchesUiState): Int {
+    var count = 0
+    if (uiState.selectedResearchType != null) count++
+    count += uiState.strands.count { it.isSelected }
+    if (uiState.selectedSortOption != SortOption.DateNewest) count++
+    return count
 }
 
+// --- REMOVED: Old SearchBarWithFilter (replaced with ModernSearchBar) ---
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

@@ -204,8 +204,8 @@ private fun AccountCard(account: AccountItem, onClick: () -> Unit) {
 private fun StatusIndicator(isApproved: Boolean) {
     val icon = if (isApproved) Icons.Default.CheckCircle else Icons.Default.Pending
     val text = if (isApproved) "Accepted" else "Pending"
-    // Using a more vibrant color for accepted status
-    val color = if (isApproved) Color(0xFF1E88E5) else MaterialTheme.colorScheme.onSurfaceVariant
+    // Using theme primary color for accepted status
+    val color = if (isApproved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, contentDescription = text, tint = color)

@@ -242,14 +242,14 @@ private fun StatusChip(isAccepted: Boolean, isUploaded: Boolean) {
             AssistChip(
                 onClick = {},
                 label = { Text("Accepted") },
-                leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF1E88E5)) }
+                leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary) }
             )
         }
         isUploaded -> {
             AssistChip(
                 onClick = {},
                 label = { Text("Pending Review") },
-                leadingIcon = { Icon(Icons.Default.Pending, null, tint = Color(0xFFFB8C00)) }
+                leadingIcon = { Icon(Icons.Default.Pending, null, tint = MaterialTheme.colorScheme.tertiary) }
             )
         }
         else -> {

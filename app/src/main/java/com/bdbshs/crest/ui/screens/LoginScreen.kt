@@ -1,14 +1,24 @@
 package com.bdbshs.crest.ui.screens
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -22,6 +32,7 @@ import com.bdbshs.crest.R
 import com.bdbshs.crest.ui.viewmodels.LoginResult
 import com.bdbshs.crest.ui.viewmodels.LoginViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -38,6 +49,18 @@ fun LoginScreen(
     val uiState by loginViewModel.uiState.collectAsState()
 
     val credentialManager = remember { CredentialManager.create(context) }
+
+    var showContent by remember { mutableStateOf(false) }
+    val logoScale = remember { Animatable(0.9f) }
+
+    LaunchedEffect(Unit) {
+        delay(100)
+        showContent = true
+        logoScale.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(400, easing = FastOutSlowInEasing)
+        )
+    }
 
     val signIn: () -> Unit = {
         coroutineScope.launch {
@@ -87,16 +110,36 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.03f),
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                )
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator()
-            } else {
-                LoginScreenContent(
-                    isLoading = uiState.isLoading,
-                    onGoogleLoginClick = signIn
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 3.dp
                 )
+            } else {
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn(tween(400)) + slideInVertically(
+                        initialOffsetY = { it / 6 },
+                        animationSpec = tween(400, easing = FastOutSlowInEasing)
+                    )
+                ) {
+                    LoginScreenContent(
+                        isLoading = uiState.isLoading,
+                        logoScale = logoScale.value,
+                        onGoogleLoginClick = signIn
+                    )
+                }
             }
         }
     }
@@ -105,6 +148,7 @@ fun LoginScreen(
 @Composable
 private fun LoginScreenContent(
     isLoading: Boolean,
+    logoScale: Float,
     onGoogleLoginClick: () -> Unit
 ) {
     Column(
@@ -115,33 +159,46 @@ private fun LoginScreenContent(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = "App Logo",
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-        )
+        Box(
+            modifier = Modifier.scale(logoScale)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "App Logo",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+            )
+        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         Text(
-            text = "Welcome to Crest",
-            style = MaterialTheme.typography.headlineLarge,
+            text = "Welcome to",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = "CREST",
+            style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Sign in to continue and access all features.",
+            text = "Your gateway to academic research\nand educational resources.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(64.dp))
 
         Button(
             onClick = onGoogleLoginClick,
@@ -149,7 +206,10 @@ private fun LoginScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = MaterialTheme.shapes.medium
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -165,12 +225,13 @@ private fun LoginScreenContent(
                     Image(
                         painter = painterResource(id = R.drawable.ic_google_logo),
                         contentDescription = "Google Logo",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Continue with Google",
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -179,10 +240,10 @@ private fun LoginScreenContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "By continuing, you agree to our Terms of Service and Privacy Policy.",
+            text = "By continuing, you agree to our\nTerms of Service and Privacy Policy.",
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
     }
 }

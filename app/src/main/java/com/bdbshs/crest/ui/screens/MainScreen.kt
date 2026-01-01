@@ -1,18 +1,29 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.navigation.AppDestination
 import com.bdbshs.crest.navigation.NavigationActions
+import com.bdbshs.crest.ui.components.*
+import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.MainViewModel
 import com.bdbshs.crest.ui.viewmodels.UserType
 import kotlinx.coroutines.launch
@@ -23,6 +34,10 @@ data class DrawerItem(
     val icon: ImageVector
 )
 
+/**
+ * Modernized MainScreen with bottom navigation architecture
+ * Replaces the drawer-based navigation for better UX
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -33,158 +48,145 @@ fun MainScreen(
 ) {
     val mainViewModel: MainViewModel = viewModel()
     val uiState by mainViewModel.uiState.collectAsState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-
+    val scope = rememberCoroutineScope()
+    
+    // Bottom sheet state for profile menu
+    val sheetState = rememberModalBottomSheetState()
+    var showProfileSheet by remember { mutableStateOf(false) }
+    
+    // Scroll behavior for collapsing top bar
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    
+    // Show offline snackbar
     LaunchedEffect(isOnline) {
         if (!isOnline) {
             snackbarHostState.showSnackbar(
-                message = "You are currently offline.",
-                duration = SnackbarDuration.Short
+                message = "You are currently offline. Some features are limited.",
+                duration = SnackbarDuration.Long,
+                withDismissAction = true
             )
         }
     }
-
-    // --- THIS IS THE FIX ---
-
-    // Define the full list of all possible drawer items once.
-    val allDrawerItems = remember {
-        listOf(
-            DrawerItem(AppDestination.Home, "Home", Icons.Default.Home),
-            DrawerItem(AppDestination.Researches, "Researches", Icons.Default.Search),
-            DrawerItem(AppDestination.Documents, "Documents", Icons.Default.Description),
-            DrawerItem(AppDestination.AboutUs, "About Us", Icons.Default.Info),
-            DrawerItem(AppDestination.Accounts, "Accounts", Icons.Default.Group),
-            DrawerItem(AppDestination.Groups, "Groups", Icons.Default.Diversity3)
-        )
-    }
-
-    // This logic now correctly constructs the list for each role.
-    val itemsToShow = remember(uiState.userRole, isOnline) {
+    
+    // Get navigation items based on user role and online status
+    val bottomNavItems = remember(uiState.userRole, isOnline) {
         if (isOnline) {
-            when (uiState.userRole) {
-                UserType.STUDENT -> allDrawerItems.filter {
-                    it.route in listOf(
-                        AppDestination.Home,
-                        AppDestination.Researches,
-                        AppDestination.Documents,
-                        AppDestination.AboutUs
-                    )
-                }
-                UserType.TEACHER -> allDrawerItems.filter {
-                    it.route in listOf(
-                        AppDestination.Home,
-                        AppDestination.Researches,
-                        AppDestination.Documents,
-                        AppDestination.AboutUs,
-                        AppDestination.Accounts,
-                        AppDestination.Groups
-                    )
-                }
-                else -> emptyList()
-            }
+            getBottomNavItems(uiState.userRole)
         } else {
-            // When offline, BOTH roles can only see Researches.
-            listOfNotNull(allDrawerItems.find { it.route == AppDestination.Researches })
+            // Offline: only show Researches
+            listOf(
+                BottomNavItem(
+                    route = AppDestination.Researches,
+                    title = "Researches",
+                    selectedIcon = Icons.Filled.LibraryBooks,
+                    unselectedIcon = Icons.Outlined.LibraryBooks
+                )
+            )
         }
     }
-
-    // The title logic now correctly looks up from the FULL list of all possible items,
-    // not just the visible ones. This prevents the title from disappearing.
-    val title by remember(currentRoute, isOnline) {
-        derivedStateOf {
-            if (!isOnline && currentRoute == AppDestination.Researches.route) {
-                "Researches (Offline)"
-            } else {
-                allDrawerItems.find { it.route.route == currentRoute }?.title ?: "CREST"
-            }
+    
+    // Determine title based on current route
+    val title = remember(currentRoute, isOnline) {
+        val baseTitle = when (currentRoute) {
+            AppDestination.Home.route -> "Home"
+            AppDestination.Researches.route -> "Researches"
+            AppDestination.Documents.route -> "Documents"
+            AppDestination.Groups.route -> "Groups"
+            AppDestination.Accounts.route -> "Accounts"
+            AppDestination.AboutUs.route -> "About"
+            else -> "CREST"
+        }
+        if (!isOnline && currentRoute == AppDestination.Researches.route) {
+            "$baseTitle (Cached)"
+        } else {
+            baseTitle
         }
     }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            AppDrawer(
-                items = itemsToShow,
-                currentRoute = currentRoute,
-                onItemClick = { destination ->
-                    if (destination.route != currentRoute) {
-                        navigationActions.navigateTo(destination)
-                    }
-                    scope.launch { drawerState.close() }
+    
+    // Profile bottom sheet
+    if (showProfileSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showProfileSheet = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = CrestShapeTokens.BottomSheet
+        ) {
+            ProfileBottomSheet(
+                userName = null, // TODO: Get from user state
+                userEmail = null, // TODO: Get from user state
+                userRole = uiState.userRole,
+                userPhotoUrl = null, // TODO: Get from user state
+                isOnline = isOnline,
+                onAccountsClick = if (uiState.userRole == UserType.TEACHER && isOnline) {
+                    { navigationActions.navigateTo(AppDestination.Accounts) }
+                } else null,
+                onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
+                onSignOutClick = {
+                    mainViewModel.onSignOut()
+                    showProfileSheet = false
                 },
-                onSignOutClick = if (isOnline) { { mainViewModel.onSignOut() } } else null
+                onDismiss = { showProfileSheet = false }
+            )
+        }
+    }
+    
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { 
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = if (!isOnline) 
+                        MaterialTheme.colorScheme.secondaryContainer 
+                    else 
+                        MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = if (!isOnline)
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    else
+                        MaterialTheme.colorScheme.inverseOnSurface,
+                    shape = CrestShapeTokens.CardSmall
+                )
+            }
+        },
+        topBar = {
+            CrestTopAppBar(
+                title = title,
+                userRole = uiState.userRole,
+                isOnline = isOnline,
+                onProfileClick = { showProfileSheet = true },
+                scrollBehavior = scrollBehavior
             )
         },
-        gesturesEnabled = isOnline || drawerState.isOpen
-    ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text(title) },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, "Menu")
+        bottomBar = {
+            AnimatedVisibility(
+                visible = bottomNavItems.isNotEmpty(),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                if (isOnline) {
+                    CrestBottomNavBar(
+                        items = bottomNavItems,
+                        currentRoute = currentRoute,
+                        onItemClick = { destination ->
+                            if (destination.route != currentRoute) {
+                                navigationActions.navigateTo(destination)
+                            }
                         }
-                    }
-                )
+                    )
+                } else {
+                    // Simplified offline bar
+                    OfflineBottomNavBar(
+                        currentRoute = currentRoute,
+                        onResearchesClick = {
+                            navigationActions.navigateTo(AppDestination.Researches)
+                        }
+                    )
+                }
             }
-        ) { paddingValues ->
-            content(paddingValues, uiState.userRole)
-        }
-    }
-}
-
-
-@Composable
-private fun AppDrawer(
-    items: List<DrawerItem>,
-    currentRoute: String?,
-    onItemClick: (AppDestination) -> Unit,
-    onSignOutClick: (() -> Unit)?
-) {
-    ModalDrawerSheet {
-        Column(Modifier.fillMaxWidth()) {
-            DrawerHeader()
-            HorizontalDivider()
-            Spacer(Modifier.height(12.dp))
-            items.forEach { item ->
-                NavigationDrawerItem(
-                    icon = { Icon(item.icon, contentDescription = item.title) },
-                    label = { Text(item.title) },
-                    selected = currentRoute == item.route.route,
-                    onClick = { onItemClick(item.route) },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            onSignOutClick?.let {
-                HorizontalDivider()
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.AutoMirrored.Filled.Logout, "Sign Out") },
-                    label = { Text("Sign Out") },
-                    selected = false,
-                    onClick = it,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DrawerHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "CREST",
-            style = MaterialTheme.typography.titleLarge
-        )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        content(paddingValues, uiState.userRole)
     }
 }
