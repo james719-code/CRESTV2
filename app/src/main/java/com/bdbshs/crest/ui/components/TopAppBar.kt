@@ -91,11 +91,14 @@ fun CrestTopAppBar(
                 }
             }
             
-            // User avatar
+            // User avatar with subtle border
             Box(
                 modifier = Modifier
                     .padding(end = 12.dp)
                     .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                    .padding(1.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer)
                     .clickable(onClick = onProfileClick),
@@ -113,7 +116,7 @@ fun CrestTopAppBar(
                         imageVector = Icons.Filled.Person,
                         contentDescription = "Profile",
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -162,7 +165,7 @@ fun ProfileBottomSheet(
                 .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
         // User info header
         Box(

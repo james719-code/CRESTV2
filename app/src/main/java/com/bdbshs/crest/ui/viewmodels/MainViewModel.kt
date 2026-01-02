@@ -26,6 +26,9 @@ import kotlinx.coroutines.tasks.await
 data class MainUiState(
     val currentUid: String? = null,
     val userRole: UserType? = null,
+    val userName: String? = null,
+    val userEmail: String? = null,
+    val userPhotoUrl: String? = null,
     val isAllowedOffline: Boolean = false, // True if user is accepted/has access, based on latest known data
     val isLoading: Boolean = true, // Represents the *initial* loading state of the app
     val error: String? = null
@@ -61,10 +64,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 null
             }
 
+            // Get user profile data from Firebase Auth
+            val currentFirebaseUser = auth.currentUser
+
             _uiState.update { currentState ->
                 currentState.copy(
                     currentUid = cachedUserData.uid,
                     userRole = cachedRole,
+                    userName = currentFirebaseUser?.displayName,
+                    userEmail = currentFirebaseUser?.email,
+                    userPhotoUrl = currentFirebaseUser?.photoUrl?.toString(),
                     isAllowedOffline = when (cachedRole) {
                         UserType.STUDENT -> cachedUserData.accepted
                         UserType.TEACHER -> cachedUserData.access
@@ -79,7 +88,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             // --- Step 2: If online, start a background refresh from Firestore ---
             // This prioritizes fresh data without blocking the UI or causing state flickers.
-            val currentFirebaseUser = auth.currentUser
             if (currentFirebaseUser != null && isOnline()) {
                 Log.d(TAG, "User is online. Starting background sync with Firestore.")
                 refreshFromFirestore(currentFirebaseUser.uid)

@@ -54,11 +54,11 @@ fun LoginScreen(
     val logoScale = remember { Animatable(0.9f) }
 
     LaunchedEffect(Unit) {
-        delay(100)
+        delay(80)
         showContent = true
         logoScale.animateTo(
             targetValue = 1f,
-            animationSpec = tween(400, easing = FastOutSlowInEasing)
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
         )
     }
 
@@ -129,9 +129,9 @@ fun LoginScreen(
             } else {
                 AnimatedVisibility(
                     visible = showContent,
-                    enter = fadeIn(tween(400)) + slideInVertically(
-                        initialOffsetY = { it / 6 },
-                        animationSpec = tween(400, easing = FastOutSlowInEasing)
+                    enter = fadeIn(tween(300)) + slideInVertically(
+                        initialOffsetY = { it / 8 },
+                        animationSpec = tween(300, easing = FastOutSlowInEasing)
                     )
                 ) {
                     LoginScreenContent(
@@ -172,7 +172,7 @@ private fun LoginScreenContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         Text(
             text = "Welcome to",
@@ -189,7 +189,7 @@ private fun LoginScreenContent(
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Your gateway to academic research\nand educational resources.",
@@ -198,7 +198,7 @@ private fun LoginScreenContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Spacer(modifier = Modifier.height(72.dp))
 
         Button(
             onClick = onGoogleLoginClick,

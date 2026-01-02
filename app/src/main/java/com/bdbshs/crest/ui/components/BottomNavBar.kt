@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.navigation.AppDestination
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.UserType
+
 
 /**
  * Data class representing a bottom navigation item
@@ -267,3 +269,44 @@ fun OfflineBottomNavBar(
         }
     }
 }
+
+/**
+ * Bottom navigation bar synced with HorizontalPager state
+ * Automatically updates selection when user swipes between pages
+ */
+@Composable
+fun CrestBottomNavBarWithPager(
+    items: List<BottomNavItem>,
+    pagerState: PagerState,
+    onItemClick: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEachIndexed { index, item ->
+                val isSelected = pagerState.currentPage == index
+                BottomNavItemView(
+                    item = item,
+                    isSelected = isSelected,
+                    onClick = { onItemClick(index) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+

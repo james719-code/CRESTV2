@@ -74,7 +74,14 @@ fun ResearchesScreen(
             researchItem = uiState.selectedResearchForAction!!,
             isDeleting = uiState.isDeleting,
             onDismiss = viewModel::dismissActionDialog,
-            onEditClick = { /* TODO: Navigate to Edit Screen */ },
+            onEditClick = {
+                // Edit functionality - navigate to upload screen with research ID for editing
+                viewModel.dismissActionDialog()
+                scope.launch {
+                    // For now, navigate to details where editing can be done in future
+                    onNavigateToDetails(uiState.selectedResearchForAction!!.id)
+                }
+            },
             onDeleteClick = viewModel::onDeleteConfirmed
         )
     }

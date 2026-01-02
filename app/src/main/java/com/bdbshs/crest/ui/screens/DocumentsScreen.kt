@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.data.AppwriteClient
+import com.bdbshs.crest.ui.components.ModernSearchBar
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
 import com.bdbshs.crest.ui.viewmodels.*
@@ -92,10 +93,13 @@ fun DocumentsScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        SearchBarWithFilter(
+        ModernSearchBar(
             query = uiState.searchQuery,
             onQueryChange = viewModel::onSearchQueryChanged,
-            onFilterClick = { isFilterSheetOpen = true }
+            placeholder = "Search documents...",
+            onFilterClick = { isFilterSheetOpen = true },
+            activeFilterCount = if (uiState.selectedSortOption != DocumentSortOption.DateNewest) 1 else 0,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
         HorizontalDivider()
 
@@ -334,34 +338,4 @@ private fun DocumentEditDialog(
             }
         }
     )
-}
-
-
-// --- Reusable Search Bar (from ResearchesScreen) ---
-@Composable
-private fun SearchBarWithFilter(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onFilterClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("Search document name or description...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            singleLine = true,
-            shape = RoundedCornerShape(50)
-        )
-        IconButton(onClick = onFilterClick) {
-            Icon(Icons.Default.FilterList, contentDescription = "Filter and Sort")
-        }
-    }
 }
