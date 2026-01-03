@@ -24,6 +24,13 @@ sdkForAndroid = "8.1.0"
 pdfiumAndroid = "1.9.0"
 androidPdfViewer = "2.8.2"
 datastorePreferences = "1.2.0-alpha02"
+uiautomator = "2.2.0"
+benchmarkMacroJunit4 = "1.2.0-beta01"
+mockk = "1.13.13"
+coroutinesTest = "1.9.0"
+turbine = "1.2.0"
+testRules = "1.5.0"
+testRunner = "1.5.2"
 
 [libraries]
 # You can keep this if you need it for other purposes, or if android-pdf-viewer needs it as a transitive dependency (often it bundles what it needs)
@@ -58,10 +65,19 @@ androidx-material = { group = "androidx.compose.material", name = "material", ve
 sdk-for1-android = { group = "io.appwrite", name = "sdk-for-android", version.ref = "sdkForAndroid" }
 pdfium-android = { group = "com.github.barteksc", name = "pdfium-android", version.ref = "pdfiumAndroid" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacroJunit4" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testRules" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+android-test = { id = "com.android.test", version.ref = "agp" }
 

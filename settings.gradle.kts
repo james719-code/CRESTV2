@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "CREST"
 include(":app")
+include(":benchmark")

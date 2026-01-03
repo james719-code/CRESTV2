@@ -146,7 +146,7 @@ fun LoginScreen(
 }
 
 @Composable
-private fun LoginScreenContent(
+internal fun LoginScreenContent(
     isLoading: Boolean,
     logoScale: Float,
     onGoogleLoginClick: () -> Unit

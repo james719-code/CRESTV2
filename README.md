@@ -49,6 +49,137 @@ This project is built using modern Android development practices:
 *   **Dependency Injection:** Manual / ViewModel factory (based on current scope).
 *   **Build System:** Gradle (Kotlin DSL).
 
+## Build Variants
+
+This project supports multiple build variants for different use cases:
+
+### Debug (Dev)
+- **Application ID:** `com.bdbshs.crest.dev`
+- **Version Suffix:** `-dev`
+- **Use Case:** Development and testing
+- **Features:** No code minification, debuggable
+- **Command:** `./gradlew assembleDebug`
+
+### Release
+- **Application ID:** `com.bdbshs.crest`
+- **Use Case:** Production deployment
+- **Features:** Code minification, resource shrinking, optimized
+- **Command:** `./gradlew assembleRelease`
+
+### Benchmark
+- **Use Case:** Performance testing
+- **Features:** Based on release configuration, uses debug signing
+- **Command:** `./gradlew assembleBenchmark`
+
+> **Note:** Dev and release builds can be installed side-by-side on the same device for easy testing.
+
+## Testing
+
+### Running Unit Tests
+
+```bash
+# Run all unit tests
+./gradlew testDebugUnitTest
+
+# Run specific test class
+./gradlew testDebugUnitTest --tests "com.bdbshs.crest.data.FileCacheTest"
+```
+
+### Running Instrumented Tests
+
+Requires a connected device or emulator:
+
+```bash
+# Run all instrumented tests
+./gradlew connectedDebugAndroidTest
+
+# Run specific instrumented test
+./gradlew connectedDebugAndroidTest --tests "com.bdbshs.crest.ui.screens.DocumentsScreenTest"
+```
+
+### Running Benchmarks
+
+Requires a physical device or API 29+ emulator:
+
+```bash
+# Build and run benchmarks
+./gradlew :benchmark:connectedBenchmarkAndroidTest
+```
+
+Benchmark results are saved to: `benchmark/build/outputs/connected_android_test_additional_output/`
+
+## Android Studio Setup
+
+### Prerequisites
+
+*   **Android Studio:** Ladybug (2024.2.1) or newer recommended
+*   **JDK:** Java 11 or higher (bundled with Android Studio)
+*   **Android SDK:** API 24 (minimum) to API 35 (target)
+*   **Gradle:** 8.x (managed automatically via Gradle Wrapper)
+
+### Step-by-Step Import Guide
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/CREST.git
+    cd CREST
+    ```
+
+2.  **Open in Android Studio:**
+    *   Launch Android Studio
+    *   Select **File > Open**
+    *   Navigate to the cloned `CREST` folder and click **OK**
+    *   Wait for Gradle sync to complete (may take a few minutes on first import)
+
+3.  **Configure Firebase:**
+    *   Copy your `google-services.json` to `app/` directory
+    *   Ensure Firebase project has Authentication and Firestore enabled
+
+4.  **Configure Appwrite:**
+    *   Update Appwrite credentials in the relevant config file
+
+5.  **Sync and Build:**
+    *   Click **Sync Project with Gradle Files** (elephant icon in toolbar)
+    *   Select **Build > Make Project** to verify setup
+
+### Run Configurations
+
+| Configuration | Purpose | How to Run |
+|---------------|---------|------------|
+| `app` | Run the main application | ▶️ Select "app" and click Run |
+| Unit Tests | Run local JVM tests | Right-click `test` folder > **Run Tests** |
+| Instrumented Tests | Run on-device UI tests | Right-click `androidTest` folder > **Run Tests** |
+| Benchmark | Run performance tests | Select "benchmark" module, run "connectedBenchmarkAndroidTest" |
+
+### Run Tests from Android Studio
+
+**Unit Tests:**
+*   Navigate to `app/src/test/java/`
+*   Right-click on a test class or package
+*   Select **Run 'TestClass'** or **Run Tests in 'package'**
+
+**Instrumented Tests:**
+*   Connect a device or start an emulator
+*   Navigate to `app/src/androidTest/java/`
+*   Right-click on a test class
+*   Select **Run 'TestClass'**
+
+**Benchmarks:**
+*   Connect a **physical device** (recommended) or API 29+ emulator
+*   Open Gradle panel (View > Tool Windows > Gradle)
+*   Navigate to `benchmark > Tasks > verification`
+*   Double-click `connectedBenchmarkAndroidTest`
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Gradle sync fails | Check internet connection, invalidate caches: **File > Invalidate Caches** |
+| Missing `google-services.json` | Download from Firebase Console and place in `app/` |
+| Tests not running | Ensure correct build variant is selected (debug) |
+| Benchmark crashes | Use a physical device; ensure app is debuggable for benchmark variant |
+| JDK version mismatch | Set JDK in **File > Project Structure > SDK Location** |
+
 ## Developer
 
 **James Ryan S. Gallego**
