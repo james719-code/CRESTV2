@@ -91,34 +91,45 @@ fun CrestBottomNavBar(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
+        modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
-        tonalElevation = 1.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEach { item ->
-                val isSelected = currentRoute == item.route.route
-                BottomNavItemView(
-                    item = item,
-                    isSelected = isSelected,
-                    onClick = { onItemClick(item.route) },
-                    modifier = Modifier.weight(1f)
-                )
+        Column {
+            // Subtle top border to separate from content
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                thickness = 0.5.dp
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding() // Move padding here to extend background
+                    .height(80.dp)
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEach { item ->
+                    val isSelected = currentRoute == item.route.route
+                    val weight by animateFloatAsState(
+                        targetValue = if (isSelected) 1.5f else 1f,
+                        label = "weight"
+                    )
+                    BottomNavItemView(
+                        item = item,
+                        isSelected = isSelected,
+                        onClick = { onItemClick(item.route) },
+                        modifier = Modifier.weight(weight)
+                    )
+                }
             }
         }
     }
 }
 
+// Same logic for Item View but added maxLines and softWrap
 @Composable
 private fun BottomNavItemView(
     item: BottomNavItem,
@@ -127,7 +138,7 @@ private fun BottomNavItemView(
     modifier: Modifier = Modifier
 ) {
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0.9f,
+        targetValue = if (isSelected) 1f else 0.85f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -137,7 +148,7 @@ private fun BottomNavItemView(
     
     val containerColor by animateColorAsState(
         targetValue = if (isSelected) 
-            MaterialTheme.colorScheme.primaryContainer 
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
         else 
             Color.Transparent,
         label = "containerColor"
@@ -145,9 +156,9 @@ private fun BottomNavItemView(
     
     val contentColor by animateColorAsState(
         targetValue = if (isSelected) 
-            MaterialTheme.colorScheme.onPrimaryContainer 
+            MaterialTheme.colorScheme.primary
         else 
-            MaterialTheme.colorScheme.onSurfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
         label = "contentColor"
     )
 
@@ -158,34 +169,28 @@ private fun BottomNavItemView(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
-            )
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Box(
             modifier = Modifier
                 .scale(scale)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(CircleShape)
                 .background(containerColor)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.Center
             ) {
                 BadgedBox(
                     badge = {
                         item.badge?.let { count ->
                             if (count > 0) {
-                                Badge(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                ) {
-                                    Text(
-                                        text = if (count > 99) "99+" else count.toString(),
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
+                                Badge {
+                                    Text(text = if (count > 99) "99+" else count.toString())
                                 }
                             }
                         }
@@ -200,23 +205,17 @@ private fun BottomNavItemView(
                 }
                 
                 if (isSelected) {
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = item.title,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = contentColor
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
-        }
-        
-        if (!isSelected) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.labelSmall,
-                color = contentColor
-            )
         }
     }
 }
@@ -282,29 +281,38 @@ fun CrestBottomNavBarWithPager(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
+        modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
-        tonalElevation = 1.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEachIndexed { index, item ->
-                val isSelected = pagerState.currentPage == index
-                BottomNavItemView(
-                    item = item,
-                    isSelected = isSelected,
-                    onClick = { onItemClick(index) },
-                    modifier = Modifier.weight(1f)
-                )
+        Column {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                thickness = 0.5.dp
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding() // Move padding here
+                    .height(80.dp)
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEachIndexed { index, item ->
+                    val isSelected = pagerState.currentPage == index
+                    val weight by animateFloatAsState(
+                        targetValue = if (isSelected) 1.5f else 1f,
+                        label = "weight"
+                    )
+                    BottomNavItemView(
+                        item = item,
+                        isSelected = isSelected,
+                        onClick = { onItemClick(index) },
+                        modifier = Modifier.weight(weight)
+                    )
+                }
             }
         }
     }

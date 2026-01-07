@@ -54,7 +54,7 @@ This project is built using modern Android development practices:
 This project supports multiple build variants for different use cases:
 
 ### Debug (Dev)
-- **Application ID:** `com.bdbshs.crest.dev`
+- **Application ID:** `com.bdbshs.crest`
 - **Version Suffix:** `-dev`
 - **Use Case:** Development and testing
 - **Features:** No code minification, debuggable
@@ -70,8 +70,6 @@ This project supports multiple build variants for different use cases:
 - **Use Case:** Performance testing
 - **Features:** Based on release configuration, uses debug signing
 - **Command:** `./gradlew assembleBenchmark`
-
-> **Note:** Dev and release builds can be installed side-by-side on the same device for easy testing.
 
 ## Testing
 

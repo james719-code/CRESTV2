@@ -143,6 +143,7 @@ fun ProfileBottomSheet(
     isOnline: Boolean,
     onAccountsClick: (() -> Unit)? = null,
     onAboutClick: () -> Unit,
+    onStorageClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onSignOutClick: () -> Unit,
     onDismiss: () -> Unit,
@@ -255,13 +256,26 @@ fun ProfileBottomSheet(
                     onDismiss()
                 }
             )
+        }
+        
+        // Storage Management - available both online and offline
+        ProfileMenuItem(
+            icon = Icons.Outlined.Storage,
+            title = "Storage",
+            subtitle = "Manage cached files",
+            onClick = {
+                onStorageClick()
+                onDismiss()
+            }
+        )
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            HorizontalDivider()
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        HorizontalDivider()
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        if (isOnline) {
             // Sign out
             ProfileMenuItem(
                 icon = Icons.AutoMirrored.Filled.Logout,

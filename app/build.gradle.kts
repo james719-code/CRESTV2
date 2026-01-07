@@ -21,7 +21,6 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             isMinifyEnabled = false
             isDebuggable = true
@@ -82,6 +81,7 @@ dependencies {
     implementation(libs.androidx.material)
     implementation(libs.sdk.for1.android)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.splashscreen)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     
     // Unit Testing

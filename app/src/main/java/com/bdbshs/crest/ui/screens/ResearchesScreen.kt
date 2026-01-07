@@ -35,6 +35,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.ui.components.ModernSearchBar
 import com.bdbshs.crest.ui.components.FilterChipsRow
 import com.bdbshs.crest.ui.components.FilterChipData
+import com.bdbshs.crest.ui.components.ModernFilterChip
+import com.bdbshs.crest.ui.components.FilterSectionTitle
 import com.bdbshs.crest.ui.components.ModernResearchCard
 import com.bdbshs.crest.ui.components.ResearchEmptyState
 import com.bdbshs.crest.ui.screens.common.EmptyState
@@ -293,7 +295,7 @@ private fun ResearchCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun FilterBottomSheet(
     uiState: ResearchesUiState,
@@ -307,78 +309,120 @@ private fun FilterBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
-            modifier = Modifier.navigationBarsPadding() // Handles padding for gesture nav
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
         ) {
             // --- Sheet Header ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Filter & Sort", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = onResetClick) { Text("Reset") }
+                Text(
+                    "Filter & Sort",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(
+                    onClick = onResetClick,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Reset All", fontWeight = FontWeight.SemiBold)
+                }
             }
-            HorizontalDivider()
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
 
             // --- Scrollable Filter Options ---
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
-                // ... (The content of the filter dialog remains the same) ...
-                // You can copy the items from your original FilterDialog here
+                // Research Type Section
                 item {
-                    Text("Research Type", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Column {
-                        ResearchType.entries.forEach { type ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().selectable(selected = (uiState.selectedResearchType == type), onClick = { onResearchTypeSelected(type) }, role = Role.RadioButton).padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(selected = (uiState.selectedResearchType == type), onClick = null)
-                                Text(text = type.name.lowercase().replaceFirstChar { it.titlecase() }, modifier = Modifier.padding(start = 8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterSectionTitle(icon = Icons.Default.Category, title = "Research Type")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ResearchType.entries.forEach { type ->
+                                val isSelected = uiState.selectedResearchType == type
+                                ModernFilterChip(
+                                    label = type.name.lowercase().replaceFirstChar { it.titlecase() },
+                                    isSelected = isSelected,
+                                    onClick = { onResearchTypeSelected(type) }
+                                )
                             }
                         }
                     }
                 }
+
+                // Strand Section
                 item {
-                    Text("Strand", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Column {
-                        uiState.strands.forEach { strand ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().selectable(selected = strand.isSelected, onClick = { onStrandCheckedChange(strand.name, !strand.isSelected) }, role = Role.Checkbox).padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(checked = strand.isSelected, onCheckedChange = null)
-                                Text(text = strand.name, modifier = Modifier.padding(start = 8.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterSectionTitle(icon = Icons.Default.School, title = "Strands")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            uiState.strands.forEach { strand ->
+                                ModernFilterChip(
+                                    label = strand.name,
+                                    isSelected = strand.isSelected,
+                                    onClick = { onStrandCheckedChange(strand.name, !strand.isSelected) }
+                                )
                             }
                         }
                     }
                 }
+
+                // Sort By Section
                 item {
-                    Text("Sort By", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    SortByDropdown(selectedOption = uiState.selectedSortOption, onOptionSelected = onSortOptionSelected)
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterSectionTitle(icon = Icons.Default.Sort, title = "Sort By")
+                        SortByDropdown(
+                            selectedOption = uiState.selectedSortOption,
+                            onOptionSelected = onSortOptionSelected
+                        )
+                    }
                 }
             }
 
-            // --- Action Buttons ---
-            HorizontalDivider()
-            Button(
-                onClick = onApplyClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+            // --- Action Button ---
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                tonalElevation = 2.dp,
+                shadowElevation = 8.dp
             ) {
-                Text("Apply Filters")
+                Button(
+                    onClick = onApplyClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.FilterList, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Apply Filters", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
 }
+
 
 
 // --- Unchanged Composables ---

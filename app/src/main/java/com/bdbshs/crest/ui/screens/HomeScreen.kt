@@ -15,7 +15,8 @@ fun HomeScreen(
     userRole: UserType?,
     onNavigateToGroupUpload: () -> Unit,
     onNavigateToResearchDetails: (String) -> Unit,
-    onNavigateToTeacherUpload: () -> Unit
+    onNavigateToTeacherUpload: () -> Unit,
+    onNavigateToAccounts: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when (userRole) {
@@ -29,7 +30,8 @@ fun HomeScreen(
                 modifier = modifier,
                 viewModel = viewModel(),
                 onNavigateToUploadResearch = onNavigateToTeacherUpload,
-                onNavigateToResearchDetails = onNavigateToResearchDetails
+                onNavigateToResearchDetails = onNavigateToResearchDetails,
+                onNavigateToAccounts = onNavigateToAccounts
             )
             else -> {
                 CircularProgressIndicator()

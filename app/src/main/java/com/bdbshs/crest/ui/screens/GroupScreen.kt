@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
+import com.bdbshs.crest.ui.components.ModernSearchBar
+import com.bdbshs.crest.ui.components.ModernFilterChip
+import com.bdbshs.crest.ui.components.FilterSectionTitle
 import com.bdbshs.crest.ui.viewmodels.GroupItem
 import com.bdbshs.crest.ui.viewmodels.GroupSortOption
 import com.bdbshs.crest.ui.viewmodels.GroupsUiState
@@ -70,10 +73,15 @@ fun GroupsScreen(
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        SearchBarWithFilter(
+        ModernSearchBar(
             query = uiState.searchQuery,
             onQueryChange = viewModel::onSearchQueryChanged,
-            onFilterClick = { isSheetOpen = true }
+            placeholder = "Search by group name...",
+            onFilterClick = { isSheetOpen = true },
+            activeFilterCount = (if (uiState.showPendingOnly) 1 else 0) + 
+                               (if (uiState.showAcceptedOnly) 1 else 0) + 
+                               (if (uiState.selectedSortOption != GroupSortOption.NameAZ) 1 else 0),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
 
         Box(
@@ -114,36 +122,9 @@ fun GroupsScreen(
 }
 
 
-@Composable
-private fun SearchBarWithFilter(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onFilterClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("Search by group name...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            singleLine = true,
-            shape = RoundedCornerShape(50)
-        )
-        IconButton(onClick = onFilterClick) {
-            Icon(Icons.Default.FilterList, contentDescription = "Filter and Sort")
-        }
-    }
-}
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun FilterSortBottomSheet(
     sheetState: SheetState,
@@ -155,49 +136,106 @@ private fun FilterSortBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .fillMaxWidth()
+                .navigationBarsPadding()
         ) {
-            Text("Filter & Sort", style = MaterialTheme.typography.titleLarge)
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Filter by Status", style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = uiState.showPendingOnly, onCheckedChange = onShowPendingOnlyToggled)
-                    Text("Show Pending Only")
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = uiState.showAcceptedOnly, onCheckedChange = onShowAcceptedOnlyToggled)
-                    Text("Show Accepted Only")
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Filter & Sort",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(onClick = {
+                    onShowPendingOnlyToggled(false)
+                    onShowAcceptedOnlyToggled(false)
+                    onSortOptionSelected(GroupSortOption.NameAZ)
+                }) {
+                    Text("Reset All", fontWeight = FontWeight.SemiBold)
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Sort By", style = MaterialTheme.typography.titleMedium)
-                GroupSortOption.entries.forEach { option ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = (uiState.selectedSortOption == option),
-                                onClick = { onSortOptionSelected(option) },
-                                role = androidx.compose.ui.semantics.Role.RadioButton
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            LazyColumn(
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                // Status Filter
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterSectionTitle(icon = Icons.Default.ListAlt, title = "Filter by Status")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ModernFilterChip(
+                                label = "Pending Only",
+                                isSelected = uiState.showPendingOnly,
+                                onClick = { onShowPendingOnlyToggled(!uiState.showPendingOnly) }
                             )
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (uiState.selectedSortOption == option),
-                            onClick = null
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(option.displayName)
+                            ModernFilterChip(
+                                label = "Accepted Only",
+                                isSelected = uiState.showAcceptedOnly,
+                                onClick = { onShowAcceptedOnlyToggled(!uiState.showAcceptedOnly) }
+                            )
+                        }
                     }
+                }
+
+                // Sort Section
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterSectionTitle(icon = Icons.Default.Sort, title = "Sort By")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            GroupSortOption.entries.forEach { option ->
+                                val isSelected = uiState.selectedSortOption == option
+                                ModernFilterChip(
+                                    label = option.displayName,
+                                    isSelected = isSelected,
+                                    onClick = { onSortOptionSelected(option) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Action Button
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                tonalElevation = 2.dp,
+                shadowElevation = 8.dp
+            ) {
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.FilterList, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Apply Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -109,6 +109,7 @@ fun MainScreen(
                     { navigationActions.navigateTo(AppDestination.Accounts) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
+                onStorageClick = { navigationActions.navigateToStorageManagement() },
                 onSignOutClick = {
                     mainViewModel.onSignOut()
                     showProfileSheet = false
@@ -294,6 +295,7 @@ fun MainScreenWithPager(
                     { navigationActions.navigateTo(AppDestination.Accounts) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
+                onStorageClick = { navigationActions.navigateToStorageManagement() },
                 onSignOutClick = {
                     mainViewModel.onSignOut()
                     showProfileSheet = false

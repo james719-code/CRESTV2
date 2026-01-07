@@ -37,7 +37,8 @@ data class DashboardCardItem(
 
 data class SimpleResearch(
     val id: String,
-    val title: String
+    val title: String,
+    val date: Long = 0L
 )
 
 data class TeacherHomeUiState(
@@ -116,7 +117,11 @@ class TeacherHomeViewModel(application: Application) : AndroidViewModel(applicat
                         .limit(3).get().await()
 
                     (qualitative.documents + quantitative.documents)
-                        .mapNotNull { doc -> doc.getString("title")?.let { SimpleResearch(doc.id, it) } }
+                        .mapNotNull { doc ->
+                            val title = doc.getString("title")
+                            val date = doc.getLong("createdAt") ?: 0L
+                            if (title != null) SimpleResearch(doc.id, title, date) else null
+                        }
                         .sortedByDescending { it.id } // Crude sort for combining recent
                         .take(5)
                 }

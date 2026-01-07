@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.data.AppwriteClient
 import com.bdbshs.crest.ui.components.ModernSearchBar
+import com.bdbshs.crest.ui.components.ModernFilterChip
+import com.bdbshs.crest.ui.components.FilterSectionTitle
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
 import com.bdbshs.crest.ui.viewmodels.*
@@ -216,7 +218,7 @@ private fun DocumentCard(
 
 // --- Filter/Sort Bottom Sheet ---
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun DocumentFilterSortBottomSheet(
     sheetState: SheetState,
@@ -226,34 +228,82 @@ private fun DocumentFilterSortBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .navigationBarsPadding()
         ) {
-            Text("Sort Documents", style = MaterialTheme.typography.titleLarge)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Sort By", style = MaterialTheme.typography.titleMedium)
-                DocumentSortOption.entries.forEach { option ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = (uiState.selectedSortOption == option),
-                                onClick = { onSortOptionSelected(option) },
-                                role = androidx.compose.ui.semantics.Role.RadioButton
-                            )
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = (uiState.selectedSortOption == option), onClick = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(option.displayName)
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Sort Documents",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                TextButton(onClick = {
+                    onSortOptionSelected(DocumentSortOption.DateNewest)
+                }) {
+                    Text("Reset", fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            LazyColumn(
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                // Sort Section
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FilterSectionTitle(icon = Icons.Default.Sort, title = "Sort By")
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            DocumentSortOption.entries.forEach { option ->
+                                val isSelected = uiState.selectedSortOption == option
+                                ModernFilterChip(
+                                    label = option.displayName,
+                                    isSelected = isSelected,
+                                    onClick = { onSortOptionSelected(option) }
+                                )
+                            }
+                        }
                     }
+                }
+            }
+
+            // Action Button
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                tonalElevation = 2.dp,
+                shadowElevation = 8.dp
+            ) {
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.FilterList, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Apply Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }

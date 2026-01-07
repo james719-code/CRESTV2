@@ -51,6 +51,7 @@ sealed class AppDestination(val route: String) {
         const val routeWithArg = "group_detail/{groupId}"
         const val groupIdArg = "groupId"
     }
+    object StorageManagement : AppDestination("storage_management")
 }
 
 // --- NAVIGATION ACTIONS ---
@@ -78,6 +79,7 @@ class NavigationActions(private val navController: NavController) {
     fun navigateBack() = navController.popBackStack()
     fun navigateToGroupDetails(groupId: String) =
         navController.navigate("${AppDestination.GroupDetail.route}/$groupId")
+    fun navigateToStorageManagement() = navController.navigate(AppDestination.StorageManagement.route)
 }
 
 // --- NETWORK STATE HOLDER ---
@@ -212,6 +214,9 @@ private fun CrestNavHost(
         ) {
             GroupDetailScreen(onNavigateBack = navigationActions::navigateBack)
         }
+        composable(AppDestination.StorageManagement.route) {
+            StorageManagementScreen(onNavigateBack = navigationActions::navigateBack)
+        }
 
         // --- PRIMARY ROUTES ---
         // Main pager screen with swipeable tabs
@@ -226,7 +231,8 @@ private fun CrestNavHost(
                         userRole = userRole,
                         onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
                         onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload
+                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
+                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
                     )
                 },
                 researchesContent = { padding, userRole ->
@@ -263,7 +269,8 @@ private fun CrestNavHost(
                         userRole = userRole,
                         onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
                         onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload
+                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
+                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
                     )
                 },
                 researchesContent = { padding, userRole ->
@@ -305,7 +312,8 @@ private fun CrestNavHost(
                         userRole = userRole,
                         onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
                         onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload
+                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
+                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
                     )
                 },
                 researchesContent = { padding, userRole ->
@@ -342,7 +350,8 @@ private fun CrestNavHost(
                         userRole = userRole,
                         onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
                         onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload
+                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
+                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
                     )
                 },
                 researchesContent = { padding, userRole ->

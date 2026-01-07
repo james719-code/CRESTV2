@@ -41,4 +41,7 @@
     <!-- Disabled / State Colors -->
     <color name="disabled_gray">#BDBDBD</color>
     <color name="divider_color">#E0E0E0</color>
+
+    <!-- Splash Screen -->
+    <color name="splash_background">#FAFAFC</color>
 </resources>
