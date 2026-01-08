@@ -31,12 +31,13 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.bdbshs.crest.ui.screens.SplashScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Splash screen timing constants
-private const val SPLASH_DISPLAY_DURATION_MS = 800L
-private const val SPLASH_FADE_DURATION_MS = 400
+private const val SPLASH_DISPLAY_DURATION_MS = 1200L
+private const val SPLASH_FADE_DURATION_MS = 500
 
 /**
  * Main entry point for the CREST application.
@@ -191,12 +192,5 @@ private fun CrestAppWithSplash(isInitialized: Boolean) {
  */
 @Composable
 private fun SplashContent() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
-    ) {
-        AppLogo()
-    }
+    SplashScreen()
 }
