@@ -13,9 +13,9 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.bdbshs.crest.data.UserPrefs
 
 private const val BUCKET_ID = "686a262b0024b8e10a35"
 
@@ -25,6 +25,7 @@ data class ResearchDetailUiState(
     val pdfBytes: ByteArray? = null,
     val isDetailsLoading: Boolean = true,
     val isPdfLoading: Boolean = false,
+    val currentPage: Int = 0,
     val error: String? = null
 ) {
     override fun equals(other: Any?): Boolean {
@@ -54,7 +55,7 @@ data class ResearchDetailUiState(
 
 class ResearchDetailViewModel(
     application: Application,
-    savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
 
     private val firestore = FirebaseClient.firestore
@@ -62,7 +63,9 @@ class ResearchDetailViewModel(
     private var qualitativeListener: ListenerRegistration? = null
     private var quantitativeListener: ListenerRegistration? = null
 
-    private val _uiState = MutableStateFlow(ResearchDetailUiState())
+    private val _uiState = MutableStateFlow(ResearchDetailUiState(
+        currentPage = savedStateHandle.get<Int>("current_page") ?: 0
+    ))
     val uiState = _uiState.asStateFlow()
 
     private val researchId: String? = savedStateHandle.get<String>(AppDestination.ResearchDetails.researchIdArg)
@@ -72,6 +75,9 @@ class ResearchDetailViewModel(
     init {
         if (!researchId.isNullOrBlank()) {
             setupListeners()
+            // Load persistent page position SYNCHRONOUSLY
+            val lastPage = UserPrefs.getLastPageSync(getApplication(), researchId)
+            _uiState.update { it.copy(currentPage = lastPage) }
         } else {
             _uiState.update { it.copy(isDetailsLoading = false, error = "Research ID is missing.") }
         }
@@ -115,8 +121,13 @@ class ResearchDetailViewModel(
                 type = type
             )
             _uiState.update { it.copy(isDetailsLoading = false, researchItem = research, error = null) }
-            // --- REMOVED from here ---
-            // The download count is no longer incremented on view.
+            
+            // Auto-load if cached
+            if (research?.file_link != null && _uiState.value.pdfBytes == null) {
+                if (FileCache.isFileCached(getApplication(), research.file_link)) {
+                    loadPdf(true)
+                }
+            }
         }
     }
 
@@ -189,5 +200,16 @@ class ResearchDetailViewModel(
     // This function is still needed to switch back from the PDF viewer
     fun clearPdfBytes() {
         _uiState.update { it.copy(pdfBytes = null) }
+    }
+
+    fun updateCurrentPage(page: Int) {
+        if (_uiState.value.currentPage == page) return
+        _uiState.update { it.copy(currentPage = page) }
+        savedStateHandle["current_page"] = page
+        
+        // Save to SharedPrefs for persistence across navigation
+        if (researchId != null) {
+            UserPrefs.saveLastPageSync(getApplication(), researchId, page)
+        }
     }
 }
