@@ -88,8 +88,8 @@ fun TeacherHomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 // 1. Greeter Section
                 item {
@@ -177,7 +177,7 @@ private fun GreeterCard(teacherName: String, dashboardItems: List<DashboardCardI
 
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 24.dp, vertical = 24.dp)
+                    .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 48.dp)
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -185,23 +185,24 @@ private fun GreeterCard(teacherName: String, dashboardItems: List<DashboardCardI
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Welcome back,",
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
                     Text(
                         text = if (teacherName.isNotBlank()) teacherName else "Teacher",
-                        style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp),
+                        style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimary,
-                        letterSpacing = (-0.5).sp
+                        lineHeight = 44.sp,
+                        letterSpacing = (-1).sp
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                     Text(
                         text = currentDate.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.2.sp,
+                        letterSpacing = 1.5.sp,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                     )
                 }
@@ -210,7 +211,7 @@ private fun GreeterCard(teacherName: String, dashboardItems: List<DashboardCardI
                 if (dashboardItems.isNotEmpty()) {
                     Column(
                         horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         dashboardItems.take(2).forEach { item ->
                             val label = remember(item.title) { 
@@ -221,14 +222,14 @@ private fun GreeterCard(teacherName: String, dashboardItems: List<DashboardCardI
                                 shape = CircleShape
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Icon(
                                         imageVector = item.icon,
                                         contentDescription = null,
-                                        modifier = Modifier.size(12.dp),
+                                        modifier = Modifier.size(14.dp),
                                         tint = Color.White
                                     )
                                     Text(

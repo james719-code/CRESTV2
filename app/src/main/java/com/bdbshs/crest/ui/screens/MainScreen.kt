@@ -7,6 +7,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -31,6 +33,7 @@ fun MainScreen(
     navigationActions: NavigationActions,
     currentRoute: String?,
     isOnline: Boolean,
+    onNavigationClick: (() -> Unit)? = null,
     content: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit
 ) {
     val mainViewModel: MainViewModel = viewModel()
@@ -66,8 +69,8 @@ fun MainScreen(
                 BottomNavItem(
                     route = AppDestination.Researches,
                     title = "Researches",
-                    selectedIcon = Icons.Filled.LibraryBooks,
-                    unselectedIcon = Icons.Outlined.LibraryBooks
+                    selectedIcon = Icons.AutoMirrored.Filled.LibraryBooks,
+                    unselectedIcon = Icons.AutoMirrored.Outlined.LibraryBooks
                 )
             )
         }
@@ -144,6 +147,7 @@ fun MainScreen(
                 userName = uiState.userName,
                 userPhotoUrl = uiState.userPhotoUrl,
                 isOnline = isOnline,
+                onNavigationClick = onNavigationClick,
                 onProfileClick = { showProfileSheet = true },
                 scrollBehavior = scrollBehavior
             )
@@ -177,6 +181,7 @@ fun MainScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
+        // No padding here because it's passed to content
         content(paddingValues, uiState.userRole)
     }
 }
@@ -228,8 +233,8 @@ fun MainScreenWithPager(
                 BottomNavItem(
                     route = AppDestination.Researches,
                     title = "Researches",
-                    selectedIcon = Icons.Filled.LibraryBooks,
-                    unselectedIcon = Icons.Outlined.LibraryBooks
+                    selectedIcon = Icons.AutoMirrored.Filled.LibraryBooks,
+                    unselectedIcon = Icons.AutoMirrored.Outlined.LibraryBooks
                 )
             )
         }

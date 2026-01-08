@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -39,11 +40,23 @@ fun CrestTopAppBar(
     userPhotoUrl: String? = null,
     isOnline: Boolean = true,
     onProfileClick: () -> Unit = {},
+    onNavigationClick: (() -> Unit)? = null,
     onNotificationClick: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
+        navigationIcon = {
+            if (onNavigationClick != null) {
+                IconButton(onClick = onNavigationClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        },
         title = {
             Column {
                 Text(

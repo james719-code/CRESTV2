@@ -14,6 +14,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,8 +65,29 @@ fun AccountsScreen(
 
     // --- MAIN UI ---
     Column(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
+        // --- Custom Header ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+        ) {
+            Text(
+                text = "User Directory",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Manage institutional access and account status.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         // --- Standalone Search Bar ---
         SearchBarWithFilter(
             query = uiState.searchQuery,
@@ -94,9 +116,18 @@ fun AccountsScreen(
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        Text(
+                            text = "Matching Results (${accountsToShow.size})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
+                        )
+                    }
                     items(accountsToShow, key = { it.uid }) { account ->
                         AccountCard(
                             account = account,
@@ -262,7 +293,7 @@ private fun AccountsFilterDialog(
                     onExpandedChange = { isSortExpanded = !isSortExpanded }
                 ) {
                     OutlinedTextField(
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                         readOnly = true,
                         value = uiState.selectedSortOption.displayName,
                         onValueChange = {},

@@ -33,12 +33,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.ui.components.ModernSearchBar
-import com.bdbshs.crest.ui.components.ModernFilterChip
-import com.bdbshs.crest.ui.components.FilterSectionTitle
+import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
 import com.bdbshs.crest.ui.viewmodels.*
+import com.bdbshs.crest.utils.getFileNameFromUri
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 

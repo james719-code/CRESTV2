@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -383,7 +384,7 @@ private fun StudentSignUpForm(
                 label = { Text("Select Strand") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.isStrandDropdownExpanded) },
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 enabled = !uiState.isLoading,
                 isError = strandError,
@@ -419,7 +420,7 @@ private fun StudentSignUpForm(
                 label = { Text("Select Gender") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.isGenderDropdownExpanded) },
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 enabled = !uiState.isLoading,
                 isError = genderError,

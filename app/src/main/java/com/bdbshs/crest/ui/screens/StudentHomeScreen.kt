@@ -31,6 +31,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ComposeView
@@ -61,8 +64,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.*
 import kotlin.coroutines.resume
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,7 +163,7 @@ fun StudentHomeScreen(
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier.padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { GreetingCard(name = uiState.studentDetails?.name) }
@@ -616,14 +621,75 @@ private fun ResearchListItem(research: ResearchItem, onClick: () -> Unit) {
 
 @Composable
 private fun GreetingCard(name: String?) {
+    val currentDate = remember {
+        SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date())
+    }
+    
     Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge),
+        shape = MaterialTheme.shapes.extraLarge,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
-        Column(Modifier.fillMaxWidth().padding(20.dp)) {
-            Text("Welcome back,", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-            Spacer(Modifier.height(4.dp))
-            Text(name ?: "Student", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        )
+                    )
+                )
+        ) {
+            // Decorative shapes for a "Modern Premium" feel
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .offset(x = 250.dp, y = (-50).dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .offset(x = (-40).dp, y = 100.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.05f))
+            )
+
+            Column(
+                modifier = Modifier
+                    .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 48.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Welcome back,",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = name ?: "Student",
+                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    lineHeight = 44.sp,
+                    letterSpacing = (-1).sp
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+                Text(
+                    text = currentDate.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

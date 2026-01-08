@@ -5,26 +5,45 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bdbshs.crest.ui.components.FilePicker
+import com.bdbshs.crest.ui.theme.CrestShapeTokens
 import com.bdbshs.crest.ui.viewmodels.ResearchType
 import com.bdbshs.crest.ui.viewmodels.Strand
 import com.bdbshs.crest.ui.viewmodels.UploadResearchViewModel
+import com.bdbshs.crest.utils.getFileNameFromUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,98 +81,174 @@ fun UploadResearchScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text("Upload New Research") },
+            CenterAlignedTopAppBar(
+                title = { 
+                    Text(
+                        "Upload Research", 
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold 
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(16.dp)
-        ) {
-            item {
-                FormSection(title = "Research Details") {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedTextField(
-                            value = uiState.title,
-                            onValueChange = viewModel::onTitleChange,
-                            label = { Text("Research Title") },
-                            modifier = Modifier.fillMaxWidth(),
-                            leadingIcon = { Icon(Icons.Default.Title, contentDescription = null) }
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Subtle Background Decoration
+            UploadBackgroundDecorations()
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(32.dp)
+            ) {
+                // Header / Intro
+                item {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "New Submission",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
                         )
-                        StrandDropdown(
-                            selectedStrand = uiState.selectedStrand,
-                            onStrandSelected = viewModel::onStrandSelected
-                        )
-                        ResearchTypeDropdown(
-                            selectedType = uiState.selectedType,
-                            onTypeSelected = viewModel::onTypeSelected
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Share your institutional research with the academic community.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            }
 
-            item {
-                FormSection(title = "Authors") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        uiState.members.forEachIndexed { index, memberName ->
-                            MemberInputField(
-                                name = memberName,
-                                onNameChange = { newName -> viewModel.onMemberChange(index, newName) },
-                                onRemove = { viewModel.removeMemberField(index) },
-                                canBeRemoved = uiState.members.size > 1
+                // Section 1: Research Details
+                item {
+                    ModernFormSection(
+                        title = "Research Details",
+                        icon = Icons.Default.Description
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                            ModernTextField(
+                                value = uiState.title,
+                                onValueChange = viewModel::onTitleChange,
+                                label = "Research Title",
+                                placeholder = "Enter the full title of your study",
+                                leadingIcon = Icons.Default.Title
+                            )
+                            StrandDropdown(
+                                selectedStrand = uiState.selectedStrand,
+                                onStrandSelected = viewModel::onStrandSelected
+                            )
+                            ResearchTypeDropdown(
+                                selectedType = uiState.selectedType,
+                                onTypeSelected = viewModel::onTypeSelected
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = viewModel::addMemberField,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Member")
-                            Spacer(Modifier.width(8.dp))
-                            Text("Add Another Member")
+                    }
+                }
+
+                // Section 2: Authorship
+                item {
+                    ModernFormSection(
+                        title = "Authors",
+                        icon = Icons.Default.Groups
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            uiState.members.forEachIndexed { index, memberName ->
+                                MemberInputField(
+                                    name = memberName,
+                                    onNameChange = { newName -> viewModel.onMemberChange(index, newName) },
+                                    onRemove = { viewModel.removeMemberField(index) },
+                                    canBeRemoved = uiState.members.size > 1
+                                )
+                            }
+                            
+                            TextButton(
+                                onClick = viewModel::addMemberField,
+                                modifier = Modifier.padding(top = 4.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Add Contributor")
+                            }
                         }
                     }
                 }
-            }
 
-            item {
-                FormSection(title = "Document") {
-                    FilePicker(
-                        fileName = uiState.selectedFileName,
-                        onPickFileClick = { filePickerLauncher.launch("application/pdf") },
-                        onClearFileClick = viewModel::onFileCleared,
-                        enabled = !uiState.isLoading,
-                    )
-                }
-            }
-
-            item {
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = viewModel::uploadResearch,
-                    enabled = !uiState.isLoading,
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 3.dp
+                // Section 3: Document
+                item {
+                    ModernFormSection(
+                        title = "Document",
+                        icon = Icons.Default.PictureAsPdf
+                    ) {
+                        FilePicker(
+                            fileName = uiState.selectedFileName,
+                            onPickFileClick = { filePickerLauncher.launch("application/pdf") },
+                            onClearFileClick = viewModel::onFileCleared,
+                            isLoading = uiState.isLoading
                         )
-                    } else {
-                        Icon(Icons.Default.Upload, contentDescription = null)
-                        Spacer(Modifier.width(12.dp))
-                        Text("Upload Research", style = MaterialTheme.typography.titleMedium)
                     }
+                }
+
+                // Action Button
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = viewModel::uploadResearch,
+                        enabled = !uiState.isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .shadow(
+                                elevation = if (uiState.isLoading) 0.dp else 8.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                spotColor = MaterialTheme.colorScheme.primary
+                            ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                "Submit Research", 
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    Text(
+                        text = "Make sure all details are accurate before submitting.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(48.dp))
                 }
             }
         }
@@ -161,18 +256,121 @@ fun UploadResearchScreen(
 }
 
 @Composable
-private fun FormSection(
+private fun UploadBackgroundDecorations() {
+    val phase by rememberInfiniteTransition(label = "").animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase"
+    )
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+
+        drawCircle(
+            color = Color(0xFF2563EB).copy(alpha = 0.03f),
+            radius = 300.dp.toPx(),
+            center = Offset(
+                x = width * 0.9f + (kotlin.math.cos(phase) * 20.dp.toPx()),
+                y = height * 0.1f + (kotlin.math.sin(phase) * 20.dp.toPx())
+            )
+        )
+    }
+}
+
+@Composable
+private fun ModernFormSection(
     title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 12.dp),
-            color = MaterialTheme.colorScheme.primary
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+            border = borderStroke()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun borderStroke() = androidx.compose.foundation.BorderStroke(
+    width = 1.dp,
+    brush = Brush.verticalGradient(
+        listOf(
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f)
         )
-        Column(content = content)
+    )
+)
+
+@Composable
+private fun ModernTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyMedium) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            leadingIcon = { 
+                Icon(
+                    leadingIcon, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                ) 
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface
+            ),
+            singleLine = true
+        )
     }
 }
 
@@ -183,76 +381,46 @@ private fun MemberInputField(
     onRemove: () -> Unit,
     canBeRemoved: Boolean
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically, 
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
-            label = { Text("Full Name") },
+            placeholder = { Text("Author's full name") },
             modifier = Modifier.weight(1f),
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
+            shape = RoundedCornerShape(16.dp),
+            leadingIcon = { 
+                Icon(
+                    Icons.Default.Person, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                ) 
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                focusedBorderColor = MaterialTheme.colorScheme.primary
+            ),
+            singleLine = true
         )
         if (canBeRemoved) {
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, contentDescription = "Remove Member")
-            }
-        } else {
-            Spacer(modifier = Modifier.width(48.dp))
-        }
-    }
-}
-
-@Composable
-fun FilePicker(
-    fileName: String?,
-    onPickFileClick: () -> Unit,
-    onClearFileClick: () -> Unit,
-    enabled: Boolean
-) {
-    val shape = RoundedCornerShape(12.dp)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .clip(shape)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline,
-                shape = shape
-            )
-            .clickable(enabled = fileName == null, onClick = onPickFileClick)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (fileName == null) {
-            Icon(
-                Icons.Default.AttachFile,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(12.dp))
-            Text("Select PDF File", modifier = Modifier.weight(1f))
-            Spacer(Modifier.width(48.dp))
-        } else {
-            Icon(
-                Icons.Default.PictureAsPdf,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = fileName,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            IconButton(onClick = onClearFileClick) {
-                Icon(Icons.Default.Clear, contentDescription = "Clear selected file")
+            FilledIconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(Icons.Default.Close, contentDescription = "Remove Author", modifier = Modifier.size(20.dp))
             }
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -265,29 +433,54 @@ private fun StrandDropdown(
     )
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-        OutlinedTextField(
-            value = selectedStrand?.name ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Strand") },
-            leadingIcon = { Icon(Icons.Default.School, contentDescription = null) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface
-            )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Academic Strand",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            strands.forEach { strand ->
-                DropdownMenuItem(
-                    text = { Text(strand.name) },
-                    onClick = {
-                        onStrandSelected(strand)
-                        expanded = false
-                    }
+        ExposedDropdownMenuBox(
+            expanded = expanded, 
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedStrand?.name ?: "Select Strand",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Default.School, 
+                        contentDescription = null, 
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    ) 
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedTextColor = if (selectedStrand == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                 )
+            )
+            ExposedDropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            ) {
+                strands.forEach { strand ->
+                    DropdownMenuItem(
+                        text = { Text(strand.name) },
+                        onClick = {
+                            onStrandSelected(strand)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -302,43 +495,55 @@ fun ResearchTypeDropdown(
     val types = ResearchType.entries
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-        OutlinedTextField(
-            value = selectedType?.name?.replaceFirstChar { it.uppercase() } ?: "",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Research Type") },
-            leadingIcon = { Icon(Icons.Default.Book, contentDescription = null) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(),
-            colors = TextFieldDefaults.colors(
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface
-            )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Research Category",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            types.forEach { type ->
-                DropdownMenuItem(
-                    text = { Text(type.name.replaceFirstChar { it.uppercase() }) },
-                    onClick = {
-                        onTypeSelected(type)
-                        expanded = false
-                    }
+        ExposedDropdownMenuBox(
+            expanded = expanded, 
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedType?.name?.replaceFirstChar { it.uppercase() } ?: "Select Category",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                leadingIcon = { 
+                    Icon(
+                        Icons.Default.Book, 
+                        contentDescription = null, 
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    ) 
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedTextColor = if (selectedType == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                 )
+            )
+            ExposedDropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            ) {
+                types.forEach { type ->
+                    DropdownMenuItem(
+                        text = { Text(type.name.replaceFirstChar { it.uppercase() }) },
+                        onClick = {
+                            onTypeSelected(type)
+                            expanded = false
+                        }
+                    )
+                }
             }
         }
     }
-}
-
-fun getFileNameFromUri(uri: Uri, context: Context): String? {
-    var fileName: String? = null
-    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-        if (cursor.moveToFirst()) {
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (nameIndex != -1) {
-                fileName = cursor.getString(nameIndex)
-            }
-        }
-    }
-    return fileName
 }

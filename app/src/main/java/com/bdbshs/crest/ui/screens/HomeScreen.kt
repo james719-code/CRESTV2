@@ -18,23 +18,28 @@ fun HomeScreen(
     onNavigateToTeacherUpload: () -> Unit,
     onNavigateToAccounts: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
         when (userRole) {
             UserType.STUDENT -> StudentHomeScreen(
-                modifier = modifier,
+                modifier = Modifier.fillMaxSize(),
                 viewModel = viewModel(),
                 onNavigateToUpload = onNavigateToGroupUpload,
                 onNavigateToResearchDetails = onNavigateToResearchDetails,
             )
             UserType.TEACHER -> TeacherHomeScreen(
-                modifier = modifier,
+                modifier = Modifier.fillMaxSize(),
                 viewModel = viewModel(),
                 onNavigateToUploadResearch = onNavigateToTeacherUpload,
                 onNavigateToResearchDetails = onNavigateToResearchDetails,
                 onNavigateToAccounts = onNavigateToAccounts
             )
             else -> {
-                CircularProgressIndicator()
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }

@@ -297,7 +297,12 @@ private fun CrestNavHost(
             )
         }
         composable(AppDestination.Accounts.route) {
-            MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.Accounts.route, isOnline = isOnline) { padding, _ ->
+            MainScreen(
+                navigationActions = navigationActions, 
+                currentRoute = AppDestination.Accounts.route, 
+                isOnline = isOnline,
+                onNavigationClick = navigationActions::navigateBack
+            ) { padding, _ ->
                 AccountsScreen(modifier = Modifier.padding(padding))
             }
         }
