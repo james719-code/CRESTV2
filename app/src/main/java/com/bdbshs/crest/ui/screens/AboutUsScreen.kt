@@ -199,7 +199,6 @@ private fun CoResearcherCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        // CRITICAL CHANGE 3: Center the content
         Column(
             modifier = Modifier
                 .fillMaxSize() // Fill the card's available space
