@@ -1,0 +1,61 @@
+name: Android CI/CD Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger only when you push a tag like v1.0, v2.1.4, etc.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Decode Keystore
+        id: decode_keystore
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: 'release_key.jks'
+          encodedString: ${{ secrets.SIGNING_KEY }}
+
+      - name: Decode Google Services JSON
+        id: decode_google_services
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: 'google-services.json'
+          encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          fileDir: './app'
+
+      - name: Make gradlew executable
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+        env:
+          RELEASE_STORE_FILE: ${{ steps.decode_keystore.outputs.filePath }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "app/build/outputs/apk/release/*.apk"
+          name: Release ${{ github.ref_name }}
+          body: "Automated Build for version ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

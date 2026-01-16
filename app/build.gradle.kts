@@ -19,6 +19,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // These properties are supplied by the GitHub Actions workflow environment
+            val storeFileEnv = System.getenv("RELEASE_STORE_FILE")
+            if (storeFileEnv != null) {
+                storeFile = file(storeFileEnv)
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             versionNameSuffix = "-dev"
@@ -26,6 +39,7 @@ android {
             isDebuggable = true
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
