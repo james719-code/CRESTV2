@@ -12,7 +12,9 @@ import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.UserPrefs
 import com.bdbshs.crest.data.UserPrefs.clear
 import com.bdbshs.crest.data.UserPrefs.saveUserData
+import com.bdbshs.crest.data.UserPrefs.saveTheme
 import com.bdbshs.crest.data.UserPrefs.userDataFlow
+import com.bdbshs.crest.data.ThemeMode
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +33,7 @@ data class MainUiState(
     val userPhotoUrl: String? = null,
     val isAllowedOffline: Boolean = false, // True if user is accepted/has access, based on latest known data
     val isLoading: Boolean = true, // Represents the *initial* loading state of the app
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val error: String? = null
 )
 
@@ -67,36 +70,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Get user profile data from Firebase Auth
             val currentFirebaseUser = auth.currentUser
 
+            if (currentFirebaseUser == null) {
+                // Not logged in: stop loading immediately so we can show Login screen
+                _uiState.update { it.copy(isLoading = false, isAllowedOffline = false) }
+                Log.d(TAG, "No user logged in. UI will navigate to Login screen.")
+                return@launch
+            }
+
+            // User is logged in: update basic info
             _uiState.update { currentState ->
                 currentState.copy(
                     currentUid = cachedUserData.uid,
                     userRole = cachedRole,
-                    userName = currentFirebaseUser?.displayName,
-                    userEmail = currentFirebaseUser?.email,
-                    userPhotoUrl = currentFirebaseUser?.photoUrl?.toString(),
+                    userName = currentFirebaseUser.displayName,
+                    userEmail = currentFirebaseUser.email,
+                    userPhotoUrl = currentFirebaseUser.photoUrl?.toString(),
                     isAllowedOffline = when (cachedRole) {
                         UserType.STUDENT -> cachedUserData.accepted
                         UserType.TEACHER -> cachedUserData.access
                         else -> false
                     },
-                    // Crucially, set isLoading to false. The app has enough data to proceed.
-                    isLoading = false
+                    themeMode = cachedUserData.theme,
+                    // If we have a cached role, we can show the UI immediately.
+                    // Otherwise, we wait for Firestore refresh.
+                    isLoading = cachedRole == null
                 )
             }
-            Log.d(TAG, "Initial state set from cache. UI is now ready.")
+            
+            if (cachedRole != null) {
+                Log.d(TAG, "Initial state set from cache. Role: $cachedRole, Allowed: ${_uiState.value.isAllowedOffline}")
+            }
 
-
-            // --- Step 2: If online, start a background refresh from Firestore ---
-            // This prioritizes fresh data without blocking the UI or causing state flickers.
-            if (currentFirebaseUser != null && isOnline()) {
+            // --- Step 2: Refresh from Firestore ---
+            if (isOnline()) {
                 Log.d(TAG, "User is online. Starting background sync with Firestore.")
                 refreshFromFirestore(currentFirebaseUser.uid)
-            } else if (currentFirebaseUser != null) {
-                Log.d(TAG, "User is offline. Relying on cached data and Firestore's offline persistence.")
-                // No action needed, listener will be attached if/when connectivity returns.
-                // The `isAllowedOffline` flag from cache will correctly control access.
             } else {
-                Log.d(TAG, "No user logged in. UI will navigate to Login screen.")
+                Log.d(TAG, "User is offline. Relying on cached data.")
             }
         }
     }
@@ -137,6 +147,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             currentState.copy(
                                 userRole = role,
                                 isAllowedOffline = hasPermission,
+                                isLoading = false,
                                 error = null // Clear any previous error on successful update
                             )
                         }
@@ -148,7 +159,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                     uid = uid,
                                     role = role.name,
                                     accepted = role == UserType.STUDENT && hasPermission,
-                                    access = role == UserType.TEACHER && hasPermission
+                                    access = role == UserType.TEACHER && hasPermission,
+                                    theme = _uiState.value.themeMode
                                 )
                             )
                             Log.d(TAG, "Updated UserPrefs cache with fresh data from Firestore.")
@@ -157,7 +169,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initiate Firestore refresh for $uid: ${e.message}", e)
                 _uiState.update {
-                    it.copy(error = "Could not verify user status. Please check your connection.")
+                    it.copy(
+                        isLoading = false,
+                        error = "Could not verify user status. Please check your connection."
+                    )
                 }
             }
         }
@@ -245,6 +260,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     it.copy(
                         currentUid = null,
                         userRole = null,
+                        userName = null,
+                        userEmail = null,
+                        userPhotoUrl = null,
                         isAllowedOffline = false,
                         isLoading = false, // Stop any ongoing loading
                         error = null // Clear any previous errors
@@ -262,6 +280,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * Updates the user's theme preference.
+     */
+    fun onThemeChanged(theme: ThemeMode) {
+        viewModelScope.launch {
+            ctx.saveTheme(theme)
+            _uiState.update { it.copy(themeMode = theme) }
+            Log.d(TAG, "Theme updated to $theme")
         }
     }
 

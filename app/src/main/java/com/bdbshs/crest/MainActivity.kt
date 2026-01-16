@@ -15,10 +15,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.platform.LocalContext
+import com.bdbshs.crest.data.ThemeMode
+import com.bdbshs.crest.data.UserPrefs.userDataFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -60,7 +65,7 @@ class MainActivity : ComponentActivity() {
     }
 
     // Track initialization state for splash screen
-    private var isInitialized = false
+    private var isInitialized by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen before super.onCreate()
@@ -82,7 +87,17 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            CRESTTheme {
+            val context = LocalContext.current
+            val userData by context.userDataFlow.collectAsState(initial = null)
+            val themeMode = userData?.theme ?: ThemeMode.SYSTEM
+            
+            val isDarkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+
+            CRESTTheme(darkTheme = isDarkTheme) {
                 CrestAppWithSplash(isInitialized)
             }
         }

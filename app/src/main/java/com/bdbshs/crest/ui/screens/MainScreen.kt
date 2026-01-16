@@ -22,6 +22,7 @@ import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.MainViewModel
 import com.bdbshs.crest.ui.viewmodels.UserType
+import com.bdbshs.crest.data.ThemeMode
 import kotlinx.coroutines.launch
 
 /**
@@ -108,11 +109,13 @@ fun MainScreen(
                 userRole = uiState.userRole,
                 userPhotoUrl = uiState.userPhotoUrl,
                 isOnline = isOnline,
+                currentTheme = uiState.themeMode,
                 onAccountsClick = if (uiState.userRole == UserType.TEACHER && isOnline) {
                     { navigationActions.navigateTo(AppDestination.Accounts) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },
+                onThemeChange = mainViewModel::onThemeChanged,
                 onSignOutClick = {
                     mainViewModel.onSignOut()
                     showProfileSheet = false
@@ -296,11 +299,13 @@ fun MainScreenWithPager(
                 userRole = uiState.userRole,
                 userPhotoUrl = uiState.userPhotoUrl,
                 isOnline = isOnline,
+                currentTheme = uiState.themeMode,
                 onAccountsClick = if (uiState.userRole == UserType.TEACHER && isOnline) {
                     { navigationActions.navigateTo(AppDestination.Accounts) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },
+                onThemeChange = mainViewModel::onThemeChanged,
                 onSignOutClick = {
                     mainViewModel.onSignOut()
                     showProfileSheet = false

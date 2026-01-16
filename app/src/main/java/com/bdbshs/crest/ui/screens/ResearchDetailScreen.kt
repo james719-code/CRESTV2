@@ -280,7 +280,7 @@ fun ResearchDetailScreen(
                                             .fillMaxHeight()
                                             .fillMaxWidth()
                                             .clip(MaterialTheme.shapes.medium)
-                                            .background(MaterialTheme.colorScheme.surface)
+                                            .background(Color.White)
                                             .padding(4.dp)
                                     )
                                 }
@@ -489,6 +489,7 @@ private fun PdfPageItem(
                         val rw = (w * scaleRes).toInt()
                         val rh = (h * scaleRes).toInt()
                         val bm = createBitmap(rw, rh)
+                        bm.eraseColor(android.graphics.Color.WHITE)
                         page.render(bm, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         bitmap = bm
                     }
@@ -502,7 +503,7 @@ private fun PdfPageItem(
     Box(
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.surface),
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
         // 1. The Image (Base Layer - always visible and scaled)

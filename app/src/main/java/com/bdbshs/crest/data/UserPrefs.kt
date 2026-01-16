@@ -9,6 +9,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK
+}
+
 private const val PREFS_NAME = "user_prefs"
 private const val PAGE_PREFS_NAME = "research_pages"
 private val Context.dataStore by preferencesDataStore(PREFS_NAME)
@@ -18,13 +22,15 @@ object UserPrefs {
     private val KEY_ROLE      = stringPreferencesKey("user_role")
     private val KEY_ACCEPTED  = booleanPreferencesKey("is_accepted")
     private val KEY_ACCESS    = booleanPreferencesKey("is_access")
+    private val KEY_THEME     = stringPreferencesKey("theme_mode")
     private fun keyPage(researchId: String) = androidx.datastore.preferences.core.intPreferencesKey("page_$researchId")
 
     data class UserData(
         val uid      : String?        = null,
         val role     : String?        = null,
         val accepted : Boolean        = false,
-        val access   : Boolean        = false
+        val access   : Boolean        = false,
+        val theme    : ThemeMode      = ThemeMode.SYSTEM
     )
 
     val Context.userDataFlow: Flow<UserData>
@@ -33,7 +39,12 @@ object UserPrefs {
                 uid      = prefs[KEY_UID].orEmpty(),
                 role     = prefs[KEY_ROLE].orEmpty(),
                 accepted = prefs[KEY_ACCEPTED] ?: false,
-                access   = prefs[KEY_ACCESS]   ?: false
+                access   = prefs[KEY_ACCESS]   ?: false,
+                theme    = try {
+                    ThemeMode.valueOf(prefs[KEY_THEME] ?: ThemeMode.SYSTEM.name)
+                } catch (e: Exception) {
+                    ThemeMode.SYSTEM
+                }
             )
         }
 
@@ -43,6 +54,13 @@ object UserPrefs {
             prefs[KEY_ROLE]     = data.role ?: ""
             prefs[KEY_ACCEPTED] = data.accepted
             prefs[KEY_ACCESS]   = data.access
+            prefs[KEY_THEME]    = data.theme.name
+        }
+    }
+
+    suspend fun Context.saveTheme(theme: ThemeMode) {
+        dataStore.edit { prefs ->
+            prefs[KEY_THEME] = theme.name
         }
     }
 

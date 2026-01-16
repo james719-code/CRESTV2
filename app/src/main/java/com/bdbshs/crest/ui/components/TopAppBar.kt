@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.UserType
+import com.bdbshs.crest.data.ThemeMode
 
 /**
  * Modern Top App Bar with user profile and actions
@@ -154,10 +155,12 @@ fun ProfileBottomSheet(
     userRole: UserType?,
     userPhotoUrl: String?,
     isOnline: Boolean,
+    currentTheme: ThemeMode = ThemeMode.SYSTEM,
     onAccountsClick: (() -> Unit)? = null,
     onAboutClick: () -> Unit,
     onStorageClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onThemeChange: (ThemeMode) -> Unit = {},
     onSignOutClick: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
@@ -281,8 +284,16 @@ fun ProfileBottomSheet(
                 onDismiss()
             }
         )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Theme Selection
+        ThemeSelector(
+            currentTheme = currentTheme,
+            onThemeChange = onThemeChange
+        )
             
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         HorizontalDivider()
         
@@ -387,6 +398,118 @@ private fun ProfileMenuItem(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+@Composable
+private fun ThemeSelector(
+    currentTheme: ThemeMode,
+    onThemeChange: (ThemeMode) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Palette,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "Appearance",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ThemeOption(
+                mode = ThemeMode.SYSTEM,
+                selected = currentTheme == ThemeMode.SYSTEM,
+                onClick = { onThemeChange(ThemeMode.SYSTEM) },
+                icon = Icons.Outlined.SettingsSuggest,
+                label = "System",
+                modifier = Modifier.weight(1f)
+            )
+            ThemeOption(
+                mode = ThemeMode.LIGHT,
+                selected = currentTheme == ThemeMode.LIGHT,
+                onClick = { onThemeChange(ThemeMode.LIGHT) },
+                icon = Icons.Outlined.LightMode,
+                label = "Light",
+                modifier = Modifier.weight(1f)
+            )
+            ThemeOption(
+                mode = ThemeMode.DARK,
+                selected = currentTheme == ThemeMode.DARK,
+                onClick = { onThemeChange(ThemeMode.DARK) },
+                icon = Icons.Outlined.DarkMode,
+                label = "Dark",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeOption(
+    mode: ThemeMode,
+    selected: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    
+    val contentColor = if (selected) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        tonalElevation = if (selected) 4.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = contentColor
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                color = contentColor
             )
         }
     }

@@ -65,12 +65,14 @@ class NavigationActions(private val navController: NavController) {
             restoreState = true
         }
     }
-    fun navigateToHome() = navigateTo(AppDestination.Home)
+    fun navigateToHome() = navController.navigate(AppDestination.Home.route) {
+        popUpTo(navController.graph.id) { inclusive = true }
+    }
     fun navigateToSignUpDetails() = navController.navigate(AppDestination.SignUpDetails.route) {
-        popUpTo(AppDestination.Login.route) { inclusive = true }
+        popUpTo(navController.graph.id) { inclusive = true }
     }
     fun navigateToPendingApproval() = navController.navigate(AppDestination.PendingApproval.route) {
-        popUpTo(AppDestination.Login.route) { inclusive = true }
+        popUpTo(navController.graph.id) { inclusive = true }
     }
     fun navigateToGroupUpload() = navController.navigate(AppDestination.GroupUpload.route)
     fun navigateToTeacherUpload() = navController.navigate(AppDestination.TeacherUpload.route)
@@ -112,20 +114,22 @@ fun CrestApp() {
     val mainVm  : MainViewModel = viewModel()
     val uiState by mainVm.uiState.collectAsState()
 
-    if (uiState.isLoading) {
+    val startRoute = remember(uiState.isLoading) {
+        if (uiState.isLoading) null else {
+            when {
+                auth.currentUser == null -> AppDestination.Login.route
+                !uiState.isAllowedOffline -> AppDestination.PendingApproval.route
+                !isOnline -> AppDestination.Researches.route
+                else -> AppDestination.Home.route
+            }
+        }
+    }
+
+    if (uiState.isLoading || startRoute == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         return
-    }
-
-    val startRoute = remember(auth.currentUser, uiState.isAllowedOffline, isOnline) {
-        when {
-            auth.currentUser == null -> AppDestination.Login.route
-            !uiState.isAllowedOffline -> AppDestination.PendingApproval.route
-            !isOnline -> AppDestination.Researches.route
-            else -> AppDestination.Home.route
-        }
     }
 
     // This DisposableEffect is for handling logout *during* app runtime
