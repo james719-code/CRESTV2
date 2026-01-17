@@ -66,6 +66,7 @@ object UserPrefs {
 
     suspend fun Context.clear() {
         dataStore.edit { it.clear() }
+        getPagePrefs(this).edit().clear().apply()
     }
 
     // ==================== SHARED PREFERENCES (MODERN PAGE SAVING) ====================

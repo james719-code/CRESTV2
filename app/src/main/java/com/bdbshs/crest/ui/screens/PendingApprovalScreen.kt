@@ -11,12 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.bdbshs.crest.ui.theme.CRESTTheme
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
 @Composable
-fun PendingApprovalScreen() {
+fun PendingApprovalScreen(onSignOut: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -50,8 +52,16 @@ fun PendingApprovalScreen() {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(onClick = { Firebase.auth.signOut() }) {
+        Button(onClick = onSignOut) {
             Text("Sign Out")
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PendingApprovalScreenPreview() {
+    CRESTTheme {
+        PendingApprovalScreen(onSignOut = {})
     }
 }

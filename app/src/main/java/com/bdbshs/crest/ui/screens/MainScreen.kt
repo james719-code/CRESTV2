@@ -15,14 +15,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.rememberNavController
+import com.bdbshs.crest.data.ThemeMode
 import com.bdbshs.crest.navigation.AppDestination
 import com.bdbshs.crest.navigation.NavigationActions
 import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.theme.*
+import com.bdbshs.crest.ui.viewmodels.MainUiState
 import com.bdbshs.crest.ui.viewmodels.MainViewModel
 import com.bdbshs.crest.ui.viewmodels.UserType
-import com.bdbshs.crest.data.ThemeMode
 import kotlinx.coroutines.launch
 
 /**
@@ -206,16 +209,47 @@ fun MainScreenWithPager(
 ) {
     val mainViewModel: MainViewModel = viewModel()
     val uiState by mainViewModel.uiState.collectAsState()
+
+    MainScreenWithPagerContent(
+        navigationActions = navigationActions,
+        isOnline = isOnline,
+        initialPage = initialPage,
+        homeContent = homeContent,
+        researchesContent = researchesContent,
+        documentsContent = documentsContent,
+        groupsContent = groupsContent,
+        uiState = uiState,
+        onThemeChanged = mainViewModel::onThemeChanged,
+        onSignOutClick = {
+            mainViewModel.onSignOut()
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreenWithPagerContent(
+    navigationActions: NavigationActions,
+    isOnline: Boolean,
+    initialPage: Int,
+    homeContent: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit,
+    researchesContent: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit,
+    documentsContent: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit,
+    groupsContent: (@Composable (padding: PaddingValues, userRole: UserType?) -> Unit)?,
+    uiState: MainUiState,
+    onThemeChanged: (ThemeMode) -> Unit,
+    onSignOutClick: () -> Unit
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
+
     // Bottom sheet state for profile menu
     val sheetState = rememberModalBottomSheetState()
     var showProfileSheet by remember { mutableStateOf(false) }
-    
+
     // Scroll behavior for collapsing top bar
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    
+
     // Show offline snackbar
     LaunchedEffect(isOnline) {
         if (!isOnline) {
@@ -226,7 +260,7 @@ fun MainScreenWithPager(
             )
         }
     }
-    
+
     // Get navigation items based on user role and online status
     val bottomNavItems = remember(uiState.userRole, isOnline) {
         if (isOnline) {
@@ -242,19 +276,19 @@ fun MainScreenWithPager(
             )
         }
     }
-    
+
     // Pager state - number of pages based on user role
     val pageCount = if (isOnline) {
         if (uiState.userRole == UserType.TEACHER && groupsContent != null) 4 else 3
     } else {
         1 // Only Researches in offline mode
     }
-    
+
     val pagerState = rememberPagerState(
         initialPage = if (isOnline) initialPage.coerceIn(0, pageCount - 1) else 0,
         pageCount = { pageCount }
     )
-    
+
     // Sync pager with navigation
     val currentRoute = remember(pagerState.currentPage, isOnline) {
         if (!isOnline) {
@@ -269,7 +303,7 @@ fun MainScreenWithPager(
             }
         }
     }
-    
+
     // Title based on current page
     val title = remember(pagerState.currentPage, isOnline) {
         if (!isOnline) {
@@ -284,7 +318,7 @@ fun MainScreenWithPager(
             }
         }
     }
-    
+
     // Profile bottom sheet
     if (showProfileSheet) {
         ModalBottomSheet(
@@ -305,25 +339,25 @@ fun MainScreenWithPager(
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },
-                onThemeChange = mainViewModel::onThemeChanged,
+                onThemeChange = onThemeChanged,
                 onSignOutClick = {
-                    mainViewModel.onSignOut()
+                    onSignOutClick()
                     showProfileSheet = false
                 },
                 onDismiss = { showProfileSheet = false }
             )
         }
     }
-    
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { 
+        snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = if (!isOnline) 
-                        MaterialTheme.colorScheme.secondaryContainer 
-                    else 
+                    containerColor = if (!isOnline)
+                        MaterialTheme.colorScheme.secondaryContainer
+                    else
                         MaterialTheme.colorScheme.inverseSurface,
                     contentColor = if (!isOnline)
                         MaterialTheme.colorScheme.onSecondaryContainer
@@ -387,5 +421,52 @@ fun MainScreenWithPager(
             // Offline mode - only show researches
             researchesContent(paddingValues, uiState.userRole)
         }
+    }
+}
+
+@Preview(name = "Main Screen With Pager")
+@Composable
+private fun MainScreenWithPagerPreview() {
+    CRESTTheme {
+        MainScreenWithPagerContent(
+            navigationActions = NavigationActions(rememberNavController()),
+            isOnline = true,
+            initialPage = 0,
+            homeContent = { padding, _ ->
+                Box(modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()) {
+                    Text(text = "Home Screen")
+                }
+            },
+            researchesContent = { padding, _ ->
+                Box(modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()) {
+                    Text(text = "Researches Screen")
+                }
+            },
+            documentsContent = { padding, _ ->
+                Box(modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()) {
+                    Text(text = "Documents Screen")
+                }
+            },
+            groupsContent = { padding, _ ->
+                Box(modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()) {
+                    Text(text = "Groups Screen")
+                }
+            },
+            uiState = MainUiState(
+                userRole = UserType.TEACHER,
+                userName = "Algen Cadiogan",
+                userEmail = "algen.cadiogan@email.com",
+            ),
+            onThemeChanged = {},
+            onSignOutClick = {}
+        )
     }
 }

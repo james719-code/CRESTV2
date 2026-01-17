@@ -146,7 +146,7 @@ fun CrestApp() {
         onDispose { auth.removeAuthStateListener(listener) }
     }
 
-    CrestNavHost(navController, actions, startRoute, isOnline)
+    CrestNavHost(navController, actions, startRoute, isOnline, mainVm)
 }
 
 
@@ -157,7 +157,8 @@ private fun CrestNavHost(
     navController: NavHostController,
     navigationActions: NavigationActions,
     startDestination: String,
-    isOnline: Boolean
+    isOnline: Boolean,
+    mainViewModel: MainViewModel
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -196,7 +197,7 @@ private fun CrestNavHost(
             )
         }
         composable(AppDestination.PendingApproval.route) {
-            PendingApprovalScreen()
+            PendingApprovalScreen(onSignOut = mainViewModel::onSignOut)
         }
 
         // --- SECONDARY ROUTES (No MainScreen wrapper) ---

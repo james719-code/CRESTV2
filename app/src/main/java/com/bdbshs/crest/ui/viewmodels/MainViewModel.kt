@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.FirebaseAuth
 
 
 data class MainUiState(
@@ -47,66 +49,75 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var userDocListener: ListenerRegistration? = null
 
+    private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        val firebaseUser = firebaseAuth.currentUser
+        if (firebaseUser != null) {
+            Log.d(TAG, "Auth state change: User logged in (${firebaseUser.uid}). Refreshing data...")
+            loadAndSyncUserData(firebaseUser)
+        } else {
+            Log.d(TAG, "Auth state change: No user logged in. Clearing listener and state.")
+            userDocListener?.remove()
+            userDocListener = null
+            _uiState.update { MainUiState(isLoading = false, themeMode = it.themeMode) }
+        }
+    }
+
     init {
-        // This is the main state initialization logic.
+        // Observe auth state changes to refresh user data automatically.
+        // This ensures that when a user logs out and a new one logs in,
+        // the ViewModel refreshes its state even if it stays in memory.
+        auth.addAuthStateListener(authStateListener)
+    }
+
+    /**
+     * Loads user data from local cache and starts background sync with Firestore.
+     */
+    private fun loadAndSyncUserData(firebaseUser: FirebaseUser) {
         viewModelScope.launch {
             // --- Step 1: Immediately load from local cache (UserPrefs) ---
-            // This provides a fast, synchronous-like startup experience,
-            // populating the UI with the last known user data.
             val cachedUserData = ctx.userDataFlow.first()
-            Log.d(TAG, "Loaded cached data: UID=${cachedUserData.uid}, Role=${cachedUserData.role}")
-
-            val cachedRole = if (!cachedUserData.role.isNullOrBlank()) {
+            
+            // Only use cache if it belongs to the current user
+            val useCache = cachedUserData.uid == firebaseUser.uid
+            
+            val cachedRole = if (useCache && !cachedUserData.role.isNullOrBlank()) {
                 try {
                     UserType.valueOf(cachedUserData.role)
                 } catch (e: IllegalArgumentException) {
-                    Log.e(TAG, "Invalid UserType in cache: '${cachedUserData.role}'.", e)
-                    null // Treat invalid role as unknown
+                    null
                 }
             } else {
                 null
             }
 
-            // Get user profile data from Firebase Auth
-            val currentFirebaseUser = auth.currentUser
-
-            if (currentFirebaseUser == null) {
-                // Not logged in: stop loading immediately so we can show Login screen
-                _uiState.update { it.copy(isLoading = false, isAllowedOffline = false) }
-                Log.d(TAG, "No user logged in. UI will navigate to Login screen.")
-                return@launch
-            }
-
-            // User is logged in: update basic info
+            // Update UI with initial data (from cache or basic auth profile)
             _uiState.update { currentState ->
                 currentState.copy(
-                    currentUid = cachedUserData.uid,
+                    currentUid = firebaseUser.uid,
                     userRole = cachedRole,
-                    userName = currentFirebaseUser.displayName,
-                    userEmail = currentFirebaseUser.email,
-                    userPhotoUrl = currentFirebaseUser.photoUrl?.toString(),
-                    isAllowedOffline = when (cachedRole) {
-                        UserType.STUDENT -> cachedUserData.accepted
-                        UserType.TEACHER -> cachedUserData.access
-                        else -> false
-                    },
-                    themeMode = cachedUserData.theme,
-                    // If we have a cached role, we can show the UI immediately.
-                    // Otherwise, we wait for Firestore refresh.
-                    isLoading = cachedRole == null
+                    userName = firebaseUser.displayName,
+                    userEmail = firebaseUser.email,
+                    userPhotoUrl = firebaseUser.photoUrl?.toString(),
+                    isAllowedOffline = if (useCache) {
+                        when (cachedRole) {
+                            UserType.STUDENT -> cachedUserData.accepted
+                            UserType.TEACHER -> cachedUserData.access
+                            else -> false
+                        }
+                    } else false,
+                    themeMode = if (useCache) cachedUserData.theme else currentState.themeMode,
+                    isLoading = cachedRole == null // Still loading if no cached role
                 )
-            }
-            
-            if (cachedRole != null) {
-                Log.d(TAG, "Initial state set from cache. Role: $cachedRole, Allowed: ${_uiState.value.isAllowedOffline}")
             }
 
             // --- Step 2: Refresh from Firestore ---
             if (isOnline()) {
-                Log.d(TAG, "User is online. Starting background sync with Firestore.")
-                refreshFromFirestore(currentFirebaseUser.uid)
+                refreshFromFirestore(firebaseUser.uid)
             } else {
-                Log.d(TAG, "User is offline. Relying on cached data.")
+                Log.d(TAG, "Offline: Relying on cached data for ${firebaseUser.uid}")
+                if (cachedRole == null) {
+                    _uiState.update { it.copy(isLoading = false, error = "You are offline.") }
+                }
             }
         }
     }
@@ -295,9 +306,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     override fun onCleared() {
+        auth.removeAuthStateListener(authStateListener)
         userDocListener?.remove() // Ensure the listener is removed to prevent memory leaks
         super.onCleared()
-        Log.d(TAG, "MainViewModel cleared. Firestore listener removed.")
+        Log.d(TAG, "MainViewModel cleared. Firestore and Auth listeners removed.")
     }
 
     companion object {

@@ -42,3 +42,6 @@ Thumbs.db
 *.jks
 *.keystore
 google-services.json
+/crest_jks
+/crest_jks.txt
+/firebase_base64.txt
