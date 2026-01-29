@@ -64,13 +64,13 @@ private val LightColorScheme = lightColorScheme(
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryLight,
     onPrimary = PrimaryDark,
-    primaryContainer = PrimaryBlue,
-    onPrimaryContainer = PrimaryLight,
+    primaryContainer = Color(0xFF1E3A8A), // Much darker blue (blue-900 equivalent)
+    onPrimaryContainer = Color(0xFFDBEAFE), // Very light blue (blue-100 equivalent)
 
     secondary = SecondaryLight,
     onSecondary = SecondaryDark,
-    secondaryContainer = SecondaryDark,
-    onSecondaryContainer = SecondaryLight,
+    secondaryContainer = Color(0xFF1E3A8A).copy(alpha = 0.5f), // Matching tone but distinctive
+    onSecondaryContainer = Color(0xFFDBEAFE),
 
     tertiary = PrimaryLight,
     onTertiary = PrimaryDark,

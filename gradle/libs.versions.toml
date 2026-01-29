@@ -32,6 +32,7 @@ turbine = "1.2.0"
 testRules = "1.5.0"
 testRunner = "1.5.2"
 splashscreen = "1.0.1"
+coil = "2.7.0"
 
 [libraries]
 # You can keep this if you need it for other purposes, or if android-pdf-viewer needs it as a transitive dependency (often it bundles what it needs)
@@ -75,6 +76,7 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "testRules" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
 androidx-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

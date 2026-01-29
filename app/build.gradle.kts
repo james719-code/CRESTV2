@@ -68,8 +68,8 @@ android {
     }
     packaging {
         resources {
-            pickFirst("META-INF/LICENSE.md")
-            pickFirst("META-INF/LICENSE-notice.md")
+            pickFirsts.add("META-INF/LICENSE.md")
+            pickFirsts.add("META-INF/LICENSE-notice.md")
         }
     }
 }
@@ -116,5 +116,5 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.coil.compose)
 }
