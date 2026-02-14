@@ -37,7 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.components.FilePicker
 import com.bdbshs.crest.ui.theme.CrestShapeTokens
 import com.bdbshs.crest.ui.viewmodels.ResearchType
@@ -49,7 +49,7 @@ import com.bdbshs.crest.utils.getFileNameFromUri
 @Composable
 fun UploadResearchScreen(
     onNavigateBack: () -> Unit,
-    viewModel: UploadResearchViewModel = viewModel()
+    viewModel: UploadResearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current

@@ -23,6 +23,7 @@ data class CachedFileInfo(
 object FileCache {
 
     private const val PDF_CACHE_DIR = "pdf_cache"
+    private const val MAX_PDF_CACHE_BYTES = 200L * 1024 * 1024 // 200 MB
 
     private fun getCacheDir(context: Context): File {
         return File(context.cacheDir, PDF_CACHE_DIR).apply { mkdirs() }
@@ -38,6 +39,8 @@ object FileCache {
         try {
             val file = File(getCacheDir(context), fileId)
             file.writeBytes(data)
+            file.setLastModified(System.currentTimeMillis())
+            enforceCacheLimit(context)
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -50,8 +53,8 @@ object FileCache {
      * @return The file content as a ByteArray, or null if it doesn't exist.
      */
     fun getFile(context: Context, fileId: String): ByteArray? {
-        val file = File(getCacheDir(context), fileId)
-        return if (file.exists()) {
+        val file = getCachedFile(context, fileId)
+        return if (file != null) {
             try {
                 file.readBytes()
             } catch (e: IOException) {
@@ -60,6 +63,42 @@ object FileCache {
             }
         } else {
             null
+        }
+    }
+
+    /**
+     * Retrieves the cached file handle if it exists.
+     * @param context The application context.
+     * @param fileId The unique identifier for the file.
+     * @return The cached File, or null if it doesn't exist.
+     */
+    fun getCachedFile(context: Context, fileId: String): File? {
+        val file = File(getCacheDir(context), fileId)
+        return if (file.exists()) {
+            file.setLastModified(System.currentTimeMillis())
+            file
+        } else {
+            null
+        }
+    }
+
+    /**
+     * Evicts least-recently-used cached PDFs until total cache size is within the limit.
+     */
+    private fun enforceCacheLimit(context: Context) {
+        val cacheDir = getCacheDir(context)
+        val files = cacheDir.listFiles()?.toMutableList() ?: return
+
+        var totalSize = files.sumOf { it.length() }
+        if (totalSize <= MAX_PDF_CACHE_BYTES) return
+
+        files.sortBy { it.lastModified() } // oldest first
+        for (file in files) {
+            if (totalSize <= MAX_PDF_CACHE_BYTES) break
+            val size = file.length()
+            if (file.delete()) {
+                totalSize -= size
+            }
         }
     }
 

@@ -1,19 +1,20 @@
 package com.bdbshs.crest.ui.viewmodels
 
-import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.CachedFileInfo
 import com.bdbshs.crest.data.FileCache
-import com.bdbshs.crest.data.FirebaseClient
-import com.google.firebase.firestore.QueryDocumentSnapshot
+import com.bdbshs.crest.data.repository.CachedResearchRecord
+import com.bdbshs.crest.data.repository.StorageRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 /**
@@ -56,12 +57,12 @@ enum class ConfirmDialogType {
 
 /**
  * ViewModel for managing storage and cached files.
- * Uses AndroidViewModel to access application context.
+ * Uses injected application context for cache operations.
  */
-class StorageManagementViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val context get() = getApplication<Application>()
-    private val firestore = FirebaseClient.firestore
+@HiltViewModel
+class StorageManagementViewModel @Inject constructor(
+    @ApplicationContext private val context: Context
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StorageUiState())
     val uiState = _uiState.asStateFlow()
@@ -78,69 +79,19 @@ class StorageManagementViewModel(application: Application) : AndroidViewModel(ap
             _uiState.update { it.copy(isLoading = true) }
 
             withContext(Dispatchers.IO) {
-                // Get cache sizes
-                val pdfSize = FileCache.getTotalCacheSize(context)
-                val totalSize = FileCache.getTotalAppCacheSize(context)
-
-                // Get cached files
-                val cachedFiles = FileCache.getAllCachedFiles(context)
-
-                // Fetch research titles from Firestore for cached files
-                val cachedResearches = mapCachedFilesToResearches(cachedFiles)
+                val snapshot = StorageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        pdfCacheSize = pdfSize,
-                        totalAppCacheSize = totalSize,
-                        cachedResearches = cachedResearches,
+                        pdfCacheSize = snapshot.pdfCacheSize,
+                        totalAppCacheSize = snapshot.totalAppCacheSize,
+                        cachedResearches = snapshot.cachedResearches.map { record -> record.toUiCachedItem() },
                         selectedCount = 0,
                         selectedSize = 0L
                     )
                 }
             }
-        }
-    }
-
-    /**
-     * Maps cached files to research items by looking up metadata in Firestore.
-     */
-    private suspend fun mapCachedFilesToResearches(cachedFiles: List<CachedFileInfo>): List<CachedResearchItem> {
-        if (cachedFiles.isEmpty()) return emptyList()
-
-        val fileIds = cachedFiles.map { it.fileId }.toSet()
-        val researchMap = mutableMapOf<String, Pair<String, String>>() // fileId -> (title, strand)
-
-        try {
-            // Search both qualitative and quantitative collections
-            val qualDocs = firestore.collection("researches/research_details/qualitative")
-                .get().await()
-            val quantDocs = firestore.collection("researches/research_details/quantitative")
-                .get().await()
-
-            (qualDocs.documents + quantDocs.documents).forEach { doc ->
-                val fileLink = doc.getString("file_link") ?: ""
-                if (fileLink in fileIds) {
-                    researchMap[fileLink] = Pair(
-                        doc.getString("title") ?: "Unknown Research",
-                        doc.getString("strand") ?: ""
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            // Continue with just file IDs if Firestore lookup fails
-            e.printStackTrace()
-        }
-
-        return cachedFiles.map { cachedFile ->
-            val (title, strand) = researchMap[cachedFile.fileId] ?: Pair("Cached File", "")
-            CachedResearchItem(
-                fileId = cachedFile.fileId,
-                title = title,
-                strand = strand,
-                sizeBytes = cachedFile.sizeBytes,
-                lastModified = cachedFile.lastModified
-            )
         }
     }
 
@@ -236,20 +187,15 @@ class StorageManagementViewModel(application: Application) : AndroidViewModel(ap
                     .filter { it.isSelected }
                     .map { it.fileId }
 
-                val deletedCount = FileCache.deleteFiles(context, selectedIds)
-
-                // Reload data after deletion
-                val pdfSize = FileCache.getTotalCacheSize(context)
-                val totalSize = FileCache.getTotalAppCacheSize(context)
-                val cachedFiles = FileCache.getAllCachedFiles(context)
-                val cachedResearches = mapCachedFilesToResearches(cachedFiles)
+                val deletedCount = StorageRepository.deleteSelectedFiles(context, selectedIds)
+                val snapshot = StorageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
                         isDeleting = false,
-                        pdfCacheSize = pdfSize,
-                        totalAppCacheSize = totalSize,
-                        cachedResearches = cachedResearches,
+                        pdfCacheSize = snapshot.pdfCacheSize,
+                        totalAppCacheSize = snapshot.totalAppCacheSize,
+                        cachedResearches = snapshot.cachedResearches.map { record -> record.toUiCachedItem() },
                         selectedCount = 0,
                         selectedSize = 0L,
                         message = "$deletedCount file(s) deleted"
@@ -267,16 +213,15 @@ class StorageManagementViewModel(application: Application) : AndroidViewModel(ap
             _uiState.update { it.copy(isDeleting = true, showConfirmDialog = false) }
 
             withContext(Dispatchers.IO) {
-                val deletedCount = FileCache.clearAllCache(context)
-                val pdfSize = FileCache.getTotalCacheSize(context)
-                val totalSize = FileCache.getTotalAppCacheSize(context)
+                val deletedCount = StorageRepository.clearPdfCache(context)
+                val snapshot = StorageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
                         isDeleting = false,
-                        pdfCacheSize = pdfSize,
-                        totalAppCacheSize = totalSize,
-                        cachedResearches = emptyList(),
+                        pdfCacheSize = snapshot.pdfCacheSize,
+                        totalAppCacheSize = snapshot.totalAppCacheSize,
+                        cachedResearches = snapshot.cachedResearches.map { record -> record.toUiCachedItem() },
                         selectedCount = 0,
                         selectedSize = 0L,
                         message = "$deletedCount PDF file(s) cleared"
@@ -294,16 +239,15 @@ class StorageManagementViewModel(application: Application) : AndroidViewModel(ap
             _uiState.update { it.copy(isDeleting = true, showConfirmDialog = false) }
 
             withContext(Dispatchers.IO) {
-                FileCache.clearAllAppCache(context)
-                val pdfSize = FileCache.getTotalCacheSize(context)
-                val totalSize = FileCache.getTotalAppCacheSize(context)
+                StorageRepository.clearAllCache(context)
+                val snapshot = StorageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
                         isDeleting = false,
-                        pdfCacheSize = pdfSize,
-                        totalAppCacheSize = totalSize,
-                        cachedResearches = emptyList(),
+                        pdfCacheSize = snapshot.pdfCacheSize,
+                        totalAppCacheSize = snapshot.totalAppCacheSize,
+                        cachedResearches = snapshot.cachedResearches.map { record -> record.toUiCachedItem() },
                         selectedCount = 0,
                         selectedSize = 0L,
                         message = "All cache cleared"
@@ -319,4 +263,14 @@ class StorageManagementViewModel(application: Application) : AndroidViewModel(ap
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
     }
+}
+
+private fun CachedResearchRecord.toUiCachedItem(): CachedResearchItem {
+    return CachedResearchItem(
+        fileId = fileId,
+        title = title,
+        strand = strand,
+        sizeBytes = sizeBytes,
+        lastModified = lastModified
+    )
 }

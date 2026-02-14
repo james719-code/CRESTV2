@@ -5,21 +5,15 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FileCache
-import com.bdbshs.crest.data.FirebaseClient
+import com.bdbshs.crest.data.repository.GroupRepository
+import com.bdbshs.crest.data.repository.PdfRepository
 import com.bdbshs.crest.navigation.AppDestination
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.ktx.toObject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-
-private const val BUCKET_ID = "686a262b0024b8e10a35"
 
 data class GroupDetailUiState(
     val isLoading: Boolean = true,
@@ -28,51 +22,17 @@ data class GroupDetailUiState(
     val error: String? = null,
     val isUpdating: Boolean = false,
     val denialComment: String = "",
-    val pdfBytes: ByteArray? = null,
+    val pdfFilePath: String? = null,
     val isPdfLoading: Boolean = false,
     // --- YOUR REQUESTED VARIABLE ---
     val isShowingPdf: Boolean = false
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-        other as GroupDetailUiState
-        if (isLoading != other.isLoading) return false
-        if (group != other.group) return false
-        if (memberNames != other.memberNames) return false
-        if (error != other.error) return false
-        if (isUpdating != other.isUpdating) return false
-        if (denialComment != other.denialComment) return false
-        if (pdfBytes != null) {
-            if (other.pdfBytes == null) return false
-            if (!pdfBytes.contentEquals(other.pdfBytes)) return false
-        } else if (other.pdfBytes != null) return false
-        if (isPdfLoading != other.isPdfLoading) return false
-        if (isShowingPdf != other.isShowingPdf) return false // Compare the new flag
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = isLoading.hashCode()
-        result = 31 * result + (group?.hashCode() ?: 0)
-        result = 31 * result + memberNames.hashCode()
-        result = 31 * result + (error?.hashCode() ?: 0)
-        result = 31 * result + isUpdating.hashCode()
-        result = 31 * result + denialComment.hashCode()
-        result = 31 * result + (pdfBytes?.contentHashCode() ?: 0)
-        result = 31 * result + isPdfLoading.hashCode()
-        result = 31 * result + isShowingPdf.hashCode() // Add the new flag
-        return result
-    }
-}
+)
 
 class GroupDetailViewModel(
     application: Application,
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
 
-    private val firestore = FirebaseClient.firestore
-    private val appwriteStorage = AppwriteClient.storage
     private var groupListener: ListenerRegistration? = null
 
     private val _uiState = MutableStateFlow(GroupDetailUiState())
@@ -92,22 +52,15 @@ class GroupDetailViewModel(
     fun loadPdf(isOnline: Boolean) {
         val fileId = _uiState.value.group?.file_link
         if (fileId.isNullOrBlank()) { /* ... error handling ... */ return }
-        if (_uiState.value.isShowingPdf) return // Don't re-load if already showing
+        if (_uiState.value.isShowingPdf && _uiState.value.pdfFilePath != null) return // Don't re-load if already showing
 
         _uiState.update { it.copy(isPdfLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val cachedFile = FileCache.getFile(getApplication(), fileId)
-                val fileBytes = cachedFile ?: if (isOnline) {
-                    appwriteStorage.getFileDownload(bucketId = BUCKET_ID, fileId = fileId).also {
-                        FileCache.saveFile(getApplication(), fileId, it)
-                    }
-                } else {
-                    throw Exception("File not cached. An internet connection is required to download it.")
-                }
+                val resolvedFile = PdfRepository.getOrDownloadPdfFile(getApplication(), fileId, isOnline)
 
                 // On success, update both the data and the flag
-                _uiState.update { it.copy(isPdfLoading = false, pdfBytes = fileBytes, isShowingPdf = true) }
+                _uiState.update { it.copy(isPdfLoading = false, pdfFilePath = resolvedFile.absolutePath, isShowingPdf = true) }
 
             } catch (e: Exception) {
                 _uiState.update { it.copy(isPdfLoading = false, error = "Could not load PDF: ${e.message}") }
@@ -120,7 +73,7 @@ class GroupDetailViewModel(
     fun hidePdfViewer() {
         _uiState.update {
             // It's crucial to clear both the flag and the data to prevent memory leaks.
-            it.copy(isShowingPdf = false, pdfBytes = null)
+            it.copy(isShowingPdf = false, pdfFilePath = null)
         }
     }
 
@@ -129,17 +82,16 @@ class GroupDetailViewModel(
         _uiState.update { it.copy(isLoading = true) }
         groupListener?.remove()
 
-        groupListener = firestore.collection("groups").document(groupId)
-            .addSnapshotListener { snapshot, e ->
+        groupListener = GroupRepository.observeGroupById(groupId) { snapshot, e ->
                 if (e != null) {
                     val message = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
                         "You are offline. Showing cached details."
                     } else { "Error: ${e.message}" }
                     _uiState.update { it.copy(isLoading = false, error = message) }
-                    return@addSnapshotListener
+                    return@observeGroupById
                 }
                 if (snapshot != null && snapshot.exists()) {
-                    val groupItem = snapshot.toObject<GroupItem>()?.copy(id = snapshot.id)
+                    val groupItem = snapshot.toGroupItem()
                     _uiState.update { it.copy(isLoading = false, group = groupItem) }
                     groupItem?.group_member?.let { fetchMemberNames(it) }
                 } else {
@@ -155,11 +107,7 @@ class GroupDetailViewModel(
         }
         viewModelScope.launch {
             try {
-                val names = uids.chunked(10).flatMap { chunk ->
-                    val studentDocs = firestore.collection("users/user_details/students")
-                        .whereIn("__name__", chunk).get().await()
-                    studentDocs.documents.mapNotNull { it.getString("name") }
-                }
+                val names = GroupRepository.fetchStudentNamesByIds(uids)
                 _uiState.update { it.copy(memberNames = names) }
             } catch (e: Exception) {
                 Log.e("GroupDetailVM", "Failed to fetch member names", e)
@@ -192,30 +140,14 @@ class GroupDetailViewModel(
         viewModelScope.launch {
             try {
                 val researchType = ResearchType.valueOf(group.research_type.uppercase())
-                val newResearchData = mapOf(
-                    "title" to group.research_title,
-                    // --- THIS IS THE FIX ---
-                    // Use the fetched memberNames list, not the group_member list of UIDs.
-                    "members" to memberNames,
-                    "strand" to group.strand,
-                    "downloads" to 0,
-                    "unfinished" to false,
-                    "file_link" to group.file_link,
-                    "createdAt" to System.currentTimeMillis()
+                GroupRepository.approveSubmissionWithResearch(
+                    groupId = groupId,
+                    researchTypeLowercase = researchType.name.lowercase(),
+                    researchTitle = group.research_title,
+                    memberNames = memberNames,
+                    strand = group.strand,
+                    fileLink = group.file_link
                 )
-
-                val batch = firestore.batch()
-                val newResearchRef = firestore.collection("researches/research_details/${researchType.name.lowercase()}").document()
-                batch.set(newResearchRef, newResearchData)
-
-                val groupRef = firestore.collection("groups").document(groupId)
-                val groupUpdates = mapOf(
-                    "accepted_research" to true,
-                    "uploaded" to false
-                )
-                batch.update(groupRef, groupUpdates)
-
-                batch.commit().await()
 
                 _uiState.update { it.copy(isUpdating = false) }
 
@@ -233,18 +165,7 @@ class GroupDetailViewModel(
         _uiState.update { it.copy(isUpdating = true) }
         viewModelScope.launch {
             try {
-                if (!fileLink.isNullOrBlank()) {
-                    appwriteStorage.deleteFile(BUCKET_ID, fileLink)
-                }
-                val updates = mapOf(
-                    "accepted_research" to false,
-                    "uploaded" to false,
-                    "file_link" to "",
-                    "research_title" to "",
-                    "research_type" to "",
-                    "comments" to FieldValue.arrayUnion(comment)
-                )
-                firestore.collection("groups").document(groupId).update(updates).await()
+                GroupRepository.denySubmission(groupId, fileLink, comment)
                 _uiState.update { it.copy(isUpdating = false, denialComment = "") }
             } catch (e: Exception) {
                 _uiState.update {
@@ -258,11 +179,25 @@ class GroupDetailViewModel(
     }
 
     fun clearPdfBytes() {
-        _uiState.update { it.copy(pdfBytes = null) }
+        _uiState.update { it.copy(pdfFilePath = null) }
     }
 
     override fun onCleared() {
         groupListener?.remove()
         super.onCleared()
     }
+}
+
+private fun com.google.firebase.firestore.DocumentSnapshot.toGroupItem(): GroupItem? {
+    return GroupItem(
+        id = id,
+        group_name = getString("group_name").orEmpty(),
+        strand = getString("strand").orEmpty(),
+        group_member = (get("group_member") as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+        uploaded = getBoolean("uploaded") ?: false,
+        accepted_research = getBoolean("accepted_research") ?: false,
+        research_title = getString("research_title").orEmpty(),
+        research_type = getString("research_type").orEmpty(),
+        file_link = getString("file_link").orEmpty()
+    )
 }

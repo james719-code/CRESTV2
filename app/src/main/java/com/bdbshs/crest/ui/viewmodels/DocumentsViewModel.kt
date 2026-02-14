@@ -2,26 +2,18 @@ package com.bdbshs.crest.ui.viewmodels
 
 import android.app.Application // Needed for AndroidViewModel
 import android.net.Uri // For new file selection
-import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel // For file operations
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FirebaseClient
+import com.bdbshs.crest.data.repository.DocumentRecord
+import com.bdbshs.crest.data.repository.DocumentRepository
+import com.bdbshs.crest.data.repository.DocumentUpdateInput
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.QueryDocumentSnapshot
-import io.appwrite.ID
-import io.appwrite.models.InputFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 
 // --- DATA MODELS ---
 
@@ -66,9 +58,7 @@ data class DocumentsUiState(
 
 class DocumentsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val firestore = FirebaseClient.firestore
-    private val appwriteStorage = AppwriteClient.storage
-    val DOCUMENTS_BUCKET_ID = "686a262b0024b8e10a35" // Use your actual Appwrite bucket ID for documents
+    private val appContext = getApplication<Application>().applicationContext
 
     private var documentsListener: ListenerRegistration? = null
 
@@ -113,17 +103,16 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(isLoading = true, error = null) }
         documentsListener?.remove()
 
-        documentsListener = firestore.collection("documents") // Assuming your collection is named "documents"
-            .orderBy("createdAt", Query.Direction.DESCENDING) // Default sort
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    val message = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+        documentsListener = DocumentRepository.observeDocuments { documents, error ->
+                if (error != null) {
+                    val message = if (error.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
                         "You are offline. Showing cached documents."
-                    } else { "Error: ${e.message}" }
+                    } else { "Error: ${error.message}" }
                     _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = message) }
-                    return@addSnapshotListener
+                    return@observeDocuments
                 }
-                val docList = snapshot?.documents?.mapNotNull { mapDocumentToDocumentItem(it as QueryDocumentSnapshot) } ?: emptyList()
+
+                val docList = documents?.map { it.toUiDocumentItem() } ?: emptyList()
                 _uiState.update { it.copy(isLoading = false, isRefreshing = false, allDocuments = docList) }
             }
     }
@@ -193,31 +182,16 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                var updatedFileLink = document.file_link
-
-                // If a new file is selected, upload it and delete the old one
-                if (newFileUri != null) {
-                    // 1. Upload new file
-                    val tempFile = withContext(Dispatchers.IO) { createTempFileFromUri(newFileUri) }
-                        ?: throw Exception("Failed to prepare new file for upload.")
-                    val inputFile = InputFile.fromFile(file = tempFile)
-                    val uploadedFile = appwriteStorage.createFile(DOCUMENTS_BUCKET_ID, ID.unique(), inputFile)
-                    tempFile.delete() // Clean up temp file
-                    updatedFileLink = uploadedFile.id
-
-                    // 2. Delete old file (if it exists)
-                    if (document.file_link.isNotBlank()) {
-                        appwriteStorage.deleteFile(DOCUMENTS_BUCKET_ID, document.file_link)
-                    }
-                }
-
-                // 3. Update Firestore document
-                val updates = mapOf(
-                    "name" to newName,
-                    "description" to newDescription,
-                    "file_link" to updatedFileLink
+                DocumentRepository.updateDocument(
+                    context = appContext,
+                    input = DocumentUpdateInput(
+                        documentId = document.id,
+                        name = newName,
+                        description = newDescription,
+                        currentFileLink = document.file_link,
+                        newFileUri = newFileUri
+                    )
                 )
-                firestore.collection("documents").document(document.id).update(updates).await()
 
                 dismissEditDialog() // Close dialog on success
                 _uiState.update { it.copy(isUpdatingDocument = false) }
@@ -234,13 +208,7 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                // 1. Delete Firestore document
-                firestore.collection("documents").document(document.id).delete().await()
-
-                // 2. Delete Appwrite file (if it exists)
-                if (document.file_link.isNotBlank()) {
-                    appwriteStorage.deleteFile(DOCUMENTS_BUCKET_ID, document.file_link)
-                }
+                DocumentRepository.deleteDocument(document.id, document.file_link)
 
                 dismissEditDialog() // Close dialog on success
                 _uiState.update { it.copy(isUpdatingDocument = false) }
@@ -255,32 +223,18 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(error = null) }
     }
 
-    private fun mapDocumentToDocumentItem(doc: QueryDocumentSnapshot): DocumentItem? {
-        return try {
-            doc.toObject(DocumentItem::class.java)?.copy(id = doc.id)
-        } catch (e: Exception) {
-            Log.e("DocumentsViewModel", "Failed to map document ${doc.id}", e)
-            null
-        }
-    }
-
-    private fun createTempFileFromUri(uri: Uri): File? {
-        return try {
-            val context = getApplication<Application>().applicationContext
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val tempFile = File.createTempFile("upload_doc_", "", context.cacheDir) // <-- FIX HERE
-            val fileOutputStream = FileOutputStream(tempFile)
-            inputStream?.use { input -> fileOutputStream.use { output -> input.copyTo(output) } }
-            tempFile
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-
     override fun onCleared() {
         documentsListener?.remove()
         super.onCleared()
     }
+}
+
+private fun DocumentRecord.toUiDocumentItem(): DocumentItem {
+    return DocumentItem(
+        id = id,
+        name = name,
+        description = description,
+        file_link = fileLink,
+        createdAt = createdAt
+    )
 }

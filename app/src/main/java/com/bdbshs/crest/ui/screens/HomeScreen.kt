@@ -6,7 +6,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.UserType
 
 @Composable
@@ -25,13 +25,13 @@ fun HomeScreen(
         when (userRole) {
             UserType.STUDENT -> StudentHomeScreen(
                 modifier = Modifier.fillMaxSize(),
-                viewModel = viewModel(),
+                viewModel = hiltViewModel(),
                 onNavigateToUpload = onNavigateToGroupUpload,
                 onNavigateToResearchDetails = onNavigateToResearchDetails,
             )
             UserType.TEACHER -> TeacherHomeScreen(
                 modifier = Modifier.fillMaxSize(),
-                viewModel = viewModel(),
+                viewModel = hiltViewModel(),
                 onNavigateToUploadResearch = onNavigateToTeacherUpload,
                 onNavigateToResearchDetails = onNavigateToResearchDetails,
                 onNavigateToAccounts = onNavigateToAccounts

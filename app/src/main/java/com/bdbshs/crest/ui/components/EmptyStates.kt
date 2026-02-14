@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -162,7 +163,7 @@ fun ResearchEmptyState(
         )
     } else {
         ModernEmptyState(
-            icon = Icons.Outlined.LibraryBooks,
+            icon = Icons.AutoMirrored.Outlined.LibraryBooks,
             title = "No research yet",
             description = "Research papers will appear here once they're added to the repository.",
             modifier = modifier

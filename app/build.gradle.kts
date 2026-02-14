@@ -1,8 +1,29 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt.android)
     alias(libs.plugins.google.services)
+}
+
+val localProperties = Properties().apply {
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) {
+        localFile.inputStream().use(::load)
+    }
+}
+
+fun resolveConfigValue(name: String, fallback: String): String {
+    val fromLocal = localProperties.getProperty(name)
+    val fromGradle = providers.gradleProperty(name).orNull
+    return when {
+        !fromLocal.isNullOrBlank() -> fromLocal
+        !fromGradle.isNullOrBlank() -> fromGradle
+        else -> fallback
+    }
 }
 
 android {
@@ -17,6 +38,22 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "APPWRITE_ENDPOINT",
+            "\"${resolveConfigValue("APPWRITE_ENDPOINT", "https://fra.cloud.appwrite.io/v1")}\""
+        )
+        buildConfigField(
+            "String",
+            "APPWRITE_PROJECT_ID",
+            "\"${resolveConfigValue("APPWRITE_PROJECT_ID", "686a25c60006e47cfbea")}\""
+        )
+        buildConfigField(
+            "String",
+            "APPWRITE_BUCKET_ID",
+            "\"${resolveConfigValue("APPWRITE_BUCKET_ID", "686a262b0024b8e10a35")}\""
+        )
     }
 
     signingConfigs {
@@ -65,6 +102,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -96,6 +134,9 @@ dependencies {
     implementation(libs.sdk.for1.android)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.splashscreen)
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    kapt(libs.hilt.compiler)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     
     // Unit Testing
@@ -117,4 +158,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.coil.compose)
+}
+
+kapt {
+    correctErrorTypes = true
 }

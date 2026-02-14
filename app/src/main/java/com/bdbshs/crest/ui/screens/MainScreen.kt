@@ -16,7 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.bdbshs.crest.data.ThemeMode
 import com.bdbshs.crest.navigation.AppDestination
@@ -40,7 +40,7 @@ fun MainScreen(
     onNavigationClick: (() -> Unit)? = null,
     content: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit
 ) {
-    val mainViewModel: MainViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
     val uiState by mainViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -207,7 +207,7 @@ fun MainScreenWithPager(
     documentsContent: @Composable (PaddingValues, UserType?) -> Unit,
     groupsContent: (@Composable (PaddingValues, UserType?) -> Unit)? = null
 ) {
-    val mainViewModel: MainViewModel = viewModel()
+    val mainViewModel: MainViewModel = hiltViewModel()
     val uiState by mainViewModel.uiState.collectAsState()
 
     MainScreenWithPagerContent(

@@ -24,7 +24,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
 import com.bdbshs.crest.ui.viewmodels.*
@@ -32,7 +32,7 @@ import com.bdbshs.crest.ui.viewmodels.*
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AccountsScreen(
-    viewModel: AccountsViewModel = viewModel(),
+    viewModel: AccountsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()

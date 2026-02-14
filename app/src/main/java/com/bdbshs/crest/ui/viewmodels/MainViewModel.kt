@@ -1,20 +1,23 @@
 package com.bdbshs.crest.ui.viewmodels
 
 import android.annotation.SuppressLint
-import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.UserPrefs
 import com.bdbshs.crest.data.UserPrefs.clear
 import com.bdbshs.crest.data.UserPrefs.saveUserData
 import com.bdbshs.crest.data.UserPrefs.saveTheme
 import com.bdbshs.crest.data.UserPrefs.userDataFlow
 import com.bdbshs.crest.data.ThemeMode
+import com.bdbshs.crest.data.repository.AuthRepository
+import com.bdbshs.crest.data.repository.UserRepository
+import com.bdbshs.crest.data.repository.UserRole
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,9 +25,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.FirebaseAuth
+import javax.inject.Inject
 
 
 data class MainUiState(
@@ -39,10 +42,10 @@ data class MainUiState(
     val error: String? = null
 )
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val auth = FirebaseClient.auth
-    private val firestore = FirebaseClient.firestore
-    private val ctx = getApplication<Application>()
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    @ApplicationContext private val ctx: Context
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -66,7 +69,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Observe auth state changes to refresh user data automatically.
         // This ensures that when a user logs out and a new one logs in,
         // the ViewModel refreshes its state even if it stays in memory.
-        auth.addAuthStateListener(authStateListener)
+        AuthRepository.addAuthStateListener(authStateListener)
     }
 
     /**
@@ -133,31 +136,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 // Determine user role and document path from Firestore
-                val (role, collectionPath, permissionField) = detectRoleFromFirestore(uid)
+                val roleLocation = UserRepository.detectUserRoleLocation(uid)
+                    ?: throw IllegalStateException("User document not found for UID: $uid in Firestore collections. Profile incomplete.")
 
                 // Set up a real-time listener. This will provide live updates when online
                 // and cached data when offline (if previously synced).
-                userDocListener = firestore.collection(collectionPath).document(uid)
-                    .addSnapshotListener { snapshot, e ->
-                        if (e != null) {
-                            Log.e(TAG, "Firestore listener error for $uid: ${e.message}", e)
-                            val errorMessage = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                userDocListener = UserRepository.observeUserStatus(uid, roleLocation) { hasPermission, error ->
+                        if (error != null) {
+                            Log.e(TAG, "Firestore listener error for $uid: ${error.message}", error)
+                            val errorMessage = if (error.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
                                 "You are offline. Displaying cached user status."
                             } else {
-                                "Error fetching user status: ${e.message}"
+                                "Error fetching user status: ${error.message}"
                             }
                             _uiState.update { it.copy(error = errorMessage) } // Show non-blocking error
-                            return@addSnapshotListener
+                            return@observeUserStatus
                         }
 
-                        val hasPermission = snapshot?.getBoolean(permissionField) ?: false
+                        val isAllowed = hasPermission ?: false
+                        val role = roleLocation.role.toUiUserType()
+
                         Log.d(TAG, "Live status update for $uid: Role=$role, Permission=$hasPermission")
 
                         // Update the UI state with the fresh data
                         _uiState.update { currentState ->
                             currentState.copy(
                                 userRole = role,
-                                isAllowedOffline = hasPermission,
+                                isAllowedOffline = isAllowed,
                                 isLoading = false,
                                 error = null // Clear any previous error on successful update
                             )
@@ -169,8 +174,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 UserPrefs.UserData(
                                     uid = uid,
                                     role = role.name,
-                                    accepted = role == UserType.STUDENT && hasPermission,
-                                    access = role == UserType.TEACHER && hasPermission,
+                                    accepted = role == UserType.STUDENT && isAllowed,
+                                    access = role == UserType.TEACHER && isAllowed,
                                     theme = _uiState.value.themeMode
                                 )
                             )
@@ -187,54 +192,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
-    }
-
-
-    /**
-     * Determines the user's role (Student or Teacher) by checking Firestore documents.
-     * Uses `get().await()` which by default attempts to use the server first, then the cache.
-     * If offline, it will only succeed if the document is in the cache.
-     *
-     * @param uid The Firebase user ID.
-     * @return A Triple containing UserType, collection path, and permission field name.
-     * @throws IllegalStateException if the user is authenticated but no corresponding document is found.
-     */
-    private suspend fun detectRoleFromFirestore(uid: String): Triple<UserType, String, String> {
-        val studentsCollection = firestore.collection("users/user_details/students")
-        val teachersCollection = firestore.collection("users/user_details/teachers")
-
-        // Try to get student document first
-        val studentDoc = try {
-            studentsCollection.document(uid).get().await()
-        } catch (e: FirebaseFirestoreException) {
-            Log.w(TAG, "Failed to get student doc (online or from cache) for $uid: ${e.message}")
-            null
-        }
-
-        if (studentDoc?.exists() == true) {
-            Log.d(TAG, "User $uid identified as STUDENT via Firestore.")
-            return Triple(UserType.STUDENT, "users/user_details/students", "accepted")
-        }
-
-        // If not a student, try to get teacher document
-        val teacherDoc = try {
-            teachersCollection.document(uid).get().await()
-        } catch (e: FirebaseFirestoreException) {
-            Log.w(TAG, "Failed to get teacher doc (online or from cache) for $uid: ${e.message}")
-            null
-        }
-
-        if (teacherDoc?.exists() == true) {
-            Log.d(TAG, "User $uid identified as TEACHER via Firestore.")
-            return Triple(UserType.TEACHER, "users/user_details/teachers", "access")
-        }
-
-        // If user document not found in either collection, it's an unexpected state for an already signed-in user.
-        // This scenario typically means the user needs to complete their signup details.
-        // The NavHost's initial routing logic (e.g., from LoginViewModel) should handle navigation to SignUpDetails.
-        // For the purpose of MainViewModel, if we cannot determine the role for permissions, we throw.
-        Log.e(TAG, "User $uid signed in, but no student or teacher document found. This indicates an incomplete profile setup.")
-        throw IllegalStateException("User document not found for UID: $uid in Firestore collections. Profile incomplete.")
     }
 
     @SuppressLint("ServiceCast")
@@ -259,7 +216,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 userDocListener = null // Clear reference
 
                 // 2. Sign out from Firebase Authentication
-                auth.signOut()
+                AuthRepository.signOut()
                 Log.d(TAG, "Firebase user signed out.")
 
                 // 3. Clear local persisted user data in DataStore
@@ -306,7 +263,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     override fun onCleared() {
-        auth.removeAuthStateListener(authStateListener)
+        AuthRepository.removeAuthStateListener(authStateListener)
         userDocListener?.remove() // Ensure the listener is removed to prevent memory leaks
         super.onCleared()
         Log.d(TAG, "MainViewModel cleared. Firestore and Auth listeners removed.")
@@ -314,5 +271,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val TAG = "MainViewModel"
+    }
+}
+
+private fun UserRole.toUiUserType(): UserType {
+    return when (this) {
+        UserRole.STUDENT -> UserType.STUDENT
+        UserRole.TEACHER -> UserType.TEACHER
     }
 }

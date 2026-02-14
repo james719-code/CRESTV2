@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -222,9 +224,9 @@ private fun TrendBadge(trend: StatTrend) {
         ) {
             Icon(
                 imageVector = if (trend.isPositive) 
-                    Icons.Filled.TrendingUp 
+                    Icons.AutoMirrored.Filled.TrendingUp 
                 else 
-                    Icons.Filled.TrendingDown,
+                    Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = null,
                 modifier = Modifier.size(12.dp),
                 tint = if (trend.isPositive) SuccessGreen else ErrorRed

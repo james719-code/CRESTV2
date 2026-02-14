@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Description
@@ -28,7 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.DashboardCardItem
 import com.bdbshs.crest.ui.viewmodels.SimpleResearch
 import com.bdbshs.crest.ui.viewmodels.TeacherHomeUiState
@@ -43,7 +44,7 @@ fun TeacherHomeScreen(
     onNavigateToUploadResearch: () -> Unit,
     onNavigateToResearchDetails: (String) -> Unit,
     onNavigateToAccounts: () -> Unit,
-    viewModel: TeacherHomeViewModel = viewModel()
+    viewModel: TeacherHomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -477,7 +478,7 @@ private fun RecentResearchCard(research: SimpleResearch, onClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Article,
+                imageVector = Icons.AutoMirrored.Filled.Article,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -531,7 +532,7 @@ private fun UploadDocumentDialog(
         }
     }
 
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier.padding(16.dp),
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)

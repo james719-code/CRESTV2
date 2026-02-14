@@ -12,7 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.components.FilePicker
 import com.bdbshs.crest.ui.viewmodels.*
 import com.bdbshs.crest.utils.getFileNameFromUri
@@ -21,7 +21,7 @@ import com.bdbshs.crest.utils.getFileNameFromUri
 @Composable
 fun GroupUploadScreen(
     onNavigateBack: () -> Unit,
-    viewModel: GroupUploadViewModel = viewModel()
+    viewModel: GroupUploadViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current

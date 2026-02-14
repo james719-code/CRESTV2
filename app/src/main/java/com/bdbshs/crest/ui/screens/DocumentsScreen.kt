@@ -19,6 +19,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bdbshs.crest.data.AppwriteClient
+import com.bdbshs.crest.data.StorageConfig
 import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
@@ -130,7 +132,7 @@ fun DocumentsScreen(
                                     // --- THIS IS THE FIX ---
                                     // Use DownloadManager for more robust downloading
                                     val fileUri = AppwriteClient.getDownloadUrl(
-                                        bucketId = viewModel.DOCUMENTS_BUCKET_ID,
+                                        bucketId = StorageConfig.BUCKET_ID,
                                         fileId = document.file_link
                                     )
                                     val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
@@ -268,7 +270,7 @@ private fun DocumentFilterSortBottomSheet(
                 // Sort Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterSectionTitle(icon = Icons.Default.Sort, title = "Sort By")
+                        FilterSectionTitle(icon = Icons.AutoMirrored.Filled.Sort, title = "Sort By")
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)

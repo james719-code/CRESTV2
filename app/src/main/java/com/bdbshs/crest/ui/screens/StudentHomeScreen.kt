@@ -1,10 +1,13 @@
 package com.bdbshs.crest.ui.screens
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -37,7 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -54,7 +56,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -74,7 +76,7 @@ import kotlin.coroutines.resume
 @Composable
 fun StudentHomeScreen(
     modifier: Modifier = Modifier,
-    viewModel: StudentHomeViewModel = viewModel(),
+    viewModel: StudentHomeViewModel = hiltViewModel(),
     onNavigateToUpload: () -> Unit,
     onNavigateToResearchDetails: (String) -> Unit
 ) {
@@ -327,7 +329,7 @@ private fun CertificateContent(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Divider(
+                        HorizontalDivider(
                             modifier = Modifier.width(180.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -442,9 +444,12 @@ private fun saveBitmapToDownloads(context: Context, bitmap: Bitmap, groupName: S
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 success = true
             }
-            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
-            mediaScanIntent.data = Uri.fromFile(file)
-            context.sendBroadcast(mediaScanIntent)
+            MediaScannerConnection.scanFile(
+                context,
+                arrayOf(file.absolutePath),
+                arrayOf(mimeType),
+                null
+            )
         }
     } catch (e: IOException) {
         Log.e("SaveBitmap", "Failed to save bitmap", e)
@@ -495,7 +500,6 @@ private fun GroupDetailsCard(
     onUnsubmitRequest: () -> Unit,
     onDownloadAndLeave: () -> Unit
 ) {
-    val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -510,7 +514,11 @@ private fun GroupDetailsCard(
                     Text("Group ID:", style = MaterialTheme.typography.bodyMedium)
                     Text(groupId, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary))
                 }
-                IconButton(onClick = { clipboardManager.setText(AnnotatedString(groupId)); Toast.makeText(context, "Group ID copied!", Toast.LENGTH_SHORT).show() }) {
+                IconButton(onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("Group ID", groupId))
+                    Toast.makeText(context, "Group ID copied!", Toast.LENGTH_SHORT).show()
+                }) {
                     Icon(Icons.Outlined.ContentCopy, "Copy Group ID")
                 }
             }

@@ -1,8 +1,7 @@
 package com.bdbshs.crest.ui.viewmodels
 
-import android.app.Application
+import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Group
@@ -10,23 +9,19 @@ import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.AndroidViewModel // Use AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FirebaseClient
-import com.google.firebase.firestore.Query // Import Firestore Query
-import io.appwrite.ID
-import io.appwrite.models.InputFile
-import kotlinx.coroutines.async
-import kotlinx.coroutines.Dispatchers
+import com.bdbshs.crest.data.repository.AuthRepository
+import com.bdbshs.crest.data.repository.TeacherDocumentUploadInput
+import com.bdbshs.crest.data.repository.TeacherHomeRepository
+import com.bdbshs.crest.data.repository.TeacherRecentResearch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 
 @Immutable
 data class DashboardCardItem(
@@ -57,15 +52,10 @@ data class TeacherHomeUiState(
     val uploadSuccess: Boolean = false
 )
 
-// Changed from ViewModel to AndroidViewModel to use getApplication()
-class TeacherHomeViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val firestore = FirebaseClient.firestore
-    private val auth = FirebaseClient.auth
-    private val appwriteStorage = AppwriteClient.storage
-
-    // Make sure this bucket ID is correct for your documents
-    private val DOCUMENTS_BUCKET_ID = "686a262b0024b8e10a35"
+@HiltViewModel
+class TeacherHomeViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TeacherHomeUiState())
     val uiState = _uiState.asStateFlow()
@@ -75,71 +65,26 @@ class TeacherHomeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private fun fetchRealData() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = AuthRepository.getCurrentUserUid() ?: return
         _uiState.update { it.copy(isLoading = true, error = null) } // Reset error on refresh
 
         viewModelScope.launch {
             try {
-                // 1. Fetch Teacher's Name
-                val teacherNameDeferred = async {
-                    firestore.collection("users/user_details/teachers").document(uid).get().await()
-                        .getString("name") ?: "Teacher"
-                }
+                val dashboardData = TeacherHomeRepository.fetchDashboardData(uid)
 
-                // 2. Fetch Dashboard Counts
-                val totalResearchesDeferred = async {
-                    (firestore.collection("researches/research_details/qualitative").get().await().size() +
-                            firestore.collection("researches/research_details/quantitative").get().await().size()).toString()
-                }
-                val totalAccountsDeferred = async {
-                    (firestore.collection("users/user_details/students").get().await().size() +
-                            firestore.collection("users/user_details/teachers").get().await().size()).toString()
-                }
-                val pendingResearchesDeferred = async {
-                    firestore.collection("groups").whereEqualTo("uploaded", true)
-                        .whereEqualTo("accepted_research", false).get().await().size().toString()
-                }
-                val pendingAccountsDeferred = async {
-                    val pendingStudents = firestore.collection("users/user_details/students")
-                        .whereEqualTo("accepted", false).get().await().size()
-                    val pendingTeachers = firestore.collection("users/user_details/teachers")
-                        .whereEqualTo("access", false).get().await().size()
-                    (pendingStudents + pendingTeachers).toString()
-                }
-
-                // 3. Fetch Recent Researches (simplified for home screen)
-                val recentResearchesDeferred = async {
-                    val qualitative = firestore.collection("researches/research_details/qualitative")
-                        .orderBy("createdAt", Query.Direction.DESCENDING)
-                        .limit(3).get().await()
-                    val quantitative = firestore.collection("researches/research_details/quantitative")
-                        .orderBy("createdAt", Query.Direction.DESCENDING)
-                        .limit(3).get().await()
-
-                    (qualitative.documents + quantitative.documents)
-                        .mapNotNull { doc ->
-                            val title = doc.getString("title")
-                            val date = doc.getLong("createdAt") ?: 0L
-                            if (title != null) SimpleResearch(doc.id, title, date) else null
-                        }
-                        .sortedByDescending { it.id } // Crude sort for combining recent
-                        .take(5)
-                }
-
-                // Await all results and update the UI state once
                 val dashboardItems = listOf(
-                    DashboardCardItem("Total Researches", totalResearchesDeferred.await(), Icons.Default.Description),
-                    DashboardCardItem("Total Accounts", totalAccountsDeferred.await(), Icons.Default.Group),
-                    DashboardCardItem("Pending Researches", pendingResearchesDeferred.await(), Icons.Default.PendingActions),
-                    DashboardCardItem("Pending Accounts", pendingAccountsDeferred.await(), Icons.Default.PersonAdd)
+                    DashboardCardItem("Total Researches", dashboardData.totalResearches, Icons.Default.Description),
+                    DashboardCardItem("Total Accounts", dashboardData.totalAccounts, Icons.Default.Group),
+                    DashboardCardItem("Pending Researches", dashboardData.pendingResearches, Icons.Default.PendingActions),
+                    DashboardCardItem("Pending Accounts", dashboardData.pendingAccounts, Icons.Default.PersonAdd)
                 )
 
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        teacherName = teacherNameDeferred.await(),
+                        teacherName = dashboardData.teacherName,
                         dashboardItems = dashboardItems,
-                        recentResearches = recentResearchesDeferred.await(),
+                        recentResearches = dashboardData.recentResearches.map { it.toSimpleResearch() },
                         error = null // Clear error on successful fetch
                     )
                 }
@@ -200,22 +145,15 @@ class TeacherHomeViewModel(application: Application) : AndroidViewModel(applicat
 
         viewModelScope.launch {
             try {
-                // 1. Upload file to Appwrite Storage
-                val tempFile = withContext(Dispatchers.IO) { createTempFileFromUri(currentState.uploadSelectedFileUri) }
-                    ?: throw Exception("Failed to prepare file for upload.")
-                val inputFile = InputFile.fromFile(file = tempFile)
-                // Use the correct DOCUMENTS_BUCKET_ID
-                val uploadedFile = appwriteStorage.createFile(DOCUMENTS_BUCKET_ID, ID.unique(), inputFile)
-                tempFile.delete() // Clean up temp file
-
-                // 2. Add document metadata to Firestore
-                val documentData = mapOf(
-                    "name" to currentState.uploadDocumentName,
-                    "description" to currentState.uploadDocumentDescription,
-                    "file_link" to uploadedFile.id,
-                    "createdAt" to System.currentTimeMillis()
+                TeacherHomeRepository.uploadTeacherDocument(
+                    context = appContext,
+                    input = TeacherDocumentUploadInput(
+                        name = currentState.uploadDocumentName,
+                        description = currentState.uploadDocumentDescription,
+                        fileUri = currentState.uploadSelectedFileUri
+                            ?: throw IllegalStateException("No file selected.")
+                    )
                 )
-                firestore.collection("documents").add(documentData).await()
 
                 _uiState.update { it.copy(isUploadingDocument = false, uploadSuccess = true) }
 
@@ -228,19 +166,12 @@ class TeacherHomeViewModel(application: Application) : AndroidViewModel(applicat
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+}
 
-    // Helper function to create temp file from Uri
-    private fun createTempFileFromUri(uri: Uri): File? {
-        return try {
-            val context = getApplication<Application>().applicationContext
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val tempFile = File.createTempFile("upload_doc_", "", context.cacheDir) // <-- FIX HERE
-            val fileOutputStream = FileOutputStream(tempFile)
-            inputStream?.use { input -> fileOutputStream.use { output -> input.copyTo(output) } }
-            tempFile
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
+private fun TeacherRecentResearch.toSimpleResearch(): SimpleResearch {
+    return SimpleResearch(
+        id = id,
+        title = title,
+        date = date
+    )
 }

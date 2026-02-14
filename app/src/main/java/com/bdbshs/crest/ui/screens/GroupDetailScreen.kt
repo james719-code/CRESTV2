@@ -70,11 +70,11 @@ fun GroupDetailScreen(
         label = "DetailToPdfTransition"
     ) { isShowingPdf ->
         if (isShowingPdf) {
-            // We still need to null-check the pdfBytes in case of a state anomaly,
+            // We still need to null-check the pdfFilePath in case of a state anomaly,
             // but the primary driver is the boolean flag.
-            uiState.pdfBytes?.let { pdfBytes ->
+            uiState.pdfFilePath?.let { pdfFilePath ->
                 PdfViewerScreen(
-                    pdfBytes = pdfBytes,
+                    pdfFilePath = pdfFilePath,
                     // The back button calls the new function
                     onNavigateBack = viewModel::hidePdfViewer
                 )
@@ -129,7 +129,7 @@ fun GroupDetailScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PdfViewerScreen(pdfBytes: ByteArray, onNavigateBack: () -> Unit) {
+private fun PdfViewerScreen(pdfFilePath: String, onNavigateBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -140,7 +140,7 @@ private fun PdfViewerScreen(pdfBytes: ByteArray, onNavigateBack: () -> Unit) {
             )
         }
     ) { padding ->
-        NativePdfViewer(pdfBytes = pdfBytes, modifier = Modifier.padding(padding))
+        NativePdfViewer(pdfFilePath = pdfFilePath, modifier = Modifier.padding(padding))
     }
 }
 
@@ -275,18 +275,17 @@ private fun ErrorState(message: String) {
 
 
 @Composable
-private fun NativePdfViewer(pdfBytes: ByteArray, modifier: Modifier = Modifier) {
+private fun NativePdfViewer(pdfFilePath: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var bitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    DisposableEffect(pdfBytes) {
-        val tempFile = File(context.cacheDir, "temp_group_view.pdf")
-        tempFile.writeBytes(pdfBytes)
+    DisposableEffect(pdfFilePath) {
+        val sourceFile = File(pdfFilePath)
         val job = scope.launch(Dispatchers.IO) {
             try {
-                val renderer = PdfRenderer(ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY))
+                val renderer = PdfRenderer(ParcelFileDescriptor.open(sourceFile, ParcelFileDescriptor.MODE_READ_ONLY))
                 val pageBitmaps = mutableListOf<Bitmap>()
                 for (i in 0 until renderer.pageCount) {
                     renderer.openPage(i).use { page ->
@@ -307,7 +306,6 @@ private fun NativePdfViewer(pdfBytes: ByteArray, modifier: Modifier = Modifier) 
         onDispose {
             job.cancel()
             bitmaps.forEach { it.recycle() }
-            tempFile.delete()
         }
     }
 

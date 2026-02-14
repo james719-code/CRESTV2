@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.R
 import com.bdbshs.crest.ui.viewmodels.LoginResult
 import com.bdbshs.crest.ui.viewmodels.LoginViewModel
@@ -49,7 +49,7 @@ fun LoginScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToSignUpDetails: () -> Unit,
     onNavigateToPendingApproval: () -> Unit,
-    loginViewModel: LoginViewModel = viewModel()
+    loginViewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()

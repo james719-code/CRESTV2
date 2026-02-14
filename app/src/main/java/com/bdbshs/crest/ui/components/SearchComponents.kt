@@ -374,7 +374,7 @@ fun SortDropdown(
     ) {
         Surface(
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
                 .height(40.dp),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceVariant

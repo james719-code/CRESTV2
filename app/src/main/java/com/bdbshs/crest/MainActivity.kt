@@ -26,6 +26,7 @@ import com.bdbshs.crest.data.UserPrefs.userDataFlow
 import com.bdbshs.crest.navigation.CrestApp
 import com.bdbshs.crest.ui.screens.SplashScreen
 import com.bdbshs.crest.ui.theme.CRESTTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 
 // Splash screen timing constants
@@ -40,6 +41,7 @@ private const val SPLASH_FADE_DURATION_MS = 500
  * - Edge-to-edge display configuration
  * - Theme selection
  */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {

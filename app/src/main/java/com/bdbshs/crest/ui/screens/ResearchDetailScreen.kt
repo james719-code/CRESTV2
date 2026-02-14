@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.ResearchDetailViewModel
 import com.bdbshs.crest.ui.viewmodels.ResearchItem
 import com.bdbshs.crest.data.UserPrefs
@@ -79,7 +80,7 @@ private fun Context.isCurrentlyConnected(): Boolean {
 @Composable
 fun ResearchDetailScreen(
     onNavigateBack: () -> Unit,
-    viewModel: ResearchDetailViewModel = viewModel()
+    viewModel: ResearchDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val researchItem = uiState.researchItem
@@ -103,17 +104,17 @@ fun ResearchDetailScreen(
                 var pdfLoading by remember { mutableStateOf(false) }
                 val pdfMutex = remember { Mutex() }
 
-                LaunchedEffect(uiState.pdfBytes) {
-                    val bytes = uiState.pdfBytes
-                    if (bytes != null) {
+                LaunchedEffect(uiState.pdfFilePath) {
+                    val filePath = uiState.pdfFilePath
+                    if (filePath != null) {
                         pdfLoading = true
                         withContext(Dispatchers.IO) {
                             try {
-                                val tempFile = File(context.cacheDir, "temp_view_${System.currentTimeMillis()}.pdf")
-                                tempFile.writeBytes(bytes)
-                                val descriptor = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+                                val sourceFile = File(filePath)
+                                val descriptor = ParcelFileDescriptor.open(sourceFile, ParcelFileDescriptor.MODE_READ_ONLY)
                                 val renderer = PdfRenderer(descriptor)
                                 withContext(Dispatchers.Main) {
+                                    pdfRenderer?.close()
                                     pdfRenderer = renderer
                                     pageCount = renderer.pageCount
                                 }
@@ -122,6 +123,10 @@ fun ResearchDetailScreen(
                             }
                         }
                         pdfLoading = false
+                    } else {
+                        pdfRenderer?.close()
+                        pdfRenderer = null
+                        pageCount = 0
                     }
                 }
 
@@ -134,7 +139,7 @@ fun ResearchDetailScreen(
                     }
                 }
 
-                if (uiState.pdfBytes != null && pdfRenderer != null) {
+                if (uiState.pdfFilePath != null && pdfRenderer != null) {
                     // Read saved page directly from SharedPreferences (synchronous, reliable)
                     val savedPage = remember(researchItem.id) {
                         UserPrefs.getLastPageSync(context, researchItem.id).coerceIn(0, maxOf(pageCount - 1, 0))
@@ -167,56 +172,50 @@ fun ResearchDetailScreen(
                                     .fillMaxWidth()
                                     .padding(bottom = 32.dp)
                             ) {
-                                if (researchItem != null) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp)
-                                    ) {
-                                        ResearchMetadata(researchItem = researchItem)
-                                        
-                                        if (uiState.pdfBytes != null && pageCount > 1) {
-                                            HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                ) {
+                                    ResearchMetadata(researchItem = researchItem)
+
+                                    if (pageCount > 1) {
+                                        HorizontalDivider(modifier = Modifier.padding(vertical = 24.dp))
+                                        Text(
+                                            "Navigate to Page",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
                                             Text(
-                                                "Navigate to Page",
-                                                style = MaterialTheme.typography.titleSmall,
-                                                color = MaterialTheme.colorScheme.primary
+                                                text = "${pagerState.currentPage + 1}",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                modifier = Modifier.width(32.dp),
+                                                textAlign = TextAlign.Center
                                             )
-                                            Spacer(Modifier.height(8.dp))
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${pagerState.currentPage + 1}",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    modifier = Modifier.width(32.dp),
-                                                    textAlign = TextAlign.Center
-                                                )
-                                                Slider(
-                                                    value = pagerState.currentPage.toFloat(),
-                                                    onValueChange = { 
-                                                        coroutineScope.launch {
-                                                            pagerState.scrollToPage(it.toInt())
-                                                        }
-                                                        viewModel.updateCurrentPage(it.toInt())
-                                                    },
-                                                    valueRange = 0f..(if (pageCount > 0) pageCount - 1 else 0).toFloat(),
-                                                    modifier = Modifier.weight(1f),
-                                                    steps = if (pageCount > 1) pageCount - 2 else 0
-                                                )
-                                                Text(
-                                                    text = "$pageCount",
-                                                    style = MaterialTheme.typography.labelLarge,
-                                                    modifier = Modifier.width(32.dp),
-                                                    textAlign = TextAlign.Center
-                                                )
-                                            }
+                                            Slider(
+                                                value = pagerState.currentPage.toFloat(),
+                                                onValueChange = {
+                                                    coroutineScope.launch {
+                                                        pagerState.scrollToPage(it.toInt())
+                                                    }
+                                                    viewModel.updateCurrentPage(it.toInt())
+                                                },
+                                                valueRange = 0f..(if (pageCount > 0) pageCount - 1 else 0).toFloat(),
+                                                modifier = Modifier.weight(1f),
+                                                steps = if (pageCount > 1) pageCount - 2 else 0
+                                            )
+                                            Text(
+                                                text = "$pageCount",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                modifier = Modifier.width(32.dp),
+                                                textAlign = TextAlign.Center
+                                            )
                                         }
-                                    }
-                                } else {
-                                    Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                                        CircularProgressIndicator()
                                     }
                                 }
                             }
@@ -306,7 +305,7 @@ fun ResearchDetailScreen(
                                 .padding(paddingValues),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (uiState.pdfBytes == null) {
+                            if (uiState.pdfFilePath == null) {
                                 LoadPdfButton(
                                     isLoading = uiState.isPdfLoading,
                                     onClick = { viewModel.loadPdf(isOnline) },
@@ -623,7 +622,7 @@ private fun LoadPdfButton(isLoading: Boolean, onClick: () -> Unit, modifier: Mod
                 shape = MaterialTheme.shapes.large,
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
-                Icon(Icons.Default.MenuBook, null)
+                Icon(Icons.AutoMirrored.Filled.MenuBook, null)
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                 Text("Open Document", style = MaterialTheme.typography.titleMedium)
             }

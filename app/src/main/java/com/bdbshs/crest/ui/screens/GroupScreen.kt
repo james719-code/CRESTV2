@@ -7,6 +7,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -23,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
 import com.bdbshs.crest.ui.components.ModernSearchBar
@@ -38,7 +40,7 @@ import com.bdbshs.crest.ui.viewmodels.GroupsViewModel
 @Composable
 fun GroupsScreen(
     modifier: Modifier = Modifier,
-    viewModel: GroupsViewModel = viewModel(),
+    viewModel: GroupsViewModel = hiltViewModel(),
     onNavigateToDetails: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -179,7 +181,7 @@ private fun FilterSortBottomSheet(
                 // Status Filter
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterSectionTitle(icon = Icons.Default.ListAlt, title = "Filter by Status")
+                        FilterSectionTitle(icon = Icons.AutoMirrored.Filled.ListAlt, title = "Filter by Status")
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -201,7 +203,7 @@ private fun FilterSortBottomSheet(
                 // Sort Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterSectionTitle(icon = Icons.Default.Sort, title = "Sort By")
+                        FilterSectionTitle(icon = Icons.AutoMirrored.Filled.Sort, title = "Sort By")
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)

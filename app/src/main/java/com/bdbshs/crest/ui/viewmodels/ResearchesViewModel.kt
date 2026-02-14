@@ -4,8 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FirebaseClient
+import com.bdbshs.crest.data.repository.ResearchRepository
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.QueryDocumentSnapshot
@@ -14,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 // --- Data classes and enums ---
 @Immutable
@@ -61,10 +59,6 @@ data class ResearchesUiState(
 
 class ResearchesViewModel : ViewModel() {
 
-    private val firestore = FirebaseClient.firestore
-    private val appwriteStorage = AppwriteClient.storage
-    private val BUCKET_ID = "686a262b0024b8e10a35"
-
     private var qualitativeListener: ListenerRegistration? = null
     private var quantitativeListener: ListenerRegistration? = null
 
@@ -108,11 +102,13 @@ class ResearchesViewModel : ViewModel() {
         qualitativeListener?.remove()
         quantitativeListener?.remove()
 
-        qualitativeListener = firestore.collection("researches/research_details/qualitative")
-            .addSnapshotListener { snap, e -> handleSnapshot(snap, e, ResearchType.QUALITATIVE) }
+        qualitativeListener = ResearchRepository.observeQualitative {
+            snap, e -> handleSnapshot(snap, e as? FirebaseFirestoreException, ResearchType.QUALITATIVE)
+        }
 
-        quantitativeListener = firestore.collection("researches/research_details/quantitative")
-            .addSnapshotListener { snap, e -> handleSnapshot(snap, e, ResearchType.QUANTITATIVE) }
+        quantitativeListener = ResearchRepository.observeQuantitative {
+            snap, e -> handleSnapshot(snap, e as? FirebaseFirestoreException, ResearchType.QUANTITATIVE)
+        }
     }
 
     private fun handleSnapshot(snap: QuerySnapshot?, e: FirebaseFirestoreException?, type: ResearchType) {
@@ -195,10 +191,9 @@ class ResearchesViewModel : ViewModel() {
         _uiState.update { it.copy(isDeleting = true) }
         viewModelScope.launch {
             try {
-                firestore.collection("researches/research_details/${research.type.name.lowercase()}")
-                    .document(research.id).delete().await()
+                ResearchRepository.deleteResearchDocument(research.type.name.lowercase(), research.id)
                 if (research.file_link.isNotBlank()) {
-                    appwriteStorage.deleteFile(BUCKET_ID, research.file_link)
+                    ResearchRepository.deleteResearchFile(research.file_link)
                 }
                 _uiState.update { current ->
                     current.copy(isDeleting = false, isActionDialogVisible = false, selectedResearchForAction = null)
@@ -211,10 +206,14 @@ class ResearchesViewModel : ViewModel() {
 
     private fun mapDocumentToResearchItem(doc: QueryDocumentSnapshot, type: ResearchType): ResearchItem? {
         return try {
+            val members = (doc.get("members") as? List<*>)
+                ?.mapNotNull { it as? String }
+                ?: emptyList()
+
             ResearchItem(
                 id = doc.id,
                 title = doc.getString("title") ?: "No Title",
-                members = doc.get("members") as? List<String> ?: emptyList(),
+                members = members,
                 strand = doc.getString("strand") ?: "",
                 unfinished = doc.getBoolean("unfinished") ?: false,
                 downloads = doc.getLong("downloads")?.toInt() ?: 0, // <-- Renamed from 'views'

@@ -3,14 +3,15 @@ package com.bdbshs.crest.ui.viewmodels
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.toObject
+import com.bdbshs.crest.data.repository.AccountRecord
+import com.bdbshs.crest.data.repository.AccountRepository
+import com.bdbshs.crest.data.repository.UserRole
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 @Immutable
@@ -64,9 +65,9 @@ data class AccountsUiState(
 )
 
 @OptIn(FlowPreview::class)
-class AccountsViewModel : ViewModel() {
+@HiltViewModel
+class AccountsViewModel @Inject constructor() : ViewModel() {
 
-    private val firestore = FirebaseFirestore.getInstance()
     private val _searchQuery = MutableStateFlow("")
     private val _uiState = MutableStateFlow(AccountsUiState())
     val uiState = _uiState.asStateFlow()
@@ -109,21 +110,7 @@ class AccountsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val combinedList = withContext(Dispatchers.IO) {
-                    val studentsTask = async { firestore.collection("users/user_details/students").get().await() }
-                    val teachersTask = async { firestore.collection("users/user_details/teachers").get().await() }
-
-                    // --- THIS IS THE FIX ---
-                    val students = studentsTask.await().documents.mapNotNull { doc ->
-                        // Manually set the UID from the document ID
-                        doc.toObject<AccountItem.Student>()?.copy(uid = doc.id)
-                    }
-                    val teachers = teachersTask.await().documents.mapNotNull { doc ->
-                        // Manually set the UID from the document ID
-                        doc.toObject<AccountItem.Teacher>()?.copy(uid = doc.id)
-                    }
-                    // --- END OF FIX ---
-
-                    students + teachers
+                    AccountRepository.fetchAllAccounts().map { it.toUiItem() }
                 }
                 _uiState.update { it.copy(allAccounts = combinedList, isLoading = false, isRefreshing = false) }
             } catch (e: Exception) {
@@ -165,13 +152,7 @@ class AccountsViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val collectionPath = if (accountToUpdate is AccountItem.Student) "users/user_details/students" else "users/user_details/teachers"
-                val fieldToUpdate = if (accountToUpdate is AccountItem.Student) "accepted" else "access"
-
-                firestore.collection(collectionPath)
-                    .document(accountToUpdate.uid)
-                    .update(fieldToUpdate, true)
-                    .await()
+                AccountRepository.approveAccount(accountToUpdate.uid, accountToUpdate.toRepositoryRole())
 
                 // Refresh the list locally for an instant UI update
                 updateLocalAccountState(accountToUpdate.uid, isApproved = true)
@@ -189,13 +170,7 @@ class AccountsViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val collectionPath = if (accountToDelete is AccountItem.Student) "users/user_details/students" else "users/user_details/teachers"
-
-                // Denying means deleting the request document
-                firestore.collection(collectionPath)
-                    .document(accountToDelete.uid)
-                    .delete()
-                    .await()
+                AccountRepository.denyAccount(accountToDelete.uid, accountToDelete.toRepositoryRole())
 
                 // Remove from local list for instant UI update
                 _uiState.update { currentState ->
@@ -225,5 +200,34 @@ class AccountsViewModel : ViewModel() {
             }
             currentState.copy(allAccounts = updatedList)
         }
+    }
+}
+
+private fun AccountRecord.toUiItem(): AccountItem {
+    return when (this) {
+        is AccountRecord.Student -> AccountItem.Student(
+            uid = uid,
+            name = name,
+            lrn = lrn,
+            strand = strand,
+            gender = gender,
+            accepted = accepted,
+            research_accepted = researchAccepted
+        )
+
+        is AccountRecord.Teacher -> AccountItem.Teacher(
+            uid = uid,
+            name = name,
+            email = email,
+            access = access,
+            upload_count = uploadCount
+        )
+    }
+}
+
+private fun AccountItem.toRepositoryRole(): UserRole {
+    return when (this) {
+        is AccountItem.Student -> UserRole.STUDENT
+        is AccountItem.Teacher -> UserRole.TEACHER
     }
 }

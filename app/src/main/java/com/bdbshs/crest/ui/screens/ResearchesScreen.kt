@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -392,7 +393,7 @@ private fun FilterBottomSheet(
                 // Sort By Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterSectionTitle(icon = Icons.Default.Sort, title = "Sort By")
+                        FilterSectionTitle(icon = Icons.AutoMirrored.Filled.Sort, title = "Sort By")
                         SortByDropdown(
                             selectedOption = uiState.selectedSortOption,
                             onOptionSelected = onSortOptionSelected

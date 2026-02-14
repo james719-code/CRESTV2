@@ -4,12 +4,10 @@ import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FirebaseClient
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestoreException
+import com.bdbshs.crest.data.repository.GroupRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -23,7 +21,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 // --- DATA MODELS & ENUMS ---
 
@@ -65,11 +62,9 @@ data class GroupsUiState(
 
 // --- VIEWMODEL ---
 
-class GroupsViewModel : ViewModel() {
+@HiltViewModel
+class GroupsViewModel @Inject constructor() : ViewModel() {
 
-    private val firestore = FirebaseClient.firestore
-    private val appwriteStorage = AppwriteClient.storage
-    private val BUCKET_ID = "686a262b0024b8e10a35"
     private var groupsListener: ListenerRegistration? = null
 
     private val _uiState = MutableStateFlow(GroupsUiState())
@@ -114,10 +109,8 @@ class GroupsViewModel : ViewModel() {
         _uiState.update { it.copy(isLoading = true) }
         groupsListener?.remove()
 
-        groupsListener = firestore.collection("groups")
-            .orderBy("group_name", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) { /* ... error handling ... */ return@addSnapshotListener }
+        groupsListener = GroupRepository.observeGroups { snapshot, e ->
+            if (e != null) { /* ... error handling ... */ return@observeGroups }
                 val groupList = snapshot?.documents?.mapNotNull { mapDocumentToGroupItem(it as QueryDocumentSnapshot) } ?: emptyList()
                 _uiState.update { it.copy(isLoading = false, isRefreshing = false, allGroups = groupList) }
             }
@@ -167,8 +160,7 @@ class GroupsViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val updates = mapOf("accepted_research" to true, "uploaded" to false)
-                firestore.collection("groups").document(group.id).update(updates).await()
+                GroupRepository.approveSubmission(group.id)
                 dismissActionDialog() // Success
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUpdating = false, error = "Approval failed: ${e.message}") }
@@ -184,20 +176,7 @@ class GroupsViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // This will fail offline, which is expected.
-                if (group.file_link.isNotBlank()) {
-                    appwriteStorage.deleteFile(BUCKET_ID, group.file_link)
-                }
-
-                val updates = mapOf(
-                    "accepted_research" to false,
-                    "uploaded" to false,
-                    "file_link" to "",
-                    "research_title" to "",
-                    "research_type" to "",
-                    "comments" to FieldValue.arrayUnion(comment)
-                )
-                firestore.collection("groups").document(group.id).update(updates).await()
+                GroupRepository.denySubmission(group.id, group.file_link, comment)
                 dismissActionDialog() // Success
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUpdating = false, error = "Denial failed. An internet connection may be required.") }

@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -111,7 +112,7 @@ fun CrestApp() {
     val isOnline      by rememberNetworkState()
     val auth          = FirebaseClient.auth
 
-    val mainVm  : MainViewModel = viewModel()
+    val mainVm  : MainViewModel = hiltViewModel()
     val uiState by mainVm.uiState.collectAsState()
 
     val startRoute = remember(uiState.isLoading) {
@@ -168,11 +169,11 @@ private fun CrestNavHost(
                 onNavigateToHome = navigationActions::navigateToHome,
                 onNavigateToSignUpDetails = navigationActions::navigateToSignUpDetails,
                 onNavigateToPendingApproval = navigationActions::navigateToPendingApproval,
-                loginViewModel = viewModel()
+                loginViewModel = hiltViewModel()
             )
         }
         composable(AppDestination.SignUpDetails.route) {
-            val signUpDetailsViewModel: SignUpDetailsViewModel = viewModel()
+            val signUpDetailsViewModel: SignUpDetailsViewModel = hiltViewModel()
 
             SignUpDetails(
                 onNavigate = { loginResult ->
@@ -226,79 +227,17 @@ private fun CrestNavHost(
         // --- PRIMARY ROUTES ---
         // Main pager screen with swipeable tabs
         composable(AppDestination.Home.route) {
-            MainScreenWithPager(
+            MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = 0,
-                homeContent = { padding, userRole ->
-                    HomeScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
-                        onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
-                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
-                    )
-                },
-                researchesContent = { padding, userRole ->
-                    ResearchesScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        isOnline = isOnline,
-                        onNavigateToDetails = navigationActions::navigateToResearchDetails
-                    )
-                },
-                documentsContent = { padding, userRole ->
-                    DocumentsScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        viewModel = viewModel()
-                    )
-                },
-                groupsContent = { padding, _ ->
-                    GroupsScreen(
-                        modifier = Modifier.padding(padding),
-                        onNavigateToDetails = navigationActions::navigateToGroupDetails
-                    )
-                }
+                initialPage = 0
             )
         }
         composable(AppDestination.Researches.route) {
-            MainScreenWithPager(
+            MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = if (isOnline) 1 else 0,
-                homeContent = { padding, userRole ->
-                    HomeScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
-                        onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
-                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
-                    )
-                },
-                researchesContent = { padding, userRole ->
-                    ResearchesScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        isOnline = isOnline,
-                        onNavigateToDetails = navigationActions::navigateToResearchDetails
-                    )
-                },
-                documentsContent = { padding, userRole ->
-                    DocumentsScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        viewModel = viewModel()
-                    )
-                },
-                groupsContent = { padding, _ ->
-                    GroupsScreen(
-                        modifier = Modifier.padding(padding),
-                        onNavigateToDetails = navigationActions::navigateToGroupDetails
-                    )
-                }
+                initialPage = if (isOnline) 1 else 0
             )
         }
         composable(AppDestination.Accounts.route) {
@@ -312,79 +251,17 @@ private fun CrestNavHost(
             }
         }
         composable(AppDestination.Groups.route) {
-            MainScreenWithPager(
+            MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = 3,
-                homeContent = { padding, userRole ->
-                    HomeScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
-                        onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
-                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
-                    )
-                },
-                researchesContent = { padding, userRole ->
-                    ResearchesScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        isOnline = isOnline,
-                        onNavigateToDetails = navigationActions::navigateToResearchDetails
-                    )
-                },
-                documentsContent = { padding, userRole ->
-                    DocumentsScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        viewModel = viewModel()
-                    )
-                },
-                groupsContent = { padding, _ ->
-                    GroupsScreen(
-                        modifier = Modifier.padding(padding),
-                        onNavigateToDetails = navigationActions::navigateToGroupDetails
-                    )
-                }
+                initialPage = 3
             )
         }
         composable(AppDestination.Documents.route) {
-            MainScreenWithPager(
+            MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = 2,
-                homeContent = { padding, userRole ->
-                    HomeScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
-                        onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
-                        onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
-                        onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
-                    )
-                },
-                researchesContent = { padding, userRole ->
-                    ResearchesScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        isOnline = isOnline,
-                        onNavigateToDetails = navigationActions::navigateToResearchDetails
-                    )
-                },
-                documentsContent = { padding, userRole ->
-                    DocumentsScreen(
-                        modifier = Modifier.padding(padding),
-                        userRole = userRole,
-                        viewModel = viewModel()
-                    )
-                },
-                groupsContent = { padding, _ ->
-                    GroupsScreen(
-                        modifier = Modifier.padding(padding),
-                        onNavigateToDetails = navigationActions::navigateToGroupDetails
-                    )
-                }
+                initialPage = 2
             )
         }
         composable(AppDestination.AboutUs.route) {
@@ -393,4 +270,48 @@ private fun CrestNavHost(
             }
         }
     }
+}
+
+@Composable
+private fun MainPagerRouteContent(
+    navigationActions: NavigationActions,
+    isOnline: Boolean,
+    initialPage: Int
+) {
+    MainScreenWithPager(
+        navigationActions = navigationActions,
+        isOnline = isOnline,
+        initialPage = initialPage,
+        homeContent = { padding, userRole ->
+            HomeScreen(
+                modifier = Modifier.padding(padding),
+                userRole = userRole,
+                onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
+                onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
+                onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
+                onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
+            )
+        },
+        researchesContent = { padding, userRole ->
+            ResearchesScreen(
+                modifier = Modifier.padding(padding),
+                userRole = userRole,
+                isOnline = isOnline,
+                onNavigateToDetails = navigationActions::navigateToResearchDetails
+            )
+        },
+        documentsContent = { padding, userRole ->
+            DocumentsScreen(
+                modifier = Modifier.padding(padding),
+                userRole = userRole,
+                viewModel = viewModel()
+            )
+        },
+        groupsContent = { padding, _ ->
+            GroupsScreen(
+                modifier = Modifier.padding(padding),
+                onNavigateToDetails = navigationActions::navigateToGroupDetails
+            )
+        }
+    )
 }

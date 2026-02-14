@@ -1,20 +1,19 @@
 package com.bdbshs.crest.ui.viewmodels
 
-import android.app.Application
 import android.util.Log
-import androidx.annotation.Keep
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FirebaseClient
-import com.google.firebase.Timestamp
-import com.google.firebase.firestore.FieldValue
-import kotlinx.coroutines.delay
+import com.bdbshs.crest.data.repository.AuthRepository
+import com.bdbshs.crest.data.repository.StudentGroup
+import com.bdbshs.crest.data.repository.StudentProfile
+import com.bdbshs.crest.data.repository.StudentRepository
+import com.bdbshs.crest.data.repository.StudentResearchSummary
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 // --
 data class StudentDetails(
@@ -47,12 +46,9 @@ data class StudentHomeUiState(
     val isDownloadingCertificate: Boolean = false
 )
 
-class StudentHomeViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class StudentHomeViewModel @Inject constructor() : ViewModel() {
 
-    private val firestore = FirebaseClient.firestore
-    private val auth = FirebaseClient.auth
-    private val appwriteStorage = AppwriteClient.storage
-    private val BUCKET_ID = "686a262b0024b8e10a35"
     private val TAG = "StudentHomeViewModel" // For logging
 
     private val _uiState = MutableStateFlow(StudentHomeUiState())
@@ -63,58 +59,15 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private fun fetchAllData() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = AuthRepository.getCurrentUserUid() ?: return
         _uiState.update { it.copy(isLoading = true, isDownloadingCertificate = false) }
 
         viewModelScope.launch {
             try {
-                val studentDoc = firestore.collection("users/user_details/students").document(uid).get().await()
-                val student = studentDoc.toObject(StudentDetails::class.java)
-
-                var group: GroupDetails? = null
-                var memberNames: List<String> = emptyList()
-                if (student != null && student.groupId.isNotBlank()) {
-                    val groupDoc = firestore.collection("groups").document(student.groupId).get().await()
-                    group = groupDoc.toObject(GroupDetails::class.java)
-                    group?.group_member?.let { uids ->
-                        if (uids.isNotEmpty()) {
-                            memberNames = uids.chunked(10).flatMap { chunk ->
-                                val docs = firestore.collection("users/user_details/students")
-                                    .whereIn("__name__", chunk).get().await()
-                                docs.documents.mapNotNull { it.getString("name") }
-                            }
-                        }
-                    }
-                }
-
-                val qualitativeDocs = firestore.collection("researches/research_details/qualitative").get().await()
-                val quantitativeDocs = firestore.collection("researches/research_details/quantitative").get().await()
-
-                // --- THIS IS THE FIX ---
-                // Manually parse the documents instead of using the risky toObject() call.
-                val allResearches = (qualitativeDocs.documents + quantitativeDocs.documents).mapNotNull { doc ->
-                    val title = doc.getString("title")
-                    val strand = doc.getString("strand")
-                    // Safely get createdAt, whether it's a Timestamp or a Long
-                    val createdAt = when(val rawDate = doc.get("createdAt")) {
-                        is Timestamp -> rawDate.toDate().time
-                        is Long -> rawDate
-                        else -> 0L
-                    }
-
-                    if (title != null && strand != null) {
-                        ResearchItem(
-                            id = doc.id,
-                            title = title,
-                            strand = strand,
-                            createdAt = createdAt
-                        )
-                    } else {
-                        null // If essential data is missing, skip this item
-                    }
-                }
-                // --- END OF FIX ---
-
+                val homeData = StudentRepository.fetchHomeData(uid)
+                val student = homeData.student?.toUiStudentDetails()
+                val group = homeData.group?.toUiGroupDetails()
+                val allResearches = homeData.allResearches.map { it.toResearchItem() }
 
                 val strandCount = allResearches.count { it.strand == student?.strand }
                 val recent = allResearches.sortedByDescending { it.createdAt }.take(3)
@@ -124,7 +77,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
                         isLoading = false,
                         studentDetails = student,
                         groupDetails = group,
-                        memberNames = memberNames,
+                        memberNames = homeData.memberNames,
                         totalResearchCount = allResearches.size,
                         strandResearchCount = strandCount,
                         recentResearches = recent,
@@ -161,7 +114,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun leaveGroup(isTriggeredByCertificate: Boolean = false) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = AuthRepository.getCurrentUserUid() ?: return
         val currentState = _uiState.value
         val student = currentState.studentDetails ?: return
         val group = currentState.groupDetails ?: return
@@ -174,20 +127,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
 
         viewModelScope.launch {
             try {
-                val groupRef = firestore.collection("groups").document(groupId)
-                if (group.group_member.size <= 1) {
-                    firestore.batch().apply {
-                        delete(groupRef)
-                        val studentRef = firestore.collection("users/user_details/students").document(uid)
-                        update(studentRef, "groupId", "")
-                    }.commit().await()
-                } else {
-                    firestore.batch().apply {
-                        update(groupRef, "group_member", FieldValue.arrayRemove(uid))
-                        val studentRef = firestore.collection("users/user_details/students").document(uid)
-                        update(studentRef, "groupId", "")
-                    }.commit().await()
-                }
+                StudentRepository.leaveGroup(uid, groupId, group.group_member.size)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, isDownloadingCertificate = false, error = "Failed to leave group: ${e.message}") }
@@ -205,14 +145,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                val groupRef = firestore.collection("groups").document(groupId)
-                if (!fileId.isNullOrBlank()) {
-                    appwriteStorage.deleteFile(BUCKET_ID, fileId)
-                }
-                val updates = mapOf(
-                    "uploaded" to false, "file_link" to "", "research_type" to ""
-                )
-                groupRef.update(updates).await()
+                StudentRepository.unsubmitResearch(groupId, fileId)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Failed to unsubmit: ${e.message}") }
@@ -221,7 +154,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun createGroup(groupName: String) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = AuthRepository.getCurrentUserUid() ?: return
         val student = _uiState.value.studentDetails ?: return
         if (student.groupId.isNotBlank()) {
             _uiState.update { it.copy(error = "You are already in a group.") }
@@ -230,14 +163,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                val newGroupRef = firestore.collection("groups").document()
-                val newGroupId = newGroupRef.id
-                val newGroup = GroupDetails(group_name = groupName, strand = student.strand, group_member = listOf(uid))
-                firestore.batch().apply {
-                    set(newGroupRef, newGroup)
-                    val studentRef = firestore.collection("users/user_details/students").document(uid)
-                    update(studentRef, "groupId", newGroupId)
-                }.commit().await()
+                StudentRepository.createGroup(uid, student.strand, groupName)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Failed to create group: ${e.message}") }
@@ -246,7 +172,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun joinGroup(groupId: String) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = AuthRepository.getCurrentUserUid() ?: return
         val student = _uiState.value.studentDetails ?: return
         if (student.groupId.isNotBlank()) {
             _uiState.update { it.copy(error = "You are already in a group.") }
@@ -259,16 +185,7 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                val groupRef = firestore.collection("groups").document(groupId)
-                val groupDoc = groupRef.get().await()
-                if (!groupDoc.exists()) throw Exception("Group ID '$groupId' does not exist.")
-                val groupStrand = groupDoc.getString("strand")
-                if (groupStrand != student.strand) throw Exception("You can only join a group from your own strand (${student.strand}).")
-                firestore.batch().apply {
-                    update(groupRef, "group_member", FieldValue.arrayUnion(uid))
-                    val studentRef = firestore.collection("users/user_details/students").document(uid)
-                    update(studentRef, "groupId", groupId)
-                }.commit().await()
+                StudentRepository.joinGroup(uid, student.strand, groupId)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Failed to join group: ${e.message}") }
@@ -279,4 +196,34 @@ class StudentHomeViewModel(application: Application) : AndroidViewModel(applicat
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+}
+
+private fun StudentProfile.toUiStudentDetails(): StudentDetails {
+    return StudentDetails(
+        name = name,
+        strand = strand,
+        groupId = groupId
+    )
+}
+
+private fun StudentGroup.toUiGroupDetails(): GroupDetails {
+    return GroupDetails(
+        group_name = groupName,
+        strand = strand,
+        file_link = fileLink,
+        group_member = groupMembers,
+        uploaded = uploaded,
+        research_type = researchType,
+        accepted_research = acceptedResearch,
+        comments = comments
+    )
+}
+
+private fun StudentResearchSummary.toResearchItem(): ResearchItem {
+    return ResearchItem(
+        id = id,
+        title = title,
+        strand = strand,
+        createdAt = createdAt
+    )
 }

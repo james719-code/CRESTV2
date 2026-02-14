@@ -2,8 +2,12 @@ package com.bdbshs.crest.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.bdbshs.crest.data.repository.AuthRepository
+import com.bdbshs.crest.data.repository.ProfileRepository
+import com.bdbshs.crest.data.repository.StudentProfileInput
+import com.bdbshs.crest.data.repository.TeacherProfileInput
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,7 +15,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 // Sealed class to hold the specific details for each user type
@@ -43,10 +46,8 @@ data class SignUpDetailsUiState(
     val isGenderDropdownExpanded: Boolean = false // Controls gender dropdown expansion
 )
 
-class SignUpDetailsViewModel : ViewModel() {
-
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+@HiltViewModel
+class SignUpDetailsViewModel @Inject constructor() : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignUpDetailsUiState())
     val uiState = _uiState.asStateFlow()
@@ -93,7 +94,7 @@ class SignUpDetailsViewModel : ViewModel() {
             try {
                 // Get current user in IO dispatcher
                 val user = withContext(Dispatchers.IO) {
-                    auth.currentUser
+                    AuthRepository.getCurrentUser()
                 }
 
                 if (user == null) {
@@ -101,38 +102,33 @@ class SignUpDetailsViewModel : ViewModel() {
                     return@launch // Exit if no user is logged in
                 }
 
-                val collectionPath: String
-                val data: Map<String, Any>
-
                 when (details) {
                     is UserDetails.Student -> {
-                        collectionPath = "users/user_details/students"
-                        data = mapOf(
-                            "name" to details.name,
-                            "lrn" to details.lrn,
-                            "strand" to details.strand,
-                            "gender" to details.gender,
-                            "group_id" to details.groupId,
-                            "accepted" to false, // Correctly set to false, awaiting admin approval
-                            "research_accepted" to false, // Assuming initial status
-                            "uid" to user.uid
+                        val input = StudentProfileInput(
+                            uid = user.uid,
+                            name = details.name,
+                            lrn = details.lrn,
+                            strand = details.strand,
+                            gender = details.gender,
+                            groupId = details.groupId
                         )
-                    }
-                    is UserDetails.Teacher -> {
-                        collectionPath = "users/user_details/teachers"
-                        data = mapOf(
-                            "name" to details.name,
-                            "email" to details.email,
-                            "access" to false, // Correctly set to false, awaiting admin approval
-                            "upload_count" to 0,
-                            "uid" to user.uid
-                        )
-                    }
-                }
 
-                // Perform Firestore write operation in the IO dispatcher
-                withContext(Dispatchers.IO) {
-                    firestore.collection(collectionPath).document(user.uid).set(data).await()
+                        withContext(Dispatchers.IO) {
+                            ProfileRepository.saveStudentProfile(input)
+                        }
+                    }
+
+                    is UserDetails.Teacher -> {
+                        val input = TeacherProfileInput(
+                            uid = user.uid,
+                            name = details.name,
+                            email = details.email
+                        )
+
+                        withContext(Dispatchers.IO) {
+                            ProfileRepository.saveTeacherProfile(input)
+                        }
+                    }
                 }
 
                 // After successfully saving details with initial 'false' status,

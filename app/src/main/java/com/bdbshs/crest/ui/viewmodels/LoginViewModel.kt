@@ -1,21 +1,25 @@
 package com.bdbshs.crest.ui.viewmodels
 
-import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bdbshs.crest.data.repository.AuthRepository
+import com.bdbshs.crest.data.repository.UserRepository
+import com.bdbshs.crest.data.repository.UserRole
 import androidx.credentials.GetCredentialResponse
-import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.UserPrefs
 import com.bdbshs.crest.data.UserPrefs.clear
 import com.bdbshs.crest.data.UserPrefs.saveUserData
 import com.bdbshs.crest.data.UserPrefs.userDataFlow
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestoreException
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -23,7 +27,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 
 // Enum for User Type (can be in a shared file)
@@ -41,13 +44,10 @@ data class LoginUiState(
     val error:     String?  = null
 )
 
-class LoginViewModel(
-    app: Application
-) : AndroidViewModel(app) {
-
-    private val auth      = FirebaseClient.auth
-    private val firestore = FirebaseClient.firestore
-    private val ctx       = getApplication<Application>()
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    @ApplicationContext private val ctx: Context
+) : ViewModel() {
 
     private val _uiState    = MutableStateFlow(LoginUiState())
     val uiState             = _uiState.asStateFlow()
@@ -67,7 +67,7 @@ class LoginViewModel(
     }
 
     private fun checkForActiveSession() {
-        auth.currentUser?.let { user ->
+        AuthRepository.getCurrentUser()?.let { user ->
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             viewModelScope.launch {
@@ -104,7 +104,7 @@ class LoginViewModel(
                     .createFrom(response.credential.data)
                     .idToken
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
-                val authRes   = auth.signInWithCredential(credential).await()
+                val authRes = AuthRepository.signInWithCredential(credential)
                 checkUserStatus(requireNotNull(authRes.user))
             } catch (e: Exception) {
                 _uiState.update {
@@ -120,31 +120,26 @@ class LoginViewModel(
     private fun checkUserStatus(user: FirebaseUser) {
         viewModelScope.launch {
             try {
-                // student?
-                val studentDoc = firestore
-                    .collection("users/user_details/students")
-                    .document(user.uid)
-                    .get()
-                    .await()
-                if (studentDoc.exists()) {
-                    val accepted = studentDoc.getBoolean("accepted") ?: false
-                    savePrefs(user.uid, UserType.STUDENT.name, accepted, false)
-                    val dest = if (accepted) LoginResult.NavigateToHome else LoginResult.NavigateToPendingApproval
-                    _loginResult.emit(dest)
-                    _uiState.update { it.copy(isLoading = false) }
-                    return@launch
-                }
+                val userStatus = UserRepository.getUserStatus(user.uid)
+                if (userStatus != null) {
+                    val role = when (userStatus.role) {
+                        UserRole.STUDENT -> UserType.STUDENT
+                        UserRole.TEACHER -> UserType.TEACHER
+                    }
 
-                // teacher?
-                val teacherDoc = firestore
-                    .collection("users/user_details/teachers")
-                    .document(user.uid)
-                    .get()
-                    .await()
-                if (teacherDoc.exists()) {
-                    val access = teacherDoc.getBoolean("access") ?: false
-                    savePrefs(user.uid, UserType.TEACHER.name, false, access)
-                    val dest = if (access) LoginResult.NavigateToHome else LoginResult.NavigateToPendingApproval
+                    savePrefs(
+                        uid = user.uid,
+                        role = role.name,
+                        accepted = role == UserType.STUDENT && userStatus.hasPermission,
+                        access = role == UserType.TEACHER && userStatus.hasPermission
+                    )
+
+                    val dest = if (userStatus.hasPermission) {
+                        LoginResult.NavigateToHome
+                    } else {
+                        LoginResult.NavigateToPendingApproval
+                    }
+
                     _loginResult.emit(dest)
                     _uiState.update { it.copy(isLoading = false) }
                     return@launch

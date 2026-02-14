@@ -12,6 +12,8 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
+import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -56,8 +58,8 @@ fun getBottomNavItems(userRole: UserType?): List<BottomNavItem> {
         BottomNavItem(
             route = AppDestination.Researches,
             title = "Research",
-            selectedIcon = Icons.Filled.LibraryBooks,
-            unselectedIcon = Icons.Outlined.LibraryBooks
+            selectedIcon = Icons.AutoMirrored.Filled.LibraryBooks,
+            unselectedIcon = Icons.AutoMirrored.Outlined.LibraryBooks
         ),
         BottomNavItem(
             route = AppDestination.Documents,
@@ -233,8 +235,8 @@ fun OfflineBottomNavBar(
         BottomNavItem(
             route = AppDestination.Researches,
             title = "Researches (Offline)",
-            selectedIcon = Icons.Filled.LibraryBooks,
-            unselectedIcon = Icons.Outlined.LibraryBooks
+            selectedIcon = Icons.AutoMirrored.Filled.LibraryBooks,
+            unselectedIcon = Icons.AutoMirrored.Outlined.LibraryBooks
         )
     )
     
