@@ -38,6 +38,7 @@ sealed class AppDestination(val route: String) {
     object Researches : AppDestination("researches")
     object Accounts : AppDestination("accounts")
     object Documents : AppDestination("documents")
+    object Favorites : AppDestination("favorites")
     object AboutUs : AppDestination("about_us")
     object GroupUpload : AppDestination("group_upload")
     object TeacherUpload : AppDestination("teacher_upload")
@@ -83,6 +84,7 @@ class NavigationActions(private val navController: NavController) {
     fun navigateToGroupDetails(groupId: String) =
         navController.navigate("${AppDestination.GroupDetail.route}/$groupId")
     fun navigateToStorageManagement() = navController.navigate(AppDestination.StorageManagement.route)
+    fun navigateToFavorites() = navController.navigate(AppDestination.Favorites.route)
 }
 
 // --- NETWORK STATE HOLDER ---
@@ -263,6 +265,22 @@ private fun CrestNavHost(
                 isOnline = isOnline,
                 initialPage = 2
             )
+        }
+        composable(AppDestination.Favorites.route) {
+            MainScreen(
+                navigationActions = navigationActions,
+                currentRoute = AppDestination.Favorites.route,
+                isOnline = isOnline,
+                onNavigationClick = navigationActions::navigateBack
+            ) { padding, userRole ->
+                ResearchesScreen(
+                    modifier = Modifier.padding(padding),
+                    userRole = userRole,
+                    isOnline = isOnline,
+                    onNavigateToDetails = navigationActions::navigateToResearchDetails,
+                    favoritesOnly = true
+                )
+            }
         }
         composable(AppDestination.AboutUs.route) {
             MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.AboutUs.route, isOnline = isOnline) { padding, _ ->

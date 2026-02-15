@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bdbshs.crest.data.repository.FavoritesRepository
 import com.bdbshs.crest.data.repository.ResearchRepository
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.QueryDocumentSnapshot
@@ -52,6 +54,9 @@ data class ResearchesUiState(
         Strand("STEM"), Strand("HUMSS"), Strand("ABM"), Strand("TVL"), Strand("GAS")
     ),
     val selectedSortOption: SortOption = SortOption.DateNewest,
+    val favoriteResearchIds: Set<String> = emptySet(),
+    val favoriteUpdateInProgressIds: Set<String> = emptySet(),
+    val showFavoritesOnly: Boolean = false,
     val error: String? = null,
     val isActionDialogVisible: Boolean = false,
     val selectedResearchForAction: ResearchItem? = null,
@@ -61,11 +66,14 @@ data class ResearchesUiState(
 
 @HiltViewModel
 class ResearchesViewModel @Inject constructor(
-    private val researchRepository: ResearchRepository
+    private val researchRepository: ResearchRepository,
+    private val favoritesRepository: FavoritesRepository,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     private var qualitativeListener: ListenerRegistration? = null
     private var quantitativeListener: ListenerRegistration? = null
+    private var favoritesListener: ListenerRegistration? = null
 
     private val _searchQuery = MutableStateFlow("")
     private val _uiState = MutableStateFlow(ResearchesUiState())
@@ -78,16 +86,27 @@ class ResearchesViewModel @Inject constructor(
     @OptIn(FlowPreview::class)
     val filteredAndSortedResearches: StateFlow<List<ResearchItem>> = combine(
         allResearches,
-        _uiState.map { Triple(it.selectedResearchType, it.strands, it.selectedSortOption) }.distinctUntilChanged(),
+        _uiState.map {
+            FavoriteFilterInput(
+                selectedResearchType = it.selectedResearchType,
+                strands = it.strands,
+                selectedSortOption = it.selectedSortOption,
+                favoriteResearchIds = it.favoriteResearchIds,
+                showFavoritesOnly = it.showFavoritesOnly
+            )
+        }.distinctUntilChanged(),
         _searchQuery.debounce(300L)
     ) { researches, filters, query ->
-        val (selectedType, strands, sortOption) = filters
+        val selectedType = filters.selectedResearchType
+        val strands = filters.strands
+        val sortOption = filters.selectedSortOption
         val filtered = researches.filter { researchItem ->
             val queryMatch = if (query.isBlank()) true else researchItem.title.contains(query, ignoreCase = true) || researchItem.members.any { it.contains(query, ignoreCase = true) }
             val typeMatch = selectedType == null || researchItem.type == selectedType
             val selectedStrands = strands.filter { it.isSelected }.map { it.name }
             val strandMatch = selectedStrands.isEmpty() || researchItem.strand in selectedStrands
-            queryMatch && typeMatch && strandMatch
+            val favoriteMatch = !filters.showFavoritesOnly || researchItem.id in filters.favoriteResearchIds
+            queryMatch && typeMatch && strandMatch && favoriteMatch
         }
         when (sortOption) {
             SortOption.DateNewest -> filtered.sortedByDescending { it.createdAt }
@@ -100,6 +119,7 @@ class ResearchesViewModel @Inject constructor(
 
     init {
         setupListeners()
+        setupFavoritesListener()
     }
 
     private fun setupListeners() {
@@ -136,6 +156,7 @@ class ResearchesViewModel @Inject constructor(
     override fun onCleared() {
         qualitativeListener?.remove()
         quantitativeListener?.remove()
+        favoritesListener?.remove()
         super.onCleared()
     }
 
@@ -167,6 +188,10 @@ class ResearchesViewModel @Inject constructor(
     fun applyFilters() = dismissFilterDialog()
     fun onSortOptionSelected(option: SortOption) = _uiState.update { it.copy(selectedSortOption = option) }
 
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
+
     fun resetFilters() {
         _searchQuery.value = ""
         _uiState.update { currentState ->
@@ -174,8 +199,67 @@ class ResearchesViewModel @Inject constructor(
                 searchQuery = "",
                 selectedResearchType = null,
                 strands = currentState.strands.map { it.copy(isSelected = false) },
-                selectedSortOption = SortOption.DateNewest
+                selectedSortOption = SortOption.DateNewest,
+                showFavoritesOnly = false
             )
+        }
+    }
+
+    fun setFavoritesOnly(showFavoritesOnly: Boolean) {
+        _uiState.update { it.copy(showFavoritesOnly = showFavoritesOnly) }
+    }
+
+    fun toggleResearchFavorite(research: ResearchItem) {
+        val uid = auth.currentUser?.uid
+        if (uid.isNullOrBlank()) {
+            _uiState.update { it.copy(error = "Sign in required to manage favorites.") }
+            return
+        }
+
+        val isFavoriteNow = research.id in _uiState.value.favoriteResearchIds
+        _uiState.update {
+            it.copy(
+                favoriteUpdateInProgressIds = it.favoriteUpdateInProgressIds + research.id
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                favoritesRepository.setFavorite(
+                    uid = uid,
+                    researchId = research.id,
+                    researchType = research.type,
+                    isFavorite = !isFavoriteNow
+                )
+            } catch (exception: Exception) {
+                _uiState.update { state ->
+                    state.copy(error = "Could not update favorites. Please try again.")
+                }
+            } finally {
+                _uiState.update {
+                    it.copy(
+                        favoriteUpdateInProgressIds = it.favoriteUpdateInProgressIds - research.id
+                    )
+                }
+            }
+        }
+    }
+
+    private fun setupFavoritesListener() {
+        favoritesListener?.remove()
+
+        val uid = auth.currentUser?.uid
+        if (uid.isNullOrBlank()) {
+            _uiState.update { it.copy(favoriteResearchIds = emptySet()) }
+            return
+        }
+
+        favoritesListener = favoritesRepository.observeFavoriteIds(uid) { ids, error ->
+            if (error != null) {
+                _uiState.update { it.copy(error = "Unable to load favorites right now.") }
+                return@observeFavoriteIds
+            }
+            _uiState.update { it.copy(favoriteResearchIds = ids) }
         }
     }
 
@@ -232,3 +316,11 @@ class ResearchesViewModel @Inject constructor(
         }
     }
 }
+
+private data class FavoriteFilterInput(
+    val selectedResearchType: ResearchType?,
+    val strands: List<Strand>,
+    val selectedSortOption: SortOption,
+    val favoriteResearchIds: Set<String>,
+    val showFavoritesOnly: Boolean
+)

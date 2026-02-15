@@ -157,6 +157,7 @@ fun ProfileBottomSheet(
     isOnline: Boolean,
     currentTheme: ThemeMode = ThemeMode.SYSTEM,
     onAccountsClick: (() -> Unit)? = null,
+    onFavoritesClick: (() -> Unit)? = null,
     onAboutClick: () -> Unit,
     onStorageClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
@@ -256,6 +257,18 @@ fun ProfileBottomSheet(
                     icon = Icons.Outlined.ManageAccounts,
                     title = "Manage Accounts",
                     subtitle = "Approve or manage users",
+                    onClick = {
+                        onClick()
+                        onDismiss()
+                    }
+                )
+            }
+
+            onFavoritesClick?.let { onClick ->
+                ProfileMenuItem(
+                    icon = Icons.Outlined.FavoriteBorder,
+                    title = "Favorites",
+                    subtitle = "View your saved researches",
                     onClick = {
                         onClick()
                         onDismiss()

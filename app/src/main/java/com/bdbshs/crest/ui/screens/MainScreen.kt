@@ -86,6 +86,7 @@ fun MainScreen(
             AppDestination.Home.route -> "Home"
             AppDestination.Researches.route -> "Researches"
             AppDestination.Documents.route -> "Documents"
+            AppDestination.Favorites.route -> "Favorites"
             AppDestination.Groups.route -> "Groups"
             AppDestination.Accounts.route -> "Accounts"
             AppDestination.AboutUs.route -> "About"
@@ -115,6 +116,9 @@ fun MainScreen(
                 currentTheme = uiState.themeMode,
                 onAccountsClick = if (uiState.userRole == UserType.TEACHER && isOnline) {
                     { navigationActions.navigateTo(AppDestination.Accounts) }
+                } else null,
+                onFavoritesClick = if (isOnline) {
+                    { navigationActions.navigateTo(AppDestination.Favorites) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },
@@ -336,6 +340,9 @@ fun MainScreenWithPagerContent(
                 currentTheme = uiState.themeMode,
                 onAccountsClick = if (uiState.userRole == UserType.TEACHER && isOnline) {
                     { navigationActions.navigateTo(AppDestination.Accounts) }
+                } else null,
+                onFavoritesClick = if (isOnline) {
+                    { navigationActions.navigateTo(AppDestination.Favorites) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },

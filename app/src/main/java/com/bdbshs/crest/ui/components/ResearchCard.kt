@@ -48,6 +48,7 @@ fun ModernResearchCard(
     onShareClick: (() -> Unit)? = null,
     onFavoriteClick: (() -> Unit)? = null,
     isFavorite: Boolean = false,
+    isFavoriteUpdating: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -127,6 +128,28 @@ fun ModernResearchCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        onFavoriteClick?.let { onClick ->
+                            IconButton(
+                                onClick = onClick,
+                                enabled = !isFavoriteUpdating,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                if (isFavoriteUpdating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                                        tint = if (isFavorite) ErrorRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+
                         // Research type badge
                         Surface(
                             shape = CircleShape,

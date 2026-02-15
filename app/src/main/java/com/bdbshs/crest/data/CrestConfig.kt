@@ -13,6 +13,7 @@ object FirestorePaths {
     const val QUALITATIVE_RESEARCHES = "researches/research_details/qualitative"
     const val QUANTITATIVE_RESEARCHES = "researches/research_details/quantitative"
     const val RESEARCHES_BASE = "researches/research_details"
+    const val USER_FAVORITES = "user_favorites"
     const val DOCUMENTS = "documents"
     const val GROUPS = "groups"
 }

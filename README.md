@@ -49,6 +49,63 @@ This project is built using modern Android development practices:
 *   **Dependency Injection:** Manual / ViewModel factory (based on current scope).
 *   **Build System:** Gradle (Kotlin DSL).
 
+## Requirements
+
+*   **Android Studio:** Ladybug (2024.2.1) or newer
+*   **JDK:** 11 (project `sourceCompatibility`/`targetCompatibility` is Java 11)
+*   **Android SDK:**
+    *   App module: `minSdk 24`, `targetSdk 35`
+    *   Benchmark module: `targetSdk 36`
+*   **Firebase project:** Auth + Firestore enabled
+*   **Appwrite project:** endpoint/project/bucket available
+
+## Configuration
+
+### 1) Firebase
+
+Place `google-services.json` in `app/`.
+
+### 2) Appwrite values
+
+The app reads Appwrite values from `local.properties` first, then Gradle properties, then fallback defaults.
+
+Add these keys to `local.properties` (or pass as Gradle properties):
+
+```properties
+APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=your_project_id
+APPWRITE_BUCKET_ID=your_bucket_id
+```
+
+### 3) Release signing (for release builds)
+
+Release signing uses environment variables:
+
+*   `RELEASE_STORE_FILE`
+*   `RELEASE_STORE_PASSWORD`
+*   `RELEASE_KEY_ALIAS`
+*   `RELEASE_KEY_PASSWORD`
+
+If these are not set, `release` signing cannot be fully configured.
+
+## Build & Run
+
+From the project root:
+
+### Windows (PowerShell/CMD)
+
+```bat
+gradlew.bat assembleDebug
+gradlew.bat installDebug
+```
+
+### macOS/Linux
+
+```bash
+./gradlew assembleDebug
+./gradlew installDebug
+```
+
 ## Build Variants
 
 This project supports multiple build variants for different use cases:
@@ -58,18 +115,18 @@ This project supports multiple build variants for different use cases:
 - **Version Suffix:** `-dev`
 - **Use Case:** Development and testing
 - **Features:** No code minification, debuggable
-- **Command:** `./gradlew assembleDebug`
+- **Commands:** `gradlew.bat assembleDebug` (Windows) / `./gradlew assembleDebug` (macOS/Linux)
 
 ### Release
 - **Application ID:** `com.bdbshs.crest`
 - **Use Case:** Production deployment
 - **Features:** Code minification, resource shrinking, optimized
-- **Command:** `./gradlew assembleRelease`
+- **Commands:** `gradlew.bat assembleRelease` (Windows) / `./gradlew assembleRelease` (macOS/Linux)
 
 ### Benchmark
 - **Use Case:** Performance testing
-- **Features:** Based on release configuration, uses debug signing
-- **Command:** `./gradlew assembleBenchmark`
+- **Features:** Dedicated benchmark module and benchmark build types for macrobenchmarking
+- **Commands:** `gradlew.bat :benchmark:assembleBenchmark` (Windows) / `./gradlew :benchmark:assembleBenchmark` (macOS/Linux)
 
 ## Testing
 
@@ -81,6 +138,13 @@ This project supports multiple build variants for different use cases:
 
 # Run specific test class
 ./gradlew testDebugUnitTest --tests "com.bdbshs.crest.data.FileCacheTest"
+```
+
+Windows equivalent:
+
+```bat
+gradlew.bat testDebugUnitTest
+gradlew.bat testDebugUnitTest --tests "com.bdbshs.crest.data.FileCacheTest"
 ```
 
 ### Running Instrumented Tests
@@ -95,6 +159,13 @@ Requires a connected device or emulator:
 ./gradlew connectedDebugAndroidTest --tests "com.bdbshs.crest.ui.screens.DocumentsScreenTest"
 ```
 
+Windows equivalent:
+
+```bat
+gradlew.bat connectedDebugAndroidTest
+gradlew.bat connectedDebugAndroidTest --tests "com.bdbshs.crest.ui.screens.DocumentsScreenTest"
+```
+
 ### Running Benchmarks
 
 Requires a physical device or API 29+ emulator:
@@ -104,23 +175,22 @@ Requires a physical device or API 29+ emulator:
 ./gradlew :benchmark:connectedBenchmarkAndroidTest
 ```
 
-Benchmark results are saved to: `benchmark/build/outputs/connected_android_test_additional_output/`
+Windows equivalent:
+
+```bat
+gradlew.bat :benchmark:connectedBenchmarkAndroidTest
+```
+
+Benchmark results are saved under `benchmark/build/outputs/`.
 
 ## Android Studio Setup
-
-### Prerequisites
-
-*   **Android Studio:** Ladybug (2024.2.1) or newer recommended
-*   **JDK:** Java 11 or higher (bundled with Android Studio)
-*   **Android SDK:** API 24 (minimum) to API 35 (target)
-*   **Gradle:** 8.x (managed automatically via Gradle Wrapper)
 
 ### Step-by-Step Import Guide
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/CREST.git
-    cd CREST
+    git clone https://github.com/james719-code/CRESTV2.git
+    cd CRESTV2
     ```
 
 2.  **Open in Android Studio:**
@@ -134,7 +204,7 @@ Benchmark results are saved to: `benchmark/build/outputs/connected_android_test_
     *   Ensure Firebase project has Authentication and Firestore enabled
 
 4.  **Configure Appwrite:**
-    *   Update Appwrite credentials in the relevant config file
+    *   Add `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, and `APPWRITE_BUCKET_ID` in `local.properties` (or Gradle properties)
 
 5.  **Sync and Build:**
     *   Click **Sync Project with Gradle Files** (elephant icon in toolbar)
@@ -174,6 +244,7 @@ Benchmark results are saved to: `benchmark/build/outputs/connected_android_test_
 |-------|----------|
 | Gradle sync fails | Check internet connection, invalidate caches: **File > Invalidate Caches** |
 | Missing `google-services.json` | Download from Firebase Console and place in `app/` |
+| Appwrite config not applied | Verify `APPWRITE_*` keys exist in `local.properties` or are passed as Gradle properties |
 | Tests not running | Ensure correct build variant is selected (debug) |
 | Benchmark crashes | Use a physical device; ensure app is debuggable for benchmark variant |
 | JDK version mismatch | Set JDK in **File > Project Structure > SDK Location** |

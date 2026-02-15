@@ -1,6 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -29,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +57,7 @@ fun ResearchesScreen(
     userRole: UserType?,
     isOnline: Boolean,
     onNavigateToDetails: (researchId: String) -> Unit,
+    favoritesOnly: Boolean = false,
     viewModel: ResearchesViewModel = hiltViewModel(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
@@ -60,9 +65,21 @@ fun ResearchesScreen(
     val researchesToShow by viewModel.filteredAndSortedResearches.collectAsState()
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
+    val context = LocalContext.current
 
     LaunchedEffect(userRole) {
         viewModel.setUserRole(userRole)
+    }
+
+    LaunchedEffect(favoritesOnly) {
+        viewModel.setFavoritesOnly(favoritesOnly)
+    }
+
+    uiState.error?.let { message ->
+        LaunchedEffect(message) {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
     }
 
     val pullRefreshState = rememberPullRefreshState(
@@ -116,11 +133,33 @@ fun ResearchesScreen(
         ModernSearchBar(
             query = uiState.searchQuery,
             onQueryChange = viewModel::onSearchQueryChanged,
-            placeholder = "Search by title or author...",
+            placeholder = if (favoritesOnly) "Search favorites..." else "Search by title or author...",
             onFilterClick = viewModel::showFilterDialog,
             activeFilterCount = calculateActiveFilterCount(uiState),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
+
+        if (!favoritesOnly) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                FilterChip(
+                    selected = uiState.showFavoritesOnly,
+                    onClick = { viewModel.setFavoritesOnly(!uiState.showFavoritesOnly) },
+                    label = { Text("Favorites") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (uiState.showFavoritesOnly) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                        )
+                    }
+                )
+            }
+        }
         
         // Quick filter chips for strands
         FilterChipsRow(
@@ -164,11 +203,18 @@ fun ResearchesScreen(
                     }
                 }
                 researchesToShow.isEmpty() -> {
-                    ResearchEmptyState(
-                        isSearchResult = uiState.searchQuery.isNotEmpty(),
-                        searchQuery = uiState.searchQuery,
-                        onClearSearch = { viewModel.onSearchQueryChanged("") }
-                    )
+                    if (favoritesOnly || uiState.showFavoritesOnly) {
+                        EmptyState(
+                            icon = Icons.Default.FavoriteBorder,
+                            message = "No favorite researches yet.\nTap the heart icon to save one."
+                        )
+                    } else {
+                        ResearchEmptyState(
+                            isSearchResult = uiState.searchQuery.isNotEmpty(),
+                            searchQuery = uiState.searchQuery,
+                            onClearSearch = { viewModel.onSearchQueryChanged("") }
+                        )
+                    }
                 }
                 else -> {
                     LazyVerticalStaggeredGrid(
@@ -182,7 +228,10 @@ fun ResearchesScreen(
                             ModernResearchCard(
                                 research = research,
                                 onClick = { onNavigateToDetails(research.id) },
-                                onLongClick = { viewModel.onResearchLongPressed(research) }
+                                onLongClick = { viewModel.onResearchLongPressed(research) },
+                                onFavoriteClick = { viewModel.toggleResearchFavorite(research) },
+                                isFavorite = research.id in uiState.favoriteResearchIds,
+                                isFavoriteUpdating = research.id in uiState.favoriteUpdateInProgressIds
                             )
                         }
                     }
