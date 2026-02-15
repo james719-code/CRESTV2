@@ -27,7 +27,9 @@ data class GroupUploadUiState(
 
 @HiltViewModel
 class GroupUploadViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context,
+    private val authRepository: AuthRepository,
+    private val uploadRepository: UploadRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GroupUploadUiState())
@@ -51,12 +53,12 @@ class GroupUploadViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // 1. Get the current user's groupId
-                val uid = AuthRepository.getCurrentUserUid() ?: throw Exception("User not logged in.")
-                val groupId = UploadRepository.getStudentGroupId(uid)
+                val uid = authRepository.getCurrentUserUid() ?: throw Exception("User not logged in.")
+                val groupId = uploadRepository.getStudentGroupId(uid)
                 if (groupId.isNullOrBlank()) throw Exception("You are not in a group.")
 
                 // 2. Upload file and update group document metadata
-                UploadRepository.submitGroupResearchForReview(
+                uploadRepository.submitGroupResearchForReview(
                     context = appContext,
                     input = GroupResearchUploadInput(
                         groupId = groupId,

@@ -2,15 +2,17 @@ package com.bdbshs.crest.data.repository
 
 import android.content.Context
 import android.net.Uri
-import com.bdbshs.crest.data.AppwriteClient
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.StorageConfig
+import com.google.firebase.firestore.FirebaseFirestore
 import io.appwrite.ID
 import io.appwrite.models.InputFile
+import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.FileOutputStream
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class ResearchUploadInput(
     val title: String,
@@ -27,10 +29,11 @@ data class GroupResearchUploadInput(
     val selectedFileUri: Uri
 )
 
-object UploadRepository {
-
-    private val firestore = FirebaseClient.firestore
-    private val appwriteStorage = AppwriteClient.storage
+@Singleton
+class UploadRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val storage: Storage
+) {
 
     suspend fun uploadResearch(context: Context, input: ResearchUploadInput) {
         val tempFile = createTempFileFromUri(context, input.selectedFileUri)
@@ -38,7 +41,7 @@ object UploadRepository {
 
         val uploadedFileId = try {
             val inputFile = InputFile.fromFile(file = tempFile)
-            appwriteStorage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
+            storage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
         } finally {
             tempFile.delete()
         }
@@ -64,7 +67,7 @@ object UploadRepository {
 
         val uploadedFileId = try {
             val inputFile = InputFile.fromFile(file = tempFile)
-            appwriteStorage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
+            storage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
         } finally {
             tempFile.delete()
         }

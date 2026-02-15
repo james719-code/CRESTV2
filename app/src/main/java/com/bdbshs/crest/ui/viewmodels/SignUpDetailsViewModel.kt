@@ -47,7 +47,10 @@ data class SignUpDetailsUiState(
 )
 
 @HiltViewModel
-class SignUpDetailsViewModel @Inject constructor() : ViewModel() {
+class SignUpDetailsViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val profileRepository: ProfileRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignUpDetailsUiState())
     val uiState = _uiState.asStateFlow()
@@ -94,7 +97,7 @@ class SignUpDetailsViewModel @Inject constructor() : ViewModel() {
             try {
                 // Get current user in IO dispatcher
                 val user = withContext(Dispatchers.IO) {
-                    AuthRepository.getCurrentUser()
+                    authRepository.getCurrentUser()
                 }
 
                 if (user == null) {
@@ -114,7 +117,7 @@ class SignUpDetailsViewModel @Inject constructor() : ViewModel() {
                         )
 
                         withContext(Dispatchers.IO) {
-                            ProfileRepository.saveStudentProfile(input)
+                            profileRepository.saveStudentProfile(input)
                         }
                     }
 
@@ -126,7 +129,7 @@ class SignUpDetailsViewModel @Inject constructor() : ViewModel() {
                         )
 
                         withContext(Dispatchers.IO) {
-                            ProfileRepository.saveTeacherProfile(input)
+                            profileRepository.saveTeacherProfile(input)
                         }
                     }
                 }

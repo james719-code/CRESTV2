@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.GroupDetailViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,7 +59,7 @@ private fun Context.isCurrentlyConnected(): Boolean {
 @Composable
 fun GroupDetailScreen(
     onNavigateBack: () -> Unit,
-    viewModel: GroupDetailViewModel = viewModel()
+    viewModel: GroupDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isOnline by rememberNetworkState()

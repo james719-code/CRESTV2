@@ -1,10 +1,12 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 sealed class AccountRecord {
     abstract val uid: String
@@ -29,9 +31,10 @@ sealed class AccountRecord {
     ) : AccountRecord()
 }
 
-object AccountRepository {
-
-    private val firestore = FirebaseClient.firestore
+@Singleton
+class AccountRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
+) {
 
     suspend fun fetchAllAccounts(): List<AccountRecord> = coroutineScope {
         val studentsTask = async { firestore.collection(FirestorePaths.STUDENTS).get().await() }

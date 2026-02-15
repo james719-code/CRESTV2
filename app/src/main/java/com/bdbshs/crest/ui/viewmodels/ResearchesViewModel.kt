@@ -9,6 +9,8 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -57,7 +59,10 @@ data class ResearchesUiState(
     val isOnline: Boolean = true
 )
 
-class ResearchesViewModel : ViewModel() {
+@HiltViewModel
+class ResearchesViewModel @Inject constructor(
+    private val researchRepository: ResearchRepository
+) : ViewModel() {
 
     private var qualitativeListener: ListenerRegistration? = null
     private var quantitativeListener: ListenerRegistration? = null
@@ -102,11 +107,11 @@ class ResearchesViewModel : ViewModel() {
         qualitativeListener?.remove()
         quantitativeListener?.remove()
 
-        qualitativeListener = ResearchRepository.observeQualitative {
+        qualitativeListener = researchRepository.observeQualitative {
             snap, e -> handleSnapshot(snap, e as? FirebaseFirestoreException, ResearchType.QUALITATIVE)
         }
 
-        quantitativeListener = ResearchRepository.observeQuantitative {
+        quantitativeListener = researchRepository.observeQuantitative {
             snap, e -> handleSnapshot(snap, e as? FirebaseFirestoreException, ResearchType.QUANTITATIVE)
         }
     }
@@ -191,9 +196,9 @@ class ResearchesViewModel : ViewModel() {
         _uiState.update { it.copy(isDeleting = true) }
         viewModelScope.launch {
             try {
-                ResearchRepository.deleteResearchDocument(research.type.name.lowercase(), research.id)
+                researchRepository.deleteResearchDocument(research.type.name.lowercase(), research.id)
                 if (research.file_link.isNotBlank()) {
-                    ResearchRepository.deleteResearchFile(research.file_link)
+                    researchRepository.deleteResearchFile(research.file_link)
                 }
                 _uiState.update { current ->
                     current.copy(isDeleting = false, isActionDialogVisible = false, selectedResearchForAction = null)

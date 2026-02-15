@@ -33,7 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.components.ModernSearchBar
 import com.bdbshs.crest.ui.components.FilterChipsRow
 import com.bdbshs.crest.ui.components.FilterChipData
@@ -53,7 +53,7 @@ fun ResearchesScreen(
     userRole: UserType?,
     isOnline: Boolean,
     onNavigateToDetails: (researchId: String) -> Unit,
-    viewModel: ResearchesViewModel = viewModel(),
+    viewModel: ResearchesViewModel = hiltViewModel(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()

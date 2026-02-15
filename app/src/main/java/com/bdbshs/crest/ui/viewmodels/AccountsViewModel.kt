@@ -66,7 +66,9 @@ data class AccountsUiState(
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
-class AccountsViewModel @Inject constructor() : ViewModel() {
+class AccountsViewModel @Inject constructor(
+    private val accountRepository: AccountRepository
+) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     private val _uiState = MutableStateFlow(AccountsUiState())
@@ -110,7 +112,7 @@ class AccountsViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch {
             try {
                 val combinedList = withContext(Dispatchers.IO) {
-                    AccountRepository.fetchAllAccounts().map { it.toUiItem() }
+                    accountRepository.fetchAllAccounts().map { it.toUiItem() }
                 }
                 _uiState.update { it.copy(allAccounts = combinedList, isLoading = false, isRefreshing = false) }
             } catch (e: Exception) {
@@ -152,7 +154,7 @@ class AccountsViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AccountRepository.approveAccount(accountToUpdate.uid, accountToUpdate.toRepositoryRole())
+                accountRepository.approveAccount(accountToUpdate.uid, accountToUpdate.toRepositoryRole())
 
                 // Refresh the list locally for an instant UI update
                 updateLocalAccountState(accountToUpdate.uid, isApproved = true)
@@ -170,7 +172,7 @@ class AccountsViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AccountRepository.denyAccount(accountToDelete.uid, accountToDelete.toRepositoryRole())
+                accountRepository.denyAccount(accountToDelete.uid, accountToDelete.toRepositoryRole())
 
                 // Remove from local list for instant UI update
                 _uiState.update { currentState ->

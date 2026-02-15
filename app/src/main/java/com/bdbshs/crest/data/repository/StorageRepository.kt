@@ -3,8 +3,10 @@ package com.bdbshs.crest.data.repository
 import android.content.Context
 import com.bdbshs.crest.data.FileCache
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class CachedResearchRecord(
     val fileId: String,
@@ -20,9 +22,10 @@ data class StorageSnapshot(
     val cachedResearches: List<CachedResearchRecord>
 )
 
-object StorageRepository {
-
-    private val firestore = FirebaseClient.firestore
+@Singleton
+class StorageRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
+) {
 
     suspend fun loadStorageSnapshot(context: Context): StorageSnapshot {
         val pdfSize = FileCache.getTotalCacheSize(context)

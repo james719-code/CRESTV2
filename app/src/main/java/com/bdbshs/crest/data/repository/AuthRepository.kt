@@ -1,15 +1,17 @@
 package com.bdbshs.crest.data.repository
 
-import com.bdbshs.crest.data.FirebaseClient
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object AuthRepository {
-
-    private val auth = FirebaseClient.auth
+@Singleton
+class AuthRepository @Inject constructor(
+    private val auth: FirebaseAuth
+) {
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
 

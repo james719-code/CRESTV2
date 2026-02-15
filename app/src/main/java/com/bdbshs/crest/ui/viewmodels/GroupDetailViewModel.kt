@@ -1,15 +1,18 @@
 package com.bdbshs.crest.ui.viewmodels
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bdbshs.crest.data.repository.GroupRepository
 import com.bdbshs.crest.data.repository.PdfRepository
 import com.bdbshs.crest.navigation.AppDestination
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -28,10 +31,13 @@ data class GroupDetailUiState(
     val isShowingPdf: Boolean = false
 )
 
-class GroupDetailViewModel(
-    application: Application,
-    savedStateHandle: SavedStateHandle
-) : AndroidViewModel(application) {
+@HiltViewModel
+class GroupDetailViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+    savedStateHandle: SavedStateHandle,
+    private val groupRepository: GroupRepository,
+    private val pdfRepository: PdfRepository
+) : ViewModel() {
 
     private var groupListener: ListenerRegistration? = null
 
@@ -57,7 +63,7 @@ class GroupDetailViewModel(
         _uiState.update { it.copy(isPdfLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                val resolvedFile = PdfRepository.getOrDownloadPdfFile(getApplication(), fileId, isOnline)
+                val resolvedFile = pdfRepository.getOrDownloadPdfFile(appContext, fileId, isOnline)
 
                 // On success, update both the data and the flag
                 _uiState.update { it.copy(isPdfLoading = false, pdfFilePath = resolvedFile.absolutePath, isShowingPdf = true) }
@@ -82,7 +88,7 @@ class GroupDetailViewModel(
         _uiState.update { it.copy(isLoading = true) }
         groupListener?.remove()
 
-        groupListener = GroupRepository.observeGroupById(groupId) { snapshot, e ->
+        groupListener = groupRepository.observeGroupById(groupId) { snapshot, e ->
                 if (e != null) {
                     val message = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
                         "You are offline. Showing cached details."
@@ -107,7 +113,7 @@ class GroupDetailViewModel(
         }
         viewModelScope.launch {
             try {
-                val names = GroupRepository.fetchStudentNamesByIds(uids)
+                val names = groupRepository.fetchStudentNamesByIds(uids)
                 _uiState.update { it.copy(memberNames = names) }
             } catch (e: Exception) {
                 Log.e("GroupDetailVM", "Failed to fetch member names", e)
@@ -140,7 +146,7 @@ class GroupDetailViewModel(
         viewModelScope.launch {
             try {
                 val researchType = ResearchType.valueOf(group.research_type.uppercase())
-                GroupRepository.approveSubmissionWithResearch(
+                groupRepository.approveSubmissionWithResearch(
                     groupId = groupId,
                     researchTypeLowercase = researchType.name.lowercase(),
                     researchTitle = group.research_title,
@@ -165,7 +171,7 @@ class GroupDetailViewModel(
         _uiState.update { it.copy(isUpdating = true) }
         viewModelScope.launch {
             try {
-                GroupRepository.denySubmission(groupId, fileLink, comment)
+                groupRepository.denySubmission(groupId, fileLink, comment)
                 _uiState.update { it.copy(isUpdating = false, denialComment = "") }
             } catch (e: Exception) {
                 _uiState.update {

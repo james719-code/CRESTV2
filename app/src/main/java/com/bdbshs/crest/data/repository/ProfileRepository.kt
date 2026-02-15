@@ -1,8 +1,10 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class StudentProfileInput(
     val uid: String,
@@ -19,9 +21,10 @@ data class TeacherProfileInput(
     val email: String
 )
 
-object ProfileRepository {
-
-    private val firestore = FirebaseClient.firestore
+@Singleton
+class ProfileRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
+) {
 
     suspend fun saveStudentProfile(input: StudentProfileInput) {
         val data = mapOf(

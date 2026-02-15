@@ -44,7 +44,9 @@ data class MainUiState(
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    @ApplicationContext private val ctx: Context
+    @ApplicationContext private val ctx: Context,
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState(isLoading = true))
@@ -69,7 +71,7 @@ class MainViewModel @Inject constructor(
         // Observe auth state changes to refresh user data automatically.
         // This ensures that when a user logs out and a new one logs in,
         // the ViewModel refreshes its state even if it stays in memory.
-        AuthRepository.addAuthStateListener(authStateListener)
+        authRepository.addAuthStateListener(authStateListener)
     }
 
     /**
@@ -136,12 +138,12 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Determine user role and document path from Firestore
-                val roleLocation = UserRepository.detectUserRoleLocation(uid)
+                val roleLocation = userRepository.detectUserRoleLocation(uid)
                     ?: throw IllegalStateException("User document not found for UID: $uid in Firestore collections. Profile incomplete.")
 
                 // Set up a real-time listener. This will provide live updates when online
                 // and cached data when offline (if previously synced).
-                userDocListener = UserRepository.observeUserStatus(uid, roleLocation) { hasPermission, error ->
+                userDocListener = userRepository.observeUserStatus(uid, roleLocation) { hasPermission, error ->
                         if (error != null) {
                             Log.e(TAG, "Firestore listener error for $uid: ${error.message}", error)
                             val errorMessage = if (error.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
@@ -216,7 +218,7 @@ class MainViewModel @Inject constructor(
                 userDocListener = null // Clear reference
 
                 // 2. Sign out from Firebase Authentication
-                AuthRepository.signOut()
+                authRepository.signOut()
                 Log.d(TAG, "Firebase user signed out.")
 
                 // 3. Clear local persisted user data in DataStore
@@ -263,7 +265,7 @@ class MainViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        AuthRepository.removeAuthStateListener(authStateListener)
+        authRepository.removeAuthStateListener(authStateListener)
         userDocListener?.remove() // Ensure the listener is removed to prevent memory leaks
         super.onCleared()
         Log.d(TAG, "MainViewModel cleared. Firestore and Auth listeners removed.")

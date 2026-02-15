@@ -33,7 +33,8 @@ data class UploadUiState(
 
 @HiltViewModel
 class UploadResearchViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context,
+    private val uploadRepository: UploadRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UploadUiState())
@@ -107,7 +108,7 @@ class UploadResearchViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                UploadRepository.uploadResearch(
+                uploadRepository.uploadResearch(
                     context = appContext,
                     input = ResearchUploadInput(
                         title = title,

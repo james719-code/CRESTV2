@@ -1,12 +1,17 @@
 package com.bdbshs.crest.data.repository
 
 import android.content.Context
-import com.bdbshs.crest.data.AppwriteClient
 import com.bdbshs.crest.data.FileCache
 import com.bdbshs.crest.data.StorageConfig
+import io.appwrite.services.Storage
 import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object PdfRepository {
+@Singleton
+class PdfRepository @Inject constructor(
+    private val storage: Storage
+) {
 
     fun getCachedPdfFile(context: Context, fileId: String): File? {
         return FileCache.getCachedFile(context, fileId)
@@ -24,7 +29,7 @@ object PdfRepository {
             throw IllegalStateException("File not cached. An internet connection is required to download it.")
         }
 
-        val bytes = AppwriteClient.storage.getFileDownload(
+        val bytes = storage.getFileDownload(
             bucketId = StorageConfig.BUCKET_ID,
             fileId = fileId
         )

@@ -46,7 +46,9 @@ data class LoginUiState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    @ApplicationContext private val ctx: Context
+    @ApplicationContext private val ctx: Context,
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState    = MutableStateFlow(LoginUiState())
@@ -67,7 +69,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun checkForActiveSession() {
-        AuthRepository.getCurrentUser()?.let { user ->
+        authRepository.getCurrentUser()?.let { user ->
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             viewModelScope.launch {
@@ -104,7 +106,7 @@ class LoginViewModel @Inject constructor(
                     .createFrom(response.credential.data)
                     .idToken
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
-                val authRes = AuthRepository.signInWithCredential(credential)
+                val authRes = authRepository.signInWithCredential(credential)
                 checkUserStatus(requireNotNull(authRes.user))
             } catch (e: Exception) {
                 _uiState.update {
@@ -120,7 +122,7 @@ class LoginViewModel @Inject constructor(
     private fun checkUserStatus(user: FirebaseUser) {
         viewModelScope.launch {
             try {
-                val userStatus = UserRepository.getUserStatus(user.uid)
+                val userStatus = userRepository.getUserStatus(user.uid)
                 if (userStatus != null) {
                     val role = when (userStatus.role) {
                         UserRole.STUDENT -> UserType.STUDENT

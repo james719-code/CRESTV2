@@ -32,7 +32,9 @@ data class ResearchDetailUiState(
 @HiltViewModel
 class ResearchDetailViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context,
+    private val researchRepository: ResearchRepository,
+    private val pdfRepository: PdfRepository
 ) : ViewModel() {
 
     private var qualitativeListener: ListenerRegistration? = null
@@ -64,13 +66,13 @@ class ResearchDetailViewModel @Inject constructor(
         qualitativeListener?.remove()
         quantitativeListener?.remove()
 
-        qualitativeListener = ResearchRepository.observeQualitativeById(researchId) { snapshot, e ->
+        qualitativeListener = researchRepository.observeQualitativeById(researchId) { snapshot, e ->
                 if (snapshot != null && snapshot.exists()) {
                     handleSnapshot(snapshot, e, ResearchType.QUALITATIVE)
                 }
             }
 
-        quantitativeListener = ResearchRepository.observeQuantitativeById(researchId) { snapshot, e ->
+        quantitativeListener = researchRepository.observeQuantitativeById(researchId) { snapshot, e ->
                 if (snapshot != null && snapshot.exists()) {
                     handleSnapshot(snapshot, e, ResearchType.QUANTITATIVE)
                 }
@@ -111,7 +113,7 @@ class ResearchDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                ResearchRepository.incrementDownloadCount(researchId)
+                researchRepository.incrementDownloadCount(researchId)
             } catch (e: Exception) {
                 Log.w("ResearchDetailVM", "Failed to increment download count", e)
             }
@@ -139,7 +141,7 @@ class ResearchDetailViewModel @Inject constructor(
                 // Increment the download count only when this function is called.
                 incrementDownloadCount()
 
-                val resolvedFile = PdfRepository.getOrDownloadPdfFile(appContext, fileId, isOnline)
+                val resolvedFile = pdfRepository.getOrDownloadPdfFile(appContext, fileId, isOnline)
                 _uiState.update { it.copy(isPdfLoading = false, pdfFilePath = resolvedFile.absolutePath, error = null) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isPdfLoading = false, error = "Could not load PDF: ${e.message}") }

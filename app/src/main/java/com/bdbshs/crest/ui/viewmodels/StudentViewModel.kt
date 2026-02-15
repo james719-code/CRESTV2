@@ -47,7 +47,10 @@ data class StudentHomeUiState(
 )
 
 @HiltViewModel
-class StudentHomeViewModel @Inject constructor() : ViewModel() {
+class StudentHomeViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val studentRepository: StudentRepository
+) : ViewModel() {
 
     private val TAG = "StudentHomeViewModel" // For logging
 
@@ -59,12 +62,12 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun fetchAllData() {
-        val uid = AuthRepository.getCurrentUserUid() ?: return
+        val uid = authRepository.getCurrentUserUid() ?: return
         _uiState.update { it.copy(isLoading = true, isDownloadingCertificate = false) }
 
         viewModelScope.launch {
             try {
-                val homeData = StudentRepository.fetchHomeData(uid)
+                val homeData = studentRepository.fetchHomeData(uid)
                 val student = homeData.student?.toUiStudentDetails()
                 val group = homeData.group?.toUiGroupDetails()
                 val allResearches = homeData.allResearches.map { it.toResearchItem() }
@@ -114,7 +117,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
     }
 
     fun leaveGroup(isTriggeredByCertificate: Boolean = false) {
-        val uid = AuthRepository.getCurrentUserUid() ?: return
+        val uid = authRepository.getCurrentUserUid() ?: return
         val currentState = _uiState.value
         val student = currentState.studentDetails ?: return
         val group = currentState.groupDetails ?: return
@@ -127,7 +130,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             try {
-                StudentRepository.leaveGroup(uid, groupId, group.group_member.size)
+                studentRepository.leaveGroup(uid, groupId, group.group_member.size)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, isDownloadingCertificate = false, error = "Failed to leave group: ${e.message}") }
@@ -145,7 +148,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                StudentRepository.unsubmitResearch(groupId, fileId)
+                studentRepository.unsubmitResearch(groupId, fileId)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Failed to unsubmit: ${e.message}") }
@@ -154,7 +157,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
     }
 
     fun createGroup(groupName: String) {
-        val uid = AuthRepository.getCurrentUserUid() ?: return
+        val uid = authRepository.getCurrentUserUid() ?: return
         val student = _uiState.value.studentDetails ?: return
         if (student.groupId.isNotBlank()) {
             _uiState.update { it.copy(error = "You are already in a group.") }
@@ -163,7 +166,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                StudentRepository.createGroup(uid, student.strand, groupName)
+                studentRepository.createGroup(uid, student.strand, groupName)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Failed to create group: ${e.message}") }
@@ -172,7 +175,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
     }
 
     fun joinGroup(groupId: String) {
-        val uid = AuthRepository.getCurrentUserUid() ?: return
+        val uid = authRepository.getCurrentUserUid() ?: return
         val student = _uiState.value.studentDetails ?: return
         if (student.groupId.isNotBlank()) {
             _uiState.update { it.copy(error = "You are already in a group.") }
@@ -185,7 +188,7 @@ class StudentHomeViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                StudentRepository.joinGroup(uid, student.strand, groupId)
+                studentRepository.joinGroup(uid, student.strand, groupId)
                 fetchAllData()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Failed to join group: ${e.message}") }

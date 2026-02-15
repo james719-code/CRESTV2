@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -304,7 +304,7 @@ private fun MainPagerRouteContent(
             DocumentsScreen(
                 modifier = Modifier.padding(padding),
                 userRole = userRole,
-                viewModel = viewModel()
+                viewModel = hiltViewModel()
             )
         },
         groupsContent = { padding, _ ->

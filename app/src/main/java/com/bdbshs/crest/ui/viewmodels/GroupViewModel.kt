@@ -63,7 +63,9 @@ data class GroupsUiState(
 // --- VIEWMODEL ---
 
 @HiltViewModel
-class GroupsViewModel @Inject constructor() : ViewModel() {
+class GroupsViewModel @Inject constructor(
+    private val groupRepository: GroupRepository
+) : ViewModel() {
 
     private var groupsListener: ListenerRegistration? = null
 
@@ -109,7 +111,7 @@ class GroupsViewModel @Inject constructor() : ViewModel() {
         _uiState.update { it.copy(isLoading = true) }
         groupsListener?.remove()
 
-        groupsListener = GroupRepository.observeGroups { snapshot, e ->
+        groupsListener = groupRepository.observeGroups { snapshot, e ->
             if (e != null) { /* ... error handling ... */ return@observeGroups }
                 val groupList = snapshot?.documents?.mapNotNull { mapDocumentToGroupItem(it as QueryDocumentSnapshot) } ?: emptyList()
                 _uiState.update { it.copy(isLoading = false, isRefreshing = false, allGroups = groupList) }
@@ -160,7 +162,7 @@ class GroupsViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             try {
-                GroupRepository.approveSubmission(group.id)
+                groupRepository.approveSubmission(group.id)
                 dismissActionDialog() // Success
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUpdating = false, error = "Approval failed: ${e.message}") }
@@ -176,7 +178,7 @@ class GroupsViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             try {
-                GroupRepository.denySubmission(group.id, group.file_link, comment)
+                groupRepository.denySubmission(group.id, group.file_link, comment)
                 dismissActionDialog() // Success
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUpdating = false, error = "Denial failed. An internet connection may be required.") }

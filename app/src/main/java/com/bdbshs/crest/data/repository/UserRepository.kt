@@ -1,10 +1,12 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 enum class UserRole {
     STUDENT,
@@ -22,9 +24,10 @@ data class UserRoleLocation(
     val permissionField: String
 )
 
-object UserRepository {
-
-    private val firestore = FirebaseClient.firestore
+@Singleton
+class UserRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
+) {
 
     suspend fun getUserStatus(uid: String): UserStatus? {
         val studentDoc = firestore.collection(FirestorePaths.STUDENTS).document(uid).get().await()

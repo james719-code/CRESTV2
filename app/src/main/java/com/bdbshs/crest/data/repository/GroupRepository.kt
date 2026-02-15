@@ -1,21 +1,24 @@
 package com.bdbshs.crest.data.repository
 
-import com.bdbshs.crest.data.AppwriteClient
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.StorageConfig
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
+import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object GroupRepository {
-
-    private val firestore = FirebaseClient.firestore
-    private val storage = AppwriteClient.storage
+@Singleton
+class GroupRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val storage: Storage
+) {
 
     fun observeGroups(
         onEvent: (QuerySnapshot?, Exception?) -> Unit

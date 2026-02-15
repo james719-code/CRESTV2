@@ -1,12 +1,14 @@
 package com.bdbshs.crest.data.repository
 
-import com.bdbshs.crest.data.AppwriteClient
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.StorageConfig
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class StudentProfile(
     val name: String,
@@ -39,10 +41,11 @@ data class StudentHomeData(
     val allResearches: List<StudentResearchSummary>
 )
 
-object StudentRepository {
-
-    private val firestore = FirebaseClient.firestore
-    private val storage = AppwriteClient.storage
+@Singleton
+class StudentRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val storage: Storage
+) {
 
     suspend fun fetchHomeData(uid: String): StudentHomeData {
         val studentDoc = firestore.collection(FirestorePaths.STUDENTS).document(uid).get().await()

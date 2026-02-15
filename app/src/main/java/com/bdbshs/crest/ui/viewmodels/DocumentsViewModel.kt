@@ -1,15 +1,18 @@
 package com.bdbshs.crest.ui.viewmodels
 
-import android.app.Application // Needed for AndroidViewModel
+import android.content.Context
 import android.net.Uri // For new file selection
 import androidx.compose.runtime.Immutable
-import androidx.lifecycle.AndroidViewModel // For file operations
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bdbshs.crest.data.repository.DocumentRecord
 import com.bdbshs.crest.data.repository.DocumentRepository
 import com.bdbshs.crest.data.repository.DocumentUpdateInput
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -56,9 +59,11 @@ data class DocumentsUiState(
 
 // --- VIEWMODEL ---
 
-class DocumentsViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val appContext = getApplication<Application>().applicationContext
+@HiltViewModel
+class DocumentsViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+    private val documentRepository: DocumentRepository
+) : ViewModel() {
 
     private var documentsListener: ListenerRegistration? = null
 
@@ -103,7 +108,7 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(isLoading = true, error = null) }
         documentsListener?.remove()
 
-        documentsListener = DocumentRepository.observeDocuments { documents, error ->
+        documentsListener = documentRepository.observeDocuments { documents, error ->
                 if (error != null) {
                     val message = if (error.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
                         "You are offline. Showing cached documents."
@@ -182,7 +187,7 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                DocumentRepository.updateDocument(
+                documentRepository.updateDocument(
                     context = appContext,
                     input = DocumentUpdateInput(
                         documentId = document.id,
@@ -208,7 +213,7 @@ class DocumentsViewModel(application: Application) : AndroidViewModel(applicatio
 
         viewModelScope.launch {
             try {
-                DocumentRepository.deleteDocument(document.id, document.file_link)
+                documentRepository.deleteDocument(document.id, document.file_link)
 
                 dismissEditDialog() // Close dialog on success
                 _uiState.update { it.copy(isUpdatingDocument = false) }

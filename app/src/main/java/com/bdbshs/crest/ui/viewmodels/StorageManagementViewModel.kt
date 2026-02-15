@@ -61,7 +61,8 @@ enum class ConfirmDialogType {
  */
 @HiltViewModel
 class StorageManagementViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StorageUiState())
@@ -79,7 +80,7 @@ class StorageManagementViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
 
             withContext(Dispatchers.IO) {
-                val snapshot = StorageRepository.loadStorageSnapshot(context)
+                val snapshot = storageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
@@ -187,8 +188,8 @@ class StorageManagementViewModel @Inject constructor(
                     .filter { it.isSelected }
                     .map { it.fileId }
 
-                val deletedCount = StorageRepository.deleteSelectedFiles(context, selectedIds)
-                val snapshot = StorageRepository.loadStorageSnapshot(context)
+                val deletedCount = storageRepository.deleteSelectedFiles(context, selectedIds)
+                val snapshot = storageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
@@ -213,8 +214,8 @@ class StorageManagementViewModel @Inject constructor(
             _uiState.update { it.copy(isDeleting = true, showConfirmDialog = false) }
 
             withContext(Dispatchers.IO) {
-                val deletedCount = StorageRepository.clearPdfCache(context)
-                val snapshot = StorageRepository.loadStorageSnapshot(context)
+                val deletedCount = storageRepository.clearPdfCache(context)
+                val snapshot = storageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(
@@ -239,8 +240,8 @@ class StorageManagementViewModel @Inject constructor(
             _uiState.update { it.copy(isDeleting = true, showConfirmDialog = false) }
 
             withContext(Dispatchers.IO) {
-                StorageRepository.clearAllCache(context)
-                val snapshot = StorageRepository.loadStorageSnapshot(context)
+                storageRepository.clearAllCache(context)
+                val snapshot = storageRepository.loadStorageSnapshot(context)
 
                 _uiState.update {
                     it.copy(

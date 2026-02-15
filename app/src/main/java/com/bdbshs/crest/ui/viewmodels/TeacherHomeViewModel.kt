@@ -54,7 +54,9 @@ data class TeacherHomeUiState(
 
 @HiltViewModel
 class TeacherHomeViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context
+    @ApplicationContext private val appContext: Context,
+    private val authRepository: AuthRepository,
+    private val teacherHomeRepository: TeacherHomeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TeacherHomeUiState())
@@ -65,12 +67,12 @@ class TeacherHomeViewModel @Inject constructor(
     }
 
     private fun fetchRealData() {
-        val uid = AuthRepository.getCurrentUserUid() ?: return
+        val uid = authRepository.getCurrentUserUid() ?: return
         _uiState.update { it.copy(isLoading = true, error = null) } // Reset error on refresh
 
         viewModelScope.launch {
             try {
-                val dashboardData = TeacherHomeRepository.fetchDashboardData(uid)
+                val dashboardData = teacherHomeRepository.fetchDashboardData(uid)
 
                 val dashboardItems = listOf(
                     DashboardCardItem("Total Researches", dashboardData.totalResearches, Icons.Default.Description),
@@ -145,7 +147,7 @@ class TeacherHomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                TeacherHomeRepository.uploadTeacherDocument(
+                teacherHomeRepository.uploadTeacherDocument(
                     context = appContext,
                     input = TeacherDocumentUploadInput(
                         name = currentState.uploadDocumentName,

@@ -2,18 +2,20 @@ package com.bdbshs.crest.data.repository
 
 import android.content.Context
 import android.net.Uri
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.FirestorePaths
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import io.appwrite.ID
 import io.appwrite.models.InputFile
+import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.FileOutputStream
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class DocumentRecord(
     val id: String,
@@ -31,10 +33,11 @@ data class DocumentUpdateInput(
     val newFileUri: Uri?
 )
 
-object DocumentRepository {
-
-    private val firestore = FirebaseClient.firestore
-    private val storage = AppwriteClient.storage
+@Singleton
+class DocumentRepository @Inject constructor(
+    private val firestore: FirebaseFirestore,
+    private val storage: Storage
+) {
 
     fun observeDocuments(
         onEvent: (List<DocumentRecord>?, FirebaseFirestoreException?) -> Unit
