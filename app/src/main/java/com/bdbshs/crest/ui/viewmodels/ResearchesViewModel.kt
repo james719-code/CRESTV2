@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.bdbshs.crest.data.repository.FavoritesRepository
 import com.bdbshs.crest.data.repository.ResearchRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.QueryDocumentSnapshot
@@ -61,7 +62,10 @@ data class ResearchesUiState(
     val isActionDialogVisible: Boolean = false,
     val selectedResearchForAction: ResearchItem? = null,
     val isDeleting: Boolean = false,
-    val isOnline: Boolean = true
+    val isOnline: Boolean = true,
+    val isLoadingMore: Boolean = false,
+    val hasMoreQualitative: Boolean = true,
+    val hasMoreQuantitative: Boolean = true
 )
 
 @HiltViewModel
@@ -74,6 +78,9 @@ class ResearchesViewModel @Inject constructor(
     private var qualitativeListener: ListenerRegistration? = null
     private var quantitativeListener: ListenerRegistration? = null
     private var favoritesListener: ListenerRegistration? = null
+
+    private var lastQualitativeDoc: DocumentSnapshot? = null
+    private var lastQuantitativeDoc: DocumentSnapshot? = null
 
     private val _searchQuery = MutableStateFlow("")
     private val _uiState = MutableStateFlow(ResearchesUiState())
@@ -118,38 +125,91 @@ class ResearchesViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
-        setupListeners()
+        loadInitialData()
         setupFavoritesListener()
     }
 
-    private fun setupListeners() {
-        _uiState.update { it.copy(isLoading = true, error = null) }
-        qualitativeListener?.remove()
-        quantitativeListener?.remove()
-
-        qualitativeListener = researchRepository.observeQualitative {
-            snap, e -> handleSnapshot(snap, e as? FirebaseFirestoreException, ResearchType.QUALITATIVE)
-        }
-
-        quantitativeListener = researchRepository.observeQuantitative {
-            snap, e -> handleSnapshot(snap, e as? FirebaseFirestoreException, ResearchType.QUANTITATIVE)
+    private fun loadInitialData() {
+        _uiState.update { it.copy(isLoading = true, error = null, hasMoreQualitative = true, hasMoreQuantitative = true) }
+        lastQualitativeDoc = null
+        lastQuantitativeDoc = null
+        
+        viewModelScope.launch {
+            try {
+                val qualSnap = researchRepository.fetchQualitativeResearches(limit = 15L)
+                val quantSnap = researchRepository.fetchQuantitativeResearches(limit = 15L)
+                
+                lastQualitativeDoc = qualSnap.documents.lastOrNull()
+                lastQuantitativeDoc = quantSnap.documents.lastOrNull()
+                
+                val qualList = qualSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUALITATIVE) }
+                val quantList = quantSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUANTITATIVE) }
+                
+                _uiState.update { 
+                    it.copy(
+                        qualitativeResearches = qualList,
+                        quantitativeResearches = quantList,
+                        isLoading = false,
+                        isRefreshing = false,
+                        hasMoreQualitative = qualSnap.documents.size >= 15,
+                        hasMoreQuantitative = quantSnap.documents.size >= 15
+                    ) 
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = "Failed to load researches: ${e.message}"
+                    ) 
+                }
+            }
         }
     }
+    
+    fun loadMore() {
+        val state = _uiState.value
+        if (state.isLoading || state.isLoadingMore || (!state.hasMoreQualitative && !state.hasMoreQuantitative)) return
+        
+        // Disable loadMore when searching for now to simplify logic, as doing a compound server-side search is complex
+        if (state.searchQuery.isNotBlank() || state.showFavoritesOnly) return 
 
-    private fun handleSnapshot(snap: QuerySnapshot?, e: FirebaseFirestoreException?, type: ResearchType) {
-        if (e != null) {
-            val errorMessage = if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
-                "You are offline. Showing cached data."
-            } else { "Error: ${e.message}" }
-            _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = errorMessage) }
-            return
-        }
+        _uiState.update { it.copy(isLoadingMore = true) }
+        
+        viewModelScope.launch {
+            try {
+                var newQual = emptyList<ResearchItem>()
+                var newQuant = emptyList<ResearchItem>()
+                var moreQual = state.hasMoreQualitative
+                var moreQuant = state.hasMoreQuantitative
 
-        val list = snap?.documents?.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, type) } ?: emptyList()
-        if (type == ResearchType.QUALITATIVE) {
-            _uiState.update { it.copy(qualitativeResearches = list, isLoading = false, isRefreshing = false) }
-        } else {
-            _uiState.update { it.copy(quantitativeResearches = list, isLoading = false, isRefreshing = false) }
+                if (state.hasMoreQualitative) {
+                    val qualSnap = researchRepository.fetchQualitativeResearches(limit = 10L, startAfter = lastQualitativeDoc)
+                    lastQualitativeDoc = qualSnap.documents.lastOrNull() ?: lastQualitativeDoc
+                    newQual = qualSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUALITATIVE) }
+                    moreQual = qualSnap.documents.size >= 10
+                }
+
+                if (state.hasMoreQuantitative) {
+                    val quantSnap = researchRepository.fetchQuantitativeResearches(limit = 10L, startAfter = lastQuantitativeDoc)
+                    lastQuantitativeDoc = quantSnap.documents.lastOrNull() ?: lastQuantitativeDoc
+                    newQuant = quantSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUANTITATIVE) }
+                    moreQuant = quantSnap.documents.size >= 10
+                }
+                
+                _uiState.update { 
+                    it.copy(
+                        qualitativeResearches = it.qualitativeResearches + newQual,
+                        quantitativeResearches = it.quantitativeResearches + newQuant,
+                        isLoadingMore = false,
+                        hasMoreQualitative = moreQual,
+                        hasMoreQuantitative = moreQuant
+                    )
+                }
+
+            } catch(e: Exception) {
+                _uiState.update { it.copy(isLoadingMore = false, error = "Failed to load more: ${e.message}") }
+            }
         }
     }
 
@@ -161,7 +221,8 @@ class ResearchesViewModel @Inject constructor(
     }
 
     fun onRefresh() {
-        setupListeners()
+        _uiState.update { it.copy(isRefreshing = true) }
+        loadInitialData()
     }
 
     fun onSearchQueryChanged(query: String) {

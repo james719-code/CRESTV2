@@ -2,16 +2,7 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-/.idea/modules/
-/.idea/deploymentTargetDropDown.xml
-/.idea/deploymentTargetSelector.xml
-/.idea/kotlinc.xml
+/.idea/
 /captures
 
 # --- Build Outputs ---
@@ -22,6 +13,7 @@
 # --- Kotlin / Java ---
 *.class
 **/out/
+/.kotlin/
 
 # --- NDK / Native Code ---
 .externalNativeBuild
@@ -31,6 +23,10 @@
 
 # --- Logs & Temp ---
 *.log
+build_log.txt
+build_output*.txt
+compile_out.txt
+debug_build*.txt
 /tmp/
 
 # --- OS Specific ---
@@ -45,3 +41,7 @@ google-services.json
 /crest_jks
 /crest_jks.txt
 /firebase_base64.txt
+
+# --- Generated local docs ---
+/CREST_User_Guide.html
+/CREST_User_Guide.pdf

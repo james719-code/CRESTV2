@@ -86,6 +86,17 @@ fun ResearchesScreen(
         refreshing = uiState.isRefreshing,
         onRefresh = viewModel::onRefresh
     )
+    
+    val gridState = androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState()
+    
+    LaunchedEffect(gridState, researchesToShow.size) {
+        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex != null && lastVisibleIndex >= researchesToShow.size - 4) {
+                    viewModel.loadMore()
+                }
+            }
+    }
 
     // --- Dialogs and Sheets ---
 
@@ -218,6 +229,7 @@ fun ResearchesScreen(
                 }
                 else -> {
                     LazyVerticalStaggeredGrid(
+                        state = gridState,
                         columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
@@ -233,6 +245,14 @@ fun ResearchesScreen(
                                 isFavorite = research.id in uiState.favoriteResearchIds,
                                 isFavoriteUpdating = research.id in uiState.favoriteUpdateInProgressIds
                             )
+                        }
+                        
+                        if (uiState.isLoadingMore) {
+                            item {
+                                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                }
+                            }
                         }
                     }
                 }

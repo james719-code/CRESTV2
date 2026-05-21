@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
 import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
@@ -25,6 +26,21 @@ class ResearchRepository @Inject constructor(
             .addSnapshotListener { snapshot, error -> onEvent(snapshot, error) }
     }
 
+    suspend fun fetchQualitativeResearches(
+        limit: Long = 10L,
+        startAfter: DocumentSnapshot? = null
+    ): QuerySnapshot {
+        var query = firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .limit(limit)
+            
+        if (startAfter != null) {
+            query = query.startAfter(startAfter)
+        }
+        
+        return query.get().await()
+    }
+
     fun observeQualitativeById(
         researchId: String,
         onEvent: (DocumentSnapshot?, FirebaseFirestoreException?) -> Unit
@@ -39,6 +55,21 @@ class ResearchRepository @Inject constructor(
     ): ListenerRegistration {
         return firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES)
             .addSnapshotListener { snapshot, error -> onEvent(snapshot, error) }
+    }
+
+    suspend fun fetchQuantitativeResearches(
+        limit: Long = 10L,
+        startAfter: DocumentSnapshot? = null
+    ): QuerySnapshot {
+        var query = firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .limit(limit)
+            
+        if (startAfter != null) {
+            query = query.startAfter(startAfter)
+        }
+        
+        return query.get().await()
     }
 
     fun observeQuantitativeById(

@@ -1,46 +1,53 @@
-name: Android CI/CD Release
+name: Android Release
 
 on:
   push:
     tags:
-      - 'v*' # Trigger only when you push a tag like v1.0, v2.1.4, etc.
+      - "v*"
 
 jobs:
   build:
+    name: Build signed APK
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "17"
 
-      - name: Decode Keystore
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode keystore
         id: decode_keystore
         uses: timheuer/base64-to-file@v1.2
         with:
-          fileName: 'release_key.jks'
+          fileName: "release_key.jks"
           encodedString: ${{ secrets.SIGNING_KEY }}
 
-      - name: Decode Google Services JSON
+      - name: Decode Firebase config
         id: decode_google_services
         uses: timheuer/base64-to-file@v1.2
         with:
-          fileName: 'google-services.json'
+          fileName: "google-services.json"
           encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          fileDir: './app'
+          fileDir: "./app"
 
       - name: Make gradlew executable
         run: |
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
 
-      - name: Build Release APK
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build release APK
         run: ./gradlew assembleRelease
         env:
           RELEASE_STORE_FILE: ${{ steps.decode_keystore.outputs.filePath }}
@@ -48,12 +55,15 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: "app/build/outputs/apk/release/*.apk"
           name: Release ${{ github.ref_name }}
-          body: "Automated Build for version ${{ github.ref_name }}"
+          body: |
+            Automated Android release for ${{ github.ref_name }}.
+
+            See CHANGELOG.md for notable changes and docs/RELEASE.md for the release process.
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
