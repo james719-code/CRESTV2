@@ -33,7 +33,7 @@ testRules = "1.5.0"
 testRunner = "1.5.2"
 splashscreen = "1.0.1"
 coil = "2.7.0"
-hilt = "2.56.2"
+hilt = "2.59.2"
 hiltNavigationCompose = "1.2.0"
 
 [libraries]
