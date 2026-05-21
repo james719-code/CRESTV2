@@ -26,14 +26,14 @@ jobs:
 
       - name: Decode keystore
         id: decode_keystore
-        uses: timheuer/base64-to-file@v1.2
+        uses: timheuer/base64-to-file@v2.0
         with:
           fileName: "release_key.jks"
           encodedString: ${{ secrets.SIGNING_KEY }}
 
       - name: Decode Firebase config
         id: decode_google_services
-        uses: timheuer/base64-to-file@v1.2
+        uses: timheuer/base64-to-file@v2.0
         with:
           fileName: "google-services.json"
           encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
