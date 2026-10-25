@@ -35,7 +35,7 @@ class NavigationTest {
     fun setUp() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val application = context.applicationContext as Application
-        viewModel = DocumentsViewModel(application)
+        viewModel = com.bdbshs.crest.documentsViewModelForUiTest(application)
     }
 
     @Test
