@@ -1,9 +1,14 @@
 package com.bdbshs.crest.ui.components
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.bdbshs.crest.R
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,13 +29,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
 import coil.compose.AsyncImage
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.UserType
 import com.bdbshs.crest.data.ThemeMode
 
+private val MainTabTitles = listOf("Home", "Research", "Documents", "Groups")
+
 /**
- * Modern Top App Bar with user profile and actions
+ * Standard Material top app bar. Main tabs carry the CREST mark; secondary screens use a back arrow and their own title.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,24 +55,22 @@ fun CrestTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
     modifier: Modifier = Modifier
 ) {
+    val isMainTab = title in MainTabTitles
     TopAppBar(
         navigationIcon = {
             if (onNavigationClick != null) {
-                IconButton(onClick = onNavigationClick) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                IconButton(onClick = onNavigationClick, Modifier.padding(start = 8.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
+            } else if (isMainTab) {
+                CrestMark(36.dp, Modifier.padding(start = 20.dp, end = 4.dp))
             }
         },
         title = {
             Column {
                 Text(
-                    text = title,
+                    text = if (title == "Home") "CREST" else title,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -72,73 +79,51 @@ fun CrestTopAppBar(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CloudOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Offline",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Icon(Icons.Outlined.CloudOff, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Offline", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         },
         actions = {
-            // Notification bell (optional)
             onNotificationClick?.let { onClick ->
                 IconButton(onClick = onClick) {
-                    BadgedBox(
-                        badge = {
-                            // Can add notification count here
-                        }
-                    ) {
+                    Icon(Icons.Outlined.Notifications, contentDescription = "Notifications")
+                }
+            }
+            IconButton(onClick = onProfileClick) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (userPhotoUrl != null) {
+                        AsyncImage(
+                            model = userPhotoUrl,
+                            contentDescription = "Account menu",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
                         Icon(
-                            imageVector = Icons.Outlined.Notifications,
-                            contentDescription = "Notifications",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            Icons.Filled.Person,
+                            contentDescription = "Account menu",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
-            
-            // User avatar with subtle border
-            Box(
-                modifier = Modifier
-                    .padding(end = 12.dp)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-                    .padding(1.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .clickable(onClick = onProfileClick),
-                contentAlignment = Alignment.Center
-            ) {
-                if (userPhotoUrl != null) {
-                    AsyncImage(
-                        model = userPhotoUrl,
-                        contentDescription = "Profile",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = "Profile",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
+            Spacer(Modifier.width(14.dp))
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            scrolledContainerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = MaterialTheme.colorScheme.background,
+            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         scrollBehavior = scrollBehavior,
         modifier = modifier
@@ -169,22 +154,12 @@ fun ProfileBottomSheet(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Drag handle
-        Box(
-            modifier = Modifier
-                .padding(vertical = 12.dp)
-                .width(40.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-        )
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
         // User info header
         Box(
             modifier = Modifier
@@ -268,7 +243,7 @@ fun ProfileBottomSheet(
                 ProfileMenuItem(
                     icon = Icons.Outlined.FavoriteBorder,
                     title = "Favorites",
-                    subtitle = "View your saved researches",
+                    subtitle = "View your saved papers",
                     onClick = {
                         onClick()
                         onDismiss()

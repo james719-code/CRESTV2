@@ -195,87 +195,40 @@ fun FilePicker(
     isLoading: Boolean = !enabled,
     modifier: Modifier = Modifier
 ) {
-    val borderColor = if (fileName != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(140.dp)
-            .drawBehind {
-                drawRoundRect(
-                    color = borderColor,
-                    style = Stroke(
-                        width = 2.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
-                    ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(24.dp.toPx())
-                )
-            }
-            .clip(RoundedCornerShape(24.dp))
-            .clickable(enabled = enabled && !isLoading && fileName == null, onClick = onPickFileClick)
-            .background(
-                if (fileName != null) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                else Color.Transparent
-            ),
-        contentAlignment = Alignment.Center
+    Surface(
+        onClick = onPickFileClick,
+        enabled = enabled && !isLoading,
+        modifier = modifier.fillMaxWidth().heightIn(min = if (fileName == null) 96.dp else 80.dp),
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        if (fileName == null) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Default.CloudUpload,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(40.dp)
-                )
-                Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.Outlined.PictureAsPdf, null, Modifier.size(28.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    "Click to upload PDF study",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fileName ?: "Choose a research PDF",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    "Max file size: 25MB",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    if (isLoading) "Uploading selected file…" else if (fileName != null) "File selected · tap to change" else "Select a PDF from the files on this device.",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        } else {
-            Row(
-                modifier = Modifier.padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.PictureAsPdf,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
+            if (fileName != null) {
+                IconButton(onClick = onClearFileClick, enabled = enabled && !isLoading) {
+                    Icon(Icons.Outlined.Close, "Remove selected file", tint = MaterialTheme.colorScheme.error)
                 }
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = fileName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "Ready for submission",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                IconButton(onClick = onClearFileClick) {
-                    Icon(Icons.Default.Cancel, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
-                }
+            } else {
+                Icon(Icons.Outlined.Add, null, tint = MaterialTheme.colorScheme.primary)
             }
         }
     }

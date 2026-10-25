@@ -26,7 +26,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.navigation.AppDestination
 import com.bdbshs.crest.ui.theme.*
@@ -83,7 +86,7 @@ fun getBottomNavItems(userRole: UserType?): List<BottomNavItem> {
 }
 
 /**
- * Modern bottom navigation bar with pill indicator and smooth animations
+ * Stable, labeled Material navigation with equal space for each destination.
  */
 @Composable
 fun CrestBottomNavBar(
@@ -92,189 +95,127 @@ fun CrestBottomNavBar(
     onItemClick: (AppDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Column {
-            // Subtle top border to separate from content
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                thickness = 0.5.dp
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding() // Move padding here to extend background
-                    .height(80.dp)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items.forEach { item ->
-                    val isSelected = currentRoute == item.route.route
-                    val weight by animateFloatAsState(
-                        targetValue = if (isSelected) 1.5f else 1f,
-                        label = "weight"
-                    )
-                    BottomNavItemView(
-                        item = item,
-                        isSelected = isSelected,
-                        onClick = { onItemClick(item.route) },
-                        modifier = Modifier.weight(weight)
-                    )
-                }
-            }
-        }
-    }
+    BrandNavigationBar(items, items.indexOfFirst { it.route.route == currentRoute },
+        { onItemClick(items[it].route) }, modifier)
 }
 
-// Same logic for Item View but added maxLines and softWrap
 @Composable
-private fun BottomNavItemView(
-    item: BottomNavItem,
-    isSelected: Boolean,
-    onClick: () -> Unit,
+private fun BrandNavigationBar(
+    items: List<BottomNavItem>,
+    selectedIndex: Int,
+    onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0.85f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "scale"
-    )
-    
-    val containerColor by animateColorAsState(
-        targetValue = if (isSelected) 
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        else 
-            Color.Transparent,
-        label = "containerColor"
-    )
-    
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) 
-            MaterialTheme.colorScheme.primary
-        else 
-            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        label = "contentColor"
-    )
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    NavigationBar(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 0.dp
     ) {
-        Box(
-            modifier = Modifier
-                .scale(scale)
-                .clip(CircleShape)
-                .background(containerColor)
-                .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                BadgedBox(
-                    badge = {
-                        item.badge?.let { count ->
-                            if (count > 0) {
-                                Badge {
-                                    Text(text = if (count > 99) "99+" else count.toString())
-                                }
-                            }
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.title,
-                        tint = contentColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                
-                if (isSelected) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
-            }
+        items.forEachIndexed { index, item ->
+            val selected = index == selectedIndex
+            NavigationBarItem(
+                selected = selected,
+                onClick = { onItemClick(index) },
+                alwaysShowLabel = true,
+                icon = { NavigationIcon(item, selected) },
+                label = { NavLabel(item.title) },
+                colors = crestNavigationItemColors()
+            )
         }
     }
 }
 
-/**
- * Offline mode bottom navigation - simplified with only Researches
- */
+/** Side navigation for medium and expanded windows, using the same destinations as the bottom bar. */
+@Composable
+fun CrestNavigationRail(
+    items: List<BottomNavItem>,
+    selectedIndex: Int,
+    onItemClick: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    NavigationRail(
+        modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        windowInsets = WindowInsets.navigationBars,
+        header = { Spacer(Modifier.height(8.dp)) }
+    ) {
+        Spacer(Modifier.weight(1f))
+        items.forEachIndexed { index, item ->
+            val selected = index == selectedIndex
+            NavigationRailItem(
+                selected = selected,
+                onClick = { onItemClick(index) },
+                alwaysShowLabel = true,
+                icon = { NavigationIcon(item, selected) },
+                label = { NavLabel(item.title) },
+                colors = NavigationRailItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
+        Spacer(Modifier.weight(1f))
+    }
+}
+
+/** Tab labels stay on one line; text beyond 130% would break words in a four-tab bar. */
+@Composable
+private fun NavLabel(text: String) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
+        Text(text, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun NavigationIcon(item: BottomNavItem, selected: Boolean) {
+    BadgedBox(badge = {
+        item.badge?.takeIf { it > 0 }?.let { count ->
+            Badge { Text(if (count > 99) "99+" else count.toString()) }
+        }
+    }) {
+        Icon(if (selected) item.selectedIcon else item.unselectedIcon, contentDescription = null)
+    }
+}
+
+@Composable
+private fun crestNavigationItemColors() = NavigationBarItemDefaults.colors(
+    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+)
+
 @Composable
 fun OfflineBottomNavBar(
     currentRoute: String?,
     onResearchesClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val offlineItems = listOf(
-        BottomNavItem(
-            route = AppDestination.Researches,
-            title = "Researches (Offline)",
-            selectedIcon = Icons.AutoMirrored.Filled.LibraryBooks,
-            unselectedIcon = Icons.AutoMirrored.Outlined.LibraryBooks
-        )
-    )
-    
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 2.dp
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Center,
+                .navigationBarsPadding()
+                .clickable(onClick = onResearchesClick)
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Filled.CloudOff,
-                contentDescription = "Offline",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Offline Mode - Cached researches available",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Icon(Icons.Outlined.CloudOff, contentDescription = null)
+            Text("You're offline. Saved papers are available.", style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
 
-/**
- * Bottom navigation bar synced with HorizontalPager state
- * Automatically updates selection when user swipes between pages
- */
 @Composable
 fun CrestBottomNavBarWithPager(
     items: List<BottomNavItem>,
@@ -282,41 +223,5 @@ fun CrestBottomNavBarWithPager(
     onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp
-    ) {
-        Column {
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                thickness = 0.5.dp
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding() // Move padding here
-                    .height(80.dp)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items.forEachIndexed { index, item ->
-                    val isSelected = pagerState.currentPage == index
-                    val weight by animateFloatAsState(
-                        targetValue = if (isSelected) 1.5f else 1f,
-                        label = "weight"
-                    )
-                    BottomNavItemView(
-                        item = item,
-                        isSelected = isSelected,
-                        onClick = { onItemClick(index) },
-                        modifier = Modifier.weight(weight)
-                    )
-                }
-            }
-        }
-    }
+    BrandNavigationBar(items, pagerState.currentPage, onItemClick, modifier)
 }
-

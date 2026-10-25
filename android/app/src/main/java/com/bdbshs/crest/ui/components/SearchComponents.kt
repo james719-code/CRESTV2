@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -33,6 +34,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import com.bdbshs.crest.ui.theme.*
 
 /**
@@ -66,16 +70,17 @@ fun ModernSearchBar(
     Column(modifier = modifier) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            shadowElevation = animatedElevation.dp,
-            tonalElevation = 2.dp,
-            color = MaterialTheme.colorScheme.surface
+            shape = CircleShape,
+            shadowElevation = 0.dp,
+            tonalElevation = 0.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            border = if (isFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(horizontal = 16.dp),
+                    .heightIn(min = 56.dp)
+                    .padding(start = 16.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -96,15 +101,13 @@ fun ModernSearchBar(
                         onValueChange = onQueryChange,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .semantics { contentDescription = placeholder }
                             .focusRequester(focusRequester)
                             .onFocusChanged { 
                                 isFocused = it.isFocused
                                 showRecentSearches = it.isFocused && query.isEmpty() && recentSearches.isNotEmpty()
                             },
-                        textStyle = TextStyle(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = MaterialTheme.typography.bodyLarge.fontSize
-                        ),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -119,7 +122,9 @@ fun ModernSearchBar(
                                 Text(
                                     text = placeholder,
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                             innerTextField()
@@ -135,7 +140,7 @@ fun ModernSearchBar(
                 ) {
                     IconButton(
                         onClick = { onQueryChange("") },
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
@@ -151,7 +156,7 @@ fun ModernSearchBar(
                     Box {
                         IconButton(
                             onClick = onClick,
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Tune,
@@ -313,12 +318,12 @@ fun ModernFilterChip(
 
     Surface(
         onClick = onClick,
-        modifier = modifier.height(36.dp),
+        modifier = modifier.heightIn(min = 48.dp).semantics { selected = isSelected },
         shape = RoundedCornerShape(18.dp),
         color = containerColor
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -333,7 +338,7 @@ fun ModernFilterChip(
             
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 color = contentColor
             )
