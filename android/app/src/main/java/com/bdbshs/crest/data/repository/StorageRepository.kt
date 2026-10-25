@@ -1,9 +1,13 @@
 package com.bdbshs.crest.data.repository
 
 import android.content.Context
+import com.bdbshs.crest.data.CachedFileInfo
 import com.bdbshs.crest.data.FileCache
 import com.bdbshs.crest.data.FirestorePaths
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +35,7 @@ class StorageRepository @Inject constructor(
         val pdfSize = FileCache.getTotalCacheSize(context)
         val totalSize = FileCache.getTotalAppCacheSize(context)
         val cachedFiles = FileCache.getAllCachedFiles(context)
-        val cachedResearches = mapCachedFilesToResearches(cachedFiles.map { it.fileId }, context)
+        val cachedResearches = mapCachedFilesToResearches(cachedFiles)
 
         return StorageSnapshot(
             pdfCacheSize = pdfSize,
@@ -53,31 +57,45 @@ class StorageRepository @Inject constructor(
     }
 
     private suspend fun mapCachedFilesToResearches(
-        fileIds: List<String>,
-        context: Context
+        cachedFiles: List<CachedFileInfo>
     ): List<CachedResearchRecord> {
-        if (fileIds.isEmpty()) return emptyList()
+        if (cachedFiles.isEmpty()) return emptyList()
 
-        val fileSet = fileIds.toSet()
+        val fileIds = cachedFiles.map { it.fileId }.filter { it.isNotBlank() }.distinct()
         val researchMap = mutableMapOf<String, Pair<String, String>>()
 
         try {
-            val qualDocs = firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES).get().await()
-            val quantDocs = firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES).get().await()
-
-            (qualDocs.documents + quantDocs.documents).forEach { doc ->
-                val fileLink = doc.getString("file_link") ?: ""
-                if (fileLink in fileSet) {
-                    researchMap[fileLink] = Pair(
-                        doc.getString("title") ?: "Unknown Research",
-                        doc.getString("strand") ?: ""
+            coroutineScope {
+                fileIds.chunked(FIRESTORE_IN_QUERY_LIMIT).flatMap { chunk ->
+                    listOf(
+                        async {
+                            firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES)
+                                .whereIn("file_link", chunk)
+                                .get()
+                                .await()
+                        },
+                        async {
+                            firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES)
+                                .whereIn("file_link", chunk)
+                                .get()
+                                .await()
+                        }
                     )
+                }.awaitAll()
+            }.flatMap { it.documents }.forEach { doc ->
+                val fileLink = doc.getString("file_link").orEmpty()
+                if (fileLink.isNotBlank()) {
+                    researchMap[fileLink] =
+                        Pair(
+                            doc.getString("title") ?: "Unknown Research",
+                            doc.getString("strand") ?: ""
+                        )
                 }
             }
         } catch (_: Exception) {
         }
 
-        return FileCache.getAllCachedFiles(context).map { cachedFile ->
+        return cachedFiles.map { cachedFile ->
             val (title, strand) = researchMap[cachedFile.fileId] ?: Pair("Cached File", "")
             CachedResearchRecord(
                 fileId = cachedFile.fileId,
@@ -87,5 +105,9 @@ class StorageRepository @Inject constructor(
                 lastModified = cachedFile.lastModified
             )
         }
+    }
+
+    private companion object {
+        const val FIRESTORE_IN_QUERY_LIMIT = 10
     }
 }

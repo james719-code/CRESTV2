@@ -4,6 +4,7 @@ import com.bdbshs.crest.ui.viewmodels.ResearchItem
 import com.bdbshs.crest.ui.viewmodels.ResearchType
 import com.bdbshs.crest.ui.viewmodels.SortOption
 import com.bdbshs.crest.ui.viewmodels.Strand
+import java.util.Locale
 import javax.inject.Inject
 
 class GetFilteredResearchesUseCase @Inject constructor() {
@@ -17,17 +18,23 @@ class GetFilteredResearchesUseCase @Inject constructor() {
         favoriteResearchIds: Set<String>,
         showFavoritesOnly: Boolean
     ): List<ResearchItem> {
+        val normalizedQuery = query.trim()
+        val selectedStrands = strands
+            .asSequence()
+            .filter { it.isSelected }
+            .map { it.name }
+            .toSet()
+
         val filtered = researches.filter { researchItem ->
-            val queryMatch = if (query.isBlank()) {
+            val queryMatch = if (normalizedQuery.isBlank()) {
                 true
             } else {
-                researchItem.title.contains(query, ignoreCase = true) ||
-                        researchItem.members.any { it.contains(query, ignoreCase = true) }
+                researchItem.title.contains(normalizedQuery, ignoreCase = true) ||
+                        researchItem.members.any { it.contains(normalizedQuery, ignoreCase = true) }
             }
             
             val typeMatch = selectedType == null || researchItem.type == selectedType
             
-            val selectedStrands = strands.filter { it.isSelected }.map { it.name }
             val strandMatch = selectedStrands.isEmpty() || researchItem.strand in selectedStrands
             
             val favoriteMatch = !showFavoritesOnly || researchItem.id in favoriteResearchIds
@@ -36,10 +43,18 @@ class GetFilteredResearchesUseCase @Inject constructor() {
         }
 
         return when (sortOption) {
-            SortOption.DateNewest -> filtered.sortedByDescending { it.createdAt }
-            SortOption.DateOldest -> filtered.sortedBy { it.createdAt }
-            SortOption.TitleAZ -> filtered.sortedBy { it.title }
-            SortOption.TitleZA -> filtered.sortedByDescending { it.title }
+            SortOption.DateNewest -> filtered.sortedWith(
+                compareByDescending<ResearchItem> { it.createdAt }
+                    .thenBy { it.title.sortKey() }
+            )
+            SortOption.DateOldest -> filtered.sortedWith(
+                compareBy<ResearchItem> { it.createdAt }
+                    .thenBy { it.title.sortKey() }
+            )
+            SortOption.TitleAZ -> filtered.sortedBy { it.title.sortKey() }
+            SortOption.TitleZA -> filtered.sortedByDescending { it.title.sortKey() }
         }
     }
+
+    private fun String.sortKey(): String = trim().lowercase(Locale.ROOT)
 }

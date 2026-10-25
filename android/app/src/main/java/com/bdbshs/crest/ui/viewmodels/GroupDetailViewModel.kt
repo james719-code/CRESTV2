@@ -57,7 +57,10 @@ class GroupDetailViewModel @Inject constructor(
     // --- PDF Loading now updates both pdfBytes and the isShowingPdf flag ---
     fun loadPdf(isOnline: Boolean) {
         val fileId = _uiState.value.group?.file_link
-        if (fileId.isNullOrBlank()) { /* ... error handling ... */ return }
+        if (fileId.isNullOrBlank()) {
+            _uiState.update { it.copy(isPdfLoading = false, error = "This group has not attached a research PDF.") }
+            return
+        }
         if (_uiState.value.isShowingPdf && _uiState.value.pdfFilePath != null) return // Don't re-load if already showing
 
         _uiState.update { it.copy(isPdfLoading = true, error = null) }
@@ -85,7 +88,7 @@ class GroupDetailViewModel @Inject constructor(
 
     private fun setupGroupListener() {
         if (groupId == null) return
-        _uiState.update { it.copy(isLoading = true) }
+        _uiState.update { it.copy(isLoading = true, error = null) }
         groupListener?.remove()
 
         groupListener = groupRepository.observeGroupById(groupId) { snapshot, e ->
@@ -98,13 +101,15 @@ class GroupDetailViewModel @Inject constructor(
                 }
                 if (snapshot != null && snapshot.exists()) {
                     val groupItem = snapshot.toGroupItem()
-                    _uiState.update { it.copy(isLoading = false, group = groupItem) }
+                    _uiState.update { it.copy(isLoading = false, group = groupItem, error = null) }
                     groupItem?.group_member?.let { fetchMemberNames(it) }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = "Group not found.") }
                 }
             }
     }
+
+    fun onRefresh() = setupGroupListener()
 
     private fun fetchMemberNames(uids: List<String>) {
         if (uids.isEmpty()) {

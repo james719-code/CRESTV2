@@ -1,6 +1,8 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
+import com.bdbshs.crest.data.nonNegativeInt
+import com.bdbshs.crest.data.nonNegativeLong
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -44,7 +46,7 @@ class AccountRepository @Inject constructor(
             AccountRecord.Student(
                 uid = doc.id,
                 name = doc.getString("name").orEmpty(),
-                lrn = doc.getLong("lrn") ?: 0L,
+                lrn = doc.nonNegativeLong("lrn"),
                 strand = doc.getString("strand").orEmpty(),
                 gender = doc.getString("gender").orEmpty(),
                 accepted = doc.getBoolean("accepted") ?: false,
@@ -58,7 +60,7 @@ class AccountRepository @Inject constructor(
                 name = doc.getString("name").orEmpty(),
                 email = doc.getString("email").orEmpty(),
                 access = doc.getBoolean("access") ?: false,
-                uploadCount = (doc.getLong("upload_count") ?: 0L).toInt()
+                uploadCount = doc.nonNegativeInt("upload_count")
             )
         }
 

@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.bdbshs.crest.data.UserPrefs
+import com.bdbshs.crest.data.timestampMillis
+import com.bdbshs.crest.data.nonNegativeInt
 
 // DATA CLASS is unchanged
 data class ResearchDetailUiState(
@@ -48,6 +50,7 @@ class ResearchDetailViewModel @Inject constructor(
     private val researchId: String? = savedStateHandle.get<String>(AppDestination.ResearchDetails.researchIdArg)
     // To keep track of whether we've already incremented the count for this session
     private var hasIncrementedCount = false
+    private val resolvedSources = mutableSetOf<ResearchType>()
 
     init {
         if (!researchId.isNullOrBlank()) {
@@ -65,18 +68,26 @@ class ResearchDetailViewModel @Inject constructor(
         _uiState.update { it.copy(isDetailsLoading = true, error = null) }
         qualitativeListener?.remove()
         quantitativeListener?.remove()
+        resolvedSources.clear()
 
         qualitativeListener = researchRepository.observeQualitativeById(researchId) { snapshot, e ->
-                if (snapshot != null && snapshot.exists()) {
-                    handleSnapshot(snapshot, e, ResearchType.QUALITATIVE)
-                }
+                resolveSnapshot(snapshot, e, ResearchType.QUALITATIVE)
             }
 
         quantitativeListener = researchRepository.observeQuantitativeById(researchId) { snapshot, e ->
-                if (snapshot != null && snapshot.exists()) {
-                    handleSnapshot(snapshot, e, ResearchType.QUANTITATIVE)
-                }
+                resolveSnapshot(snapshot, e, ResearchType.QUANTITATIVE)
             }
+    }
+
+    fun retryDetails() = setupListeners()
+
+    private fun resolveSnapshot(snapshot: com.google.firebase.firestore.DocumentSnapshot?, error: FirebaseFirestoreException?, type: ResearchType) {
+        resolvedSources += type
+        if (error != null || snapshot?.exists() == true) {
+            handleSnapshot(snapshot, error, type)
+        } else if (resolvedSources.size == ResearchType.entries.size && _uiState.value.researchItem == null) {
+            _uiState.update { it.copy(isDetailsLoading = false, error = "This research paper is not available. Refresh or return to the library.") }
+        }
     }
 
     private fun handleSnapshot(snapshot: com.google.firebase.firestore.DocumentSnapshot?, e: FirebaseFirestoreException?, type: ResearchType) {
@@ -91,14 +102,21 @@ class ResearchDetailViewModel @Inject constructor(
         }
 
         if (snapshot != null && snapshot.exists()) {
-            val research = snapshot.toObject(ResearchItem::class.java)?.copy(
+            val research = ResearchItem(
                 id = snapshot.id,
-                type = type
+                type = type,
+                title = snapshot.getString("title") ?: "Title not provided",
+                members = (snapshot.get("members") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+                strand = snapshot.getString("strand").orEmpty(),
+                unfinished = snapshot.getBoolean("unfinished") ?: false,
+                downloads = snapshot.nonNegativeInt("downloads"),
+                file_link = snapshot.getString("file_link").orEmpty(),
+                createdAt = snapshot.timestampMillis("createdAt")
             )
             _uiState.update { it.copy(isDetailsLoading = false, researchItem = research, error = null) }
             
             // Auto-load if cached
-            if (research?.file_link != null && _uiState.value.pdfFilePath == null) {
+            if (research.file_link.isNotBlank() && _uiState.value.pdfFilePath == null) {
                 if (FileCache.isFileCached(appContext, research.file_link)) {
                     loadPdf(true)
                 }

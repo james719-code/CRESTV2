@@ -3,6 +3,7 @@ package com.bdbshs.crest.data.repository
 import com.bdbshs.crest.data.FirestorePaths
 import com.bdbshs.crest.data.StorageConfig
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
@@ -100,11 +101,6 @@ class ResearchRepository @Inject constructor(
             firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES).document(researchId)
         }
 
-        firestore.runTransaction { transaction ->
-            val snapshot = transaction.get(refToUpdate)
-            val newCount = (snapshot.getLong("downloads") ?: 0L) + 1
-            transaction.update(refToUpdate, "downloads", newCount)
-            null
-        }.await()
+        refToUpdate.update("downloads", FieldValue.increment(1L)).await()
     }
 }

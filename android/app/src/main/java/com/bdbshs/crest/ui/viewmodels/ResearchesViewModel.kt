@@ -4,8 +4,11 @@ import android.util.Log
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bdbshs.crest.data.nonNegativeInt
 import com.bdbshs.crest.data.repository.FavoritesRepository
 import com.bdbshs.crest.data.repository.ResearchRepository
+import com.bdbshs.crest.data.timestampMillis
+import com.bdbshs.crest.domain.usecase.GetFilteredResearchesUseCase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -72,7 +75,8 @@ data class ResearchesUiState(
 class ResearchesViewModel @Inject constructor(
     private val researchRepository: ResearchRepository,
     private val favoritesRepository: FavoritesRepository,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val getFilteredResearches: GetFilteredResearchesUseCase
 ) : ViewModel() {
 
     private var qualitativeListener: ListenerRegistration? = null
@@ -104,23 +108,15 @@ class ResearchesViewModel @Inject constructor(
         }.distinctUntilChanged(),
         _searchQuery.debounce(300L)
     ) { researches, filters, query ->
-        val selectedType = filters.selectedResearchType
-        val strands = filters.strands
-        val sortOption = filters.selectedSortOption
-        val filtered = researches.filter { researchItem ->
-            val queryMatch = if (query.isBlank()) true else researchItem.title.contains(query, ignoreCase = true) || researchItem.members.any { it.contains(query, ignoreCase = true) }
-            val typeMatch = selectedType == null || researchItem.type == selectedType
-            val selectedStrands = strands.filter { it.isSelected }.map { it.name }
-            val strandMatch = selectedStrands.isEmpty() || researchItem.strand in selectedStrands
-            val favoriteMatch = !filters.showFavoritesOnly || researchItem.id in filters.favoriteResearchIds
-            queryMatch && typeMatch && strandMatch && favoriteMatch
-        }
-        when (sortOption) {
-            SortOption.DateNewest -> filtered.sortedByDescending { it.createdAt }
-            SortOption.DateOldest -> filtered.sortedBy { it.createdAt }
-            SortOption.TitleAZ -> filtered.sortedBy { it.title }
-            SortOption.TitleZA -> filtered.sortedByDescending { it.title }
-        }
+        getFilteredResearches(
+            researches = researches,
+            query = query,
+            selectedType = filters.selectedResearchType,
+            strands = filters.strands,
+            sortOption = filters.selectedSortOption,
+            favoriteResearchIds = filters.favoriteResearchIds,
+            showFavoritesOnly = filters.showFavoritesOnly
+        )
     }.flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -366,9 +362,9 @@ class ResearchesViewModel @Inject constructor(
                 members = members,
                 strand = doc.getString("strand") ?: "",
                 unfinished = doc.getBoolean("unfinished") ?: false,
-                downloads = doc.getLong("downloads")?.toInt() ?: 0, // <-- Renamed from 'views'
+                downloads = doc.nonNegativeInt("downloads"),
                 file_link = doc.getString("file_link") ?: "",
-                createdAt = doc.getLong("createdAt") ?: 0L,
+                createdAt = doc.timestampMillis("createdAt"),
                 type = type
             )
         } catch(e: Exception) {

@@ -33,7 +33,12 @@ data class DashboardCardItem(
 data class SimpleResearch(
     val id: String,
     val title: String,
-    val date: Long = 0L
+    val date: Long = 0L,
+    val strand: String = "",
+    val members: List<String> = emptyList(),
+    val type: ResearchType = ResearchType.QUALITATIVE,
+    val downloads: Int = 0,
+    val unfinished: Boolean = false
 )
 
 data class TeacherHomeUiState(
@@ -49,7 +54,8 @@ data class TeacherHomeUiState(
     val uploadSelectedFileUri: Uri? = null,
     val uploadSelectedFileName: String? = null,
     val isUploadingDocument: Boolean = false,
-    val uploadSuccess: Boolean = false
+    val uploadSuccess: Boolean = false,
+    val loadError: String? = null
 )
 
 @HiltViewModel
@@ -67,18 +73,22 @@ class TeacherHomeViewModel @Inject constructor(
     }
 
     private fun fetchRealData() {
-        val uid = authRepository.getCurrentUserUid() ?: return
-        _uiState.update { it.copy(isLoading = true, error = null) } // Reset error on refresh
+        val uid = authRepository.getCurrentUserUid()
+        if (uid == null) {
+            _uiState.update { it.copy(isLoading = false, loadError = "Sign in to load your teacher workspace.") }
+            return
+        }
+        _uiState.update { it.copy(isLoading = true, loadError = null) }
 
         viewModelScope.launch {
             try {
                 val dashboardData = teacherHomeRepository.fetchDashboardData(uid)
 
                 val dashboardItems = listOf(
-                    DashboardCardItem("Total Researches", dashboardData.totalResearches, Icons.Default.Description),
-                    DashboardCardItem("Total Accounts", dashboardData.totalAccounts, Icons.Default.Group),
-                    DashboardCardItem("Pending Researches", dashboardData.pendingResearches, Icons.Default.PendingActions),
-                    DashboardCardItem("Pending Accounts", dashboardData.pendingAccounts, Icons.Default.PersonAdd)
+                    DashboardCardItem("Total Researches", dashboardData.totalResearches.toString(), Icons.Default.Description),
+                    DashboardCardItem("Total Accounts", dashboardData.totalAccounts.toString(), Icons.Default.Group),
+                    DashboardCardItem("Pending Researches", dashboardData.pendingResearches.toString(), Icons.Default.PendingActions),
+                    DashboardCardItem("Pending Accounts", dashboardData.pendingAccounts.toString(), Icons.Default.PersonAdd)
                 )
 
                 _uiState.update {
@@ -92,7 +102,7 @@ class TeacherHomeViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isLoading = false, error = "Could not load dashboard. Please check your network connection.")
+                    it.copy(isLoading = false, loadError = "Could not load review counts and recent papers. Check your connection and try again.")
                 }
             }
         }
@@ -170,10 +180,15 @@ class TeacherHomeViewModel @Inject constructor(
     }
 }
 
-private fun TeacherRecentResearch.toSimpleResearch(): SimpleResearch {
+internal fun TeacherRecentResearch.toSimpleResearch(): SimpleResearch {
     return SimpleResearch(
         id = id,
         title = title,
-        date = date
+        date = date,
+        strand = strand,
+        members = members,
+        type = if (type.equals("quantitative", ignoreCase = true)) ResearchType.QUANTITATIVE else ResearchType.QUALITATIVE,
+        downloads = downloads,
+        unfinished = unfinished
     )
 }

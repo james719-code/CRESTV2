@@ -30,7 +30,8 @@ data class GroupDetails(
     val uploaded: Boolean = false,
     val research_type: String = "",
     val accepted_research: Boolean = false,
-    val comments: List<String> = emptyList()
+    val comments: List<String> = emptyList(),
+    val research_title: String = ""
 )
 
 // --- UI State for the Screen ---
@@ -43,7 +44,8 @@ data class StudentHomeUiState(
     val strandResearchCount: Int = 0,
     val recentResearches: List<ResearchItem> = emptyList(),
     val error: String? = null,
-    val isDownloadingCertificate: Boolean = false
+    val isDownloadingCertificate: Boolean = false,
+    val loadError: String? = null
 )
 
 @HiltViewModel
@@ -62,18 +64,20 @@ class StudentHomeViewModel @Inject constructor(
     }
 
     private fun fetchAllData() {
-        val uid = authRepository.getCurrentUserUid() ?: return
-        _uiState.update { it.copy(isLoading = true, isDownloadingCertificate = false) }
+        val uid = authRepository.getCurrentUserUid()
+        if (uid == null) {
+            _uiState.update { it.copy(isLoading = false, loadError = "Sign in to load your student workspace.") }
+            return
+        }
+        _uiState.update { it.copy(isLoading = true, isDownloadingCertificate = false, loadError = null) }
 
         viewModelScope.launch {
             try {
                 val homeData = studentRepository.fetchHomeData(uid)
                 val student = homeData.student?.toUiStudentDetails()
+                    ?: throw IllegalStateException("Student profile is missing")
                 val group = homeData.group?.toUiGroupDetails()
-                val allResearches = homeData.allResearches.map { it.toResearchItem() }
-
-                val strandCount = allResearches.count { it.strand == student?.strand }
-                val recent = allResearches.sortedByDescending { it.createdAt }.take(3)
+                val recent = homeData.recentResearches.map { it.toResearchItem() }
 
                 _uiState.update {
                     it.copy(
@@ -81,8 +85,8 @@ class StudentHomeViewModel @Inject constructor(
                         studentDetails = student,
                         groupDetails = group,
                         memberNames = homeData.memberNames,
-                        totalResearchCount = allResearches.size,
-                        strandResearchCount = strandCount,
+                        totalResearchCount = homeData.totalResearchCount,
+                        strandResearchCount = homeData.strandResearchCount,
                         recentResearches = recent,
                         error = null // Clear error on success
                     )
@@ -91,7 +95,7 @@ class StudentHomeViewModel @Inject constructor(
                 // --- IMPROVED ERROR HANDLING ---
                 // Log the actual exception so you can see what's wrong in Logcat
                 Log.e(TAG, "Failed to fetch student home data. Exception: ", e)
-                _uiState.update { it.copy(isLoading = false, error = "Could not load data. Please check your network connection or try again later.") }
+                _uiState.update { it.copy(isLoading = false, loadError = "Could not load your group and library. Check your connection and try again.") }
             }
         }
     }
@@ -196,6 +200,8 @@ class StudentHomeViewModel @Inject constructor(
         }
     }
 
+    fun onRefresh() = fetchAllData()
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -209,7 +215,7 @@ private fun StudentProfile.toUiStudentDetails(): StudentDetails {
     )
 }
 
-private fun StudentGroup.toUiGroupDetails(): GroupDetails {
+internal fun StudentGroup.toUiGroupDetails(): GroupDetails {
     return GroupDetails(
         group_name = groupName,
         strand = strand,
@@ -218,15 +224,20 @@ private fun StudentGroup.toUiGroupDetails(): GroupDetails {
         uploaded = uploaded,
         research_type = researchType,
         accepted_research = acceptedResearch,
-        comments = comments
+        comments = comments,
+        research_title = researchTitle
     )
 }
 
-private fun StudentResearchSummary.toResearchItem(): ResearchItem {
+internal fun StudentResearchSummary.toResearchItem(): ResearchItem {
     return ResearchItem(
         id = id,
         title = title,
         strand = strand,
-        createdAt = createdAt
+        createdAt = createdAt,
+        members = members,
+        type = if (type.equals("quantitative", ignoreCase = true)) ResearchType.QUANTITATIVE else ResearchType.QUALITATIVE,
+        downloads = downloads,
+        unfinished = unfinished
     )
 }

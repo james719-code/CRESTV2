@@ -116,7 +116,7 @@ class AccountsViewModel @Inject constructor(
                 }
                 _uiState.update { it.copy(allAccounts = combinedList, isLoading = false, isRefreshing = false) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "Failed to load accounts: ${e.message}") }
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "Could not load school accounts. Check your connection and try again.") }
             }
         }
     }

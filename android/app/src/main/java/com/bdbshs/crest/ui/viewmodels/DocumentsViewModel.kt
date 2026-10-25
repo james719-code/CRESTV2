@@ -118,7 +118,7 @@ class DocumentsViewModel @Inject constructor(
                 }
 
                 val docList = documents?.map { it.toUiDocumentItem() } ?: emptyList()
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, allDocuments = docList) }
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, allDocuments = docList, error = null) }
             }
     }
 

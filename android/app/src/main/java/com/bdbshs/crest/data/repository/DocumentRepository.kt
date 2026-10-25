@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.bdbshs.crest.data.StorageConfig
 import com.bdbshs.crest.data.FirestorePaths
+import com.bdbshs.crest.data.timestampMillis
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
@@ -54,7 +55,7 @@ class DocumentRepository @Inject constructor(
                     val name = doc.getString("name") ?: return@mapNotNull null
                     val description = doc.getString("description") ?: ""
                     val fileLink = doc.getString("file_link") ?: ""
-                    val createdAt = doc.getLong("createdAt") ?: 0L
+                    val createdAt = doc.timestampMillis("createdAt")
                     DocumentRecord(
                         id = doc.id,
                         name = name,

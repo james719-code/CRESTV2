@@ -46,7 +46,8 @@ data class StorageUiState(
     val isDeleting: Boolean = false,
     val showConfirmDialog: Boolean = false,
     val confirmDialogType: ConfirmDialogType = ConfirmDialogType.DELETE_SELECTED,
-    val message: String? = null
+    val message: String? = null,
+    val error: String? = null
 )
 
 enum class ConfirmDialogType {
@@ -77,8 +78,8 @@ class StorageManagementViewModel @Inject constructor(
      */
     fun loadStorageData() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
             withContext(Dispatchers.IO) {
                 val snapshot = storageRepository.loadStorageSnapshot(context)
 
@@ -92,6 +93,10 @@ class StorageManagementViewModel @Inject constructor(
                         selectedSize = 0L
                     )
                 }
+            }
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _uiState.update { it.copy(isLoading = false, error = "Could not read saved files. Try again.") }
             }
         }
     }

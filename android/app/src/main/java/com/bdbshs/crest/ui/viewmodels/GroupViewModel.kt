@@ -108,13 +108,17 @@ class GroupsViewModel @Inject constructor(
     }
 
     private fun setupGroupsListener() {
-        _uiState.update { it.copy(isLoading = true) }
+        _uiState.update { it.copy(isLoading = it.allGroups.isEmpty(), error = null) }
         groupsListener?.remove()
 
         groupsListener = groupRepository.observeGroups { snapshot, e ->
-            if (e != null) { /* ... error handling ... */ return@observeGroups }
+            if (e != null) {
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false,
+                    error = "Could not load research groups. Check your connection and try again.") }
+                return@observeGroups
+            }
                 val groupList = snapshot?.documents?.mapNotNull { mapDocumentToGroupItem(it as QueryDocumentSnapshot) } ?: emptyList()
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, allGroups = groupList) }
+                _uiState.update { it.copy(isLoading = false, isRefreshing = false, allGroups = groupList, error = null) }
             }
     }
 

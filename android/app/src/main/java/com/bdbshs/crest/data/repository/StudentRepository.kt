@@ -2,10 +2,15 @@ package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
 import com.bdbshs.crest.data.StorageConfig
-import com.google.firebase.Timestamp
+import com.bdbshs.crest.data.countWithCacheFallback
+import com.bdbshs.crest.data.timestampMillis
+import com.bdbshs.crest.data.nonNegativeInt
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import io.appwrite.services.Storage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,21 +29,28 @@ data class StudentGroup(
     val uploaded: Boolean,
     val researchType: String,
     val acceptedResearch: Boolean,
-    val comments: List<String>
+    val comments: List<String>,
+    val researchTitle: String = ""
 )
 
 data class StudentResearchSummary(
     val id: String,
     val title: String,
     val strand: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val members: List<String> = emptyList(),
+    val type: String = "qualitative",
+    val downloads: Int = 0,
+    val unfinished: Boolean = false
 )
 
 data class StudentHomeData(
     val student: StudentProfile?,
     val group: StudentGroup?,
     val memberNames: List<String>,
-    val allResearches: List<StudentResearchSummary>
+    val totalResearchCount: Int,
+    val strandResearchCount: Int,
+    val recentResearches: List<StudentResearchSummary>
 )
 
 @Singleton
@@ -47,7 +59,7 @@ class StudentRepository @Inject constructor(
     private val storage: Storage
 ) {
 
-    suspend fun fetchHomeData(uid: String): StudentHomeData {
+    suspend fun fetchHomeData(uid: String): StudentHomeData = coroutineScope {
         val studentDoc = firestore.collection(FirestorePaths.STUDENTS).document(uid).get().await()
         val student = if (studentDoc.exists()) {
             StudentProfile(
@@ -78,7 +90,8 @@ class StudentRepository @Inject constructor(
                     uploaded = groupDoc.getBoolean("uploaded") ?: false,
                     researchType = groupDoc.getString("research_type").orEmpty(),
                     acceptedResearch = groupDoc.getBoolean("accepted_research") ?: false,
-                    comments = (groupDoc.get("comments") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
+                    comments = (groupDoc.get("comments") as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+                    researchTitle = groupDoc.getString("research_title").orEmpty()
                 )
 
                 if (groupMemberIds.isNotEmpty()) {
@@ -93,36 +106,84 @@ class StudentRepository @Inject constructor(
             }
         }
 
-        val qualitativeDocs = firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES).get().await()
-        val quantitativeDocs = firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES).get().await()
+        val totalResearchCountDeferred = async {
+            (countCollection(FirestorePaths.QUALITATIVE_RESEARCHES) +
+                countCollection(FirestorePaths.QUANTITATIVE_RESEARCHES)).toSafeInt()
+        }
 
-        val allResearches = (qualitativeDocs.documents + quantitativeDocs.documents).mapNotNull { doc ->
-            val title = doc.getString("title")
-            val strand = doc.getString("strand")
-            val createdAt = when (val rawDate = doc.get("createdAt")) {
-                is Timestamp -> rawDate.toDate().time
-                is Long -> rawDate
-                else -> 0L
-            }
-
-            if (title != null && strand != null) {
-                StudentResearchSummary(
-                    id = doc.id,
-                    title = title,
-                    strand = strand,
-                    createdAt = createdAt
-                )
+        val strandResearchCountDeferred = async {
+            val studentStrand = student?.strand.orEmpty()
+            if (studentStrand.isBlank()) {
+                0
             } else {
-                null
+                (countResearchesByStrand(FirestorePaths.QUALITATIVE_RESEARCHES, studentStrand) +
+                    countResearchesByStrand(FirestorePaths.QUANTITATIVE_RESEARCHES, studentStrand)).toSafeInt()
             }
         }
 
-        return StudentHomeData(
+        val recentResearchesDeferred = async {
+            fetchRecentResearches()
+        }
+
+        StudentHomeData(
             student = student,
             group = group,
             memberNames = memberNames,
-            allResearches = allResearches
+            totalResearchCount = totalResearchCountDeferred.await(),
+            strandResearchCount = strandResearchCountDeferred.await(),
+            recentResearches = recentResearchesDeferred.await()
         )
+    }
+
+    private suspend fun countCollection(path: String): Long {
+        return firestore.collection(path)
+            .countWithCacheFallback()
+    }
+
+    private suspend fun countResearchesByStrand(path: String, strand: String): Long {
+        return firestore.collection(path)
+            .whereEqualTo("strand", strand)
+            .countWithCacheFallback()
+    }
+
+    private suspend fun fetchRecentResearches(): List<StudentResearchSummary> = coroutineScope {
+        val qualitativeDeferred = async {
+            firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(3)
+                .get()
+                .await()
+        }
+        val quantitativeDeferred = async {
+            firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(3)
+                .get()
+                .await()
+        }
+
+        (qualitativeDeferred.await().documents.map { it to "qualitative" } +
+            quantitativeDeferred.await().documents.map { it to "quantitative" })
+            .mapNotNull { (doc, type) ->
+                val title = doc.getString("title")
+                val strand = doc.getString("strand")
+                if (title != null && strand != null) {
+                    StudentResearchSummary(
+                        id = doc.id,
+                        title = title,
+                        strand = strand,
+                        createdAt = doc.timestampMillis("createdAt"),
+                        members = (doc.get("members") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+                        type = type,
+                        downloads = doc.nonNegativeInt("downloads"),
+                        unfinished = doc.getBoolean("unfinished") ?: false
+                    )
+                } else {
+                    null
+                }
+            }
+            .sortedByDescending { it.createdAt }
+            .take(3)
     }
 
     suspend fun leaveGroup(uid: String, groupId: String, memberCount: Int) {
@@ -194,4 +255,8 @@ class StudentRepository @Inject constructor(
             update(studentRef, mapOf("groupId" to groupId, "group_id" to groupId))
         }.commit().await()
     }
+}
+
+private fun Long.toSafeInt(): Int {
+    return coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
 }

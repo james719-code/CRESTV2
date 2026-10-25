@@ -4,6 +4,9 @@ import android.content.Context
 import android.net.Uri
 import com.bdbshs.crest.data.FirestorePaths
 import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.countWithCacheFallback
+import com.bdbshs.crest.data.timestampMillis
+import com.bdbshs.crest.data.nonNegativeInt
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import io.appwrite.ID
@@ -19,17 +22,22 @@ import javax.inject.Singleton
 
 data class TeacherDashboardData(
     val teacherName: String,
-    val totalResearches: String,
-    val totalAccounts: String,
-    val pendingResearches: String,
-    val pendingAccounts: String,
+    val totalResearches: Long,
+    val totalAccounts: Long,
+    val pendingResearches: Long,
+    val pendingAccounts: Long,
     val recentResearches: List<TeacherRecentResearch>
 )
 
 data class TeacherRecentResearch(
     val id: String,
     val title: String,
-    val date: Long = 0L
+    val date: Long = 0L,
+    val strand: String = "",
+    val members: List<String> = emptyList(),
+    val type: String = "qualitative",
+    val downloads: Int = 0,
+    val unfinished: Boolean = false
 )
 
 data class TeacherDocumentUploadInput(
@@ -51,58 +59,65 @@ class TeacherHomeRepository @Inject constructor(
         }
 
         val totalResearchesDeferred = async {
-            (firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES).get().await().size() +
-                    firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES).get().await().size()).toString()
+            countCollection(FirestorePaths.QUALITATIVE_RESEARCHES) +
+                countCollection(FirestorePaths.QUANTITATIVE_RESEARCHES)
         }
 
         val totalAccountsDeferred = async {
-            (firestore.collection(FirestorePaths.STUDENTS).get().await().size() +
-                    firestore.collection(FirestorePaths.TEACHERS).get().await().size()).toString()
+            countCollection(FirestorePaths.STUDENTS) +
+                countCollection(FirestorePaths.TEACHERS)
         }
 
         val pendingResearchesDeferred = async {
             firestore.collection(FirestorePaths.GROUPS)
                 .whereEqualTo("uploaded", true)
                 .whereEqualTo("accepted_research", false)
-                .get()
-                .await()
-                .size()
-                .toString()
+                .countWithCacheFallback()
         }
 
         val pendingAccountsDeferred = async {
             val pendingStudents = firestore.collection(FirestorePaths.STUDENTS)
                 .whereEqualTo("accepted", false)
-                .get()
-                .await()
-                .size()
+                .countWithCacheFallback()
             val pendingTeachers = firestore.collection(FirestorePaths.TEACHERS)
                 .whereEqualTo("access", false)
-                .get()
-                .await()
-                .size()
-            (pendingStudents + pendingTeachers).toString()
+                .countWithCacheFallback()
+            pendingStudents + pendingTeachers
         }
 
         val recentResearchesDeferred = async {
-            val qualitative = firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .limit(3)
-                .get()
-                .await()
-            val quantitative = firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .limit(3)
-                .get()
-                .await()
+            val qualitativeDeferred = async {
+                firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES)
+                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .limit(3)
+                    .get()
+                    .await()
+            }
+            val quantitativeDeferred = async {
+                firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES)
+                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .limit(3)
+                    .get()
+                    .await()
+            }
 
-            (qualitative.documents + quantitative.documents)
-                .mapNotNull { doc ->
+            val qualitative = qualitativeDeferred.await()
+            val quantitative = quantitativeDeferred.await()
+
+            (qualitative.documents.map { it to "qualitative" } + quantitative.documents.map { it to "quantitative" })
+                .mapNotNull { (doc, type) ->
                     val title = doc.getString("title")
-                    val date = doc.getLong("createdAt") ?: 0L
-                    if (title != null) TeacherRecentResearch(doc.id, title, date) else null
+                    val date = doc.timestampMillis("createdAt")
+                    if (title != null) TeacherRecentResearch(
+                        doc.id, title, date,
+                        strand = doc.getString("strand").orEmpty(),
+                        members = (doc.get("members") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+                        type = type,
+                        downloads = doc.nonNegativeInt("downloads"),
+                        unfinished = doc.getBoolean("unfinished") ?: false
+                    ) else null
                 }
-                .sortedByDescending { it.id }
+                .sortedByDescending { it.date }
                 .take(5)
         }
 
@@ -114,6 +129,11 @@ class TeacherHomeRepository @Inject constructor(
             pendingAccounts = pendingAccountsDeferred.await(),
             recentResearches = recentResearchesDeferred.await()
         )
+    }
+
+    private suspend fun countCollection(path: String): Long {
+        return firestore.collection(path)
+            .countWithCacheFallback()
     }
 
     suspend fun uploadTeacherDocument(context: Context, input: TeacherDocumentUploadInput) {
