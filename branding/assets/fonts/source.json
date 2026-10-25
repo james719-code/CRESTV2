@@ -1,0 +1,46 @@
+{
+  "family": "Inter",
+  "version": "4.1",
+  "source": "https://github.com/rsms/inter/releases/tag/v4.1",
+  "archive": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+  "archiveSha256": "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
+  "retrieved": "2026-10-24",
+  "files": [
+    {
+      "name": "InterVariable.woff2",
+      "archiveEntry": "web/InterVariable.woff2",
+      "sha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+      "bytes": 352240
+    },
+    {
+      "name": "Inter-Regular.ttf",
+      "archiveEntry": "extras/ttf/Inter-Regular.ttf",
+      "sha256": "40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82",
+      "bytes": 411640
+    },
+    {
+      "name": "Inter-Medium.ttf",
+      "archiveEntry": "extras/ttf/Inter-Medium.ttf",
+      "sha256": "97ad806f526e41546d46365bb3a393145f75b7b1568913db74549ad8b8dba872",
+      "bytes": 417300
+    },
+    {
+      "name": "Inter-SemiBold.ttf",
+      "archiveEntry": "extras/ttf/Inter-SemiBold.ttf",
+      "sha256": "78a843fade9d4612a5567302fb595b56976eb5fcebf4fea5a5912d638bafcde3",
+      "bytes": 419744
+    },
+    {
+      "name": "Inter-Bold.ttf",
+      "archiveEntry": "extras/ttf/Inter-Bold.ttf",
+      "sha256": "288316099b1e0a47a4716d159098005eef7c0066921f34e3200393dbdb01947f",
+      "bytes": 420428
+    },
+    {
+      "name": "LICENSE.txt",
+      "archiveEntry": "LICENSE.txt",
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+      "bytes": 4380
+    }
+  ]
+}

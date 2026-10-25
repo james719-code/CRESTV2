@@ -98,8 +98,8 @@ data class IconSizes(
  * Touch target sizes for accessibility
  */
 data class TouchTargets(
-    /** 44dp - Minimum recommended touch target */
-    val minimum: Dp = 44.dp,
+    /** 48dp - Minimum accessible touch target */
+    val minimum: Dp = com.bdbshs.crest.branding.CrestSizes.touchMinimum,
     
     /** 48dp - Standard touch target (Material recommendation) */
     val standard: Dp = 48.dp,

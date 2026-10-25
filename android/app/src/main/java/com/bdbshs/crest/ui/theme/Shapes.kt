@@ -21,7 +21,7 @@ val CrestShapes = Shapes(
     large = RoundedCornerShape(24.dp),
 
     // Full-width sheets, expanded cards
-    extraLarge = RoundedCornerShape(32.dp)
+    extraLarge = RoundedCornerShape(24.dp)
 )
 
 // ==================== CUSTOM SHAPE EXTENSIONS ====================

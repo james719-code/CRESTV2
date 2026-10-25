@@ -1,0 +1,68 @@
+{
+  "version": "1.0.0",
+  "status": "proposed",
+  "brand": {
+    "name": "CREST",
+    "descriptor": "School research library",
+    "tagline": "School research, shared.",
+    "fontFamily": "Inter",
+    "wordmarkWeight": 700,
+    "wordmarkTrackingEm": 0.06,
+    "palette": { "blue": "#2457D6", "ink": "#14233B", "teal": "#0E7075", "mist": "#F5F7FB", "paper": "#FFFFFF" }
+  },
+  "themes": {
+    "light": {
+      "material": {
+        "primary": "#2457D6", "onPrimary": "#FFFFFF", "primaryContainer": "#E8EEFF", "onPrimaryContainer": "#16377F",
+        "secondary": "#0E7075", "onSecondary": "#FFFFFF", "secondaryContainer": "#DDF3F2", "onSecondaryContainer": "#064F54",
+        "tertiary": "#505E7B", "onTertiary": "#FFFFFF", "tertiaryContainer": "#E8EDF7", "onTertiaryContainer": "#29364F",
+        "background": "#F5F7FB", "onBackground": "#14233B", "surface": "#FFFFFF", "onSurface": "#14233B",
+        "surfaceVariant": "#E9EEF5", "onSurfaceVariant": "#526078", "surfaceTint": "#2457D6",
+        "surfaceContainerLowest": "#FFFFFF", "surfaceContainerLow": "#F8FAFD", "surfaceContainer": "#EFF3F9", "surfaceContainerHigh": "#E9EEF5", "surfaceContainerHighest": "#E1E7F0",
+        "error": "#B42336", "onError": "#FFFFFF", "errorContainer": "#FDE9ED", "onErrorContainer": "#82172A",
+        "outline": "#768398", "outlineVariant": "#D6DEEA", "inverseSurface": "#1F3048", "inverseOnSurface": "#F5F7FB", "inversePrimary": "#B6CAFF", "scrim": "#000000"
+      },
+      "extended": {
+        "success": "#DDF3E8", "onSuccess": "#14623E", "warning": "#FFF1CE", "onWarning": "#785000", "info": "#E8EEFF", "onInfo": "#16377F",
+        "strandStem": "#DDF3F2", "onStrandStem": "#064F54", "strandTvl": "#EFE9FB", "onStrandTvl": "#593292", "strandHumss": "#FFF1CE", "onStrandHumss": "#785000", "strandAbm": "#FDE9ED", "onStrandAbm": "#9C2947", "strandGas": "#E8EEFF", "onStrandGas": "#16377F"
+      }
+    },
+    "dark": {
+      "material": {
+        "primary": "#B6CAFF", "onPrimary": "#102B68", "primaryContainer": "#203D7B", "onPrimaryContainer": "#E2EAFF",
+        "secondary": "#88D6D3", "onSecondary": "#003C40", "secondaryContainer": "#084F54", "onSecondaryContainer": "#C3F1EE",
+        "tertiary": "#C1CCE2", "onTertiary": "#27334B", "tertiaryContainer": "#3B4963", "onTertiaryContainer": "#E3EAF8",
+        "background": "#0E1726", "onBackground": "#E8EEF8", "surface": "#152236", "onSurface": "#E8EEF8",
+        "surfaceVariant": "#2A3A50", "onSurfaceVariant": "#B2BFD3", "surfaceTint": "#B6CAFF",
+        "surfaceContainerLowest": "#0A1220", "surfaceContainerLow": "#111D2F", "surfaceContainer": "#19283E", "surfaceContainerHigh": "#22324A", "surfaceContainerHighest": "#2A3A50",
+        "error": "#FFB2BE", "onError": "#660E23", "errorContainer": "#762037", "onErrorContainer": "#FFD9E0",
+        "outline": "#8291A8", "outlineVariant": "#3B4D66", "inverseSurface": "#E8EEF8", "inverseOnSurface": "#14233B", "inversePrimary": "#2457D6", "scrim": "#000000"
+      },
+      "extended": {
+        "success": "#153D30", "onSuccess": "#A2E4BC", "warning": "#473717", "onWarning": "#F4D58A", "info": "#203D7B", "onInfo": "#E2EAFF",
+        "strandStem": "#084F54", "onStrandStem": "#C3F1EE", "strandTvl": "#3A2858", "onStrandTvl": "#DCC5FF", "strandHumss": "#473717", "onStrandHumss": "#F4D58A", "strandAbm": "#512538", "onStrandAbm": "#FFBDCE", "strandGas": "#203D7B", "onStrandGas": "#E2EAFF"
+      }
+    }
+  },
+  "typography": {
+    "displayLarge": { "size": 48, "lineHeight": 56, "weight": 700, "tracking": -0.5 },
+    "displayMedium": { "size": 36, "lineHeight": 44, "weight": 700, "tracking": -0.5 },
+    "displaySmall": { "size": 32, "lineHeight": 40, "weight": 700, "tracking": -0.25 },
+    "headlineLarge": { "size": 28, "lineHeight": 36, "weight": 700, "tracking": -0.25 },
+    "headlineMedium": { "size": 24, "lineHeight": 32, "weight": 600, "tracking": 0 },
+    "headlineSmall": { "size": 22, "lineHeight": 30, "weight": 600, "tracking": 0 },
+    "titleLarge": { "size": 20, "lineHeight": 28, "weight": 600, "tracking": 0 },
+    "titleMedium": { "size": 16, "lineHeight": 24, "weight": 600, "tracking": 0 },
+    "titleSmall": { "size": 14, "lineHeight": 20, "weight": 600, "tracking": 0 },
+    "bodyLarge": { "size": 16, "lineHeight": 24, "weight": 400, "tracking": 0 },
+    "bodyMedium": { "size": 14, "lineHeight": 20, "weight": 400, "tracking": 0 },
+    "bodySmall": { "size": 12, "lineHeight": 18, "weight": 400, "tracking": 0 },
+    "labelLarge": { "size": 14, "lineHeight": 20, "weight": 600, "tracking": 0 },
+    "labelMedium": { "size": 12, "lineHeight": 16, "weight": 500, "tracking": 0 },
+    "labelSmall": { "size": 11, "lineHeight": 16, "weight": 500, "tracking": 0 }
+  },
+  "spacing": { "xs": 4, "sm": 8, "compact": 12, "md": 16, "lg": 24, "xl": 32, "xxl": 48, "hero": 64 },
+  "radius": { "small": 8, "control": 12, "card": 16, "sheet": 24, "pill": 999 },
+  "sizes": { "touchMinimum": 48, "buttonMinimum": 48, "icon": 24, "screenGutter": 16, "wideGutter": 32, "readingMaxWidth": 720 },
+  "motion": { "fast": 120, "standard": 200, "slow": 300 }
+}

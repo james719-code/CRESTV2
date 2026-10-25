@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>CREST — Brand direction</title>
+  <link rel="stylesheet" href="../generated/web/crest-tokens.css">
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to brand preview</a>
+  <header class="topbar">
+    <a class="wordmark" href="#main" aria-label="CREST brand preview">CREST<span class="brand-dot" aria-hidden="true"></span></a>
+    <div class="topbar-actions"><span class="edition">Brand proposal / 1.0</span><button id="theme-toggle" class="secondary" aria-pressed="false">Dark theme</button></div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <p class="eyebrow">CREST / School research library</p>
+        <h1 id="hero-title">School research,<br><span>shared.</span></h1>
+        <p class="hero-copy">A home for the ideas we discover, the papers we write, and the knowledge we pass on.</p>
+        <div class="hero-footer"><a class="primary" href="#interface">Explore the direction <span aria-hidden="true">↗</span></a><span class="hero-caption">Clear. Credible. Welcoming.</span></div>
+      </div>
+      <aside class="identity-note" aria-label="Identity direction">
+        <span class="number">01 / Identity</span>
+        <div class="large-wordmark">CREST</div>
+        <p class="descriptor">School research library</p>
+        <div class="identity-rule"></div>
+        <p>A familiar blue, a deeper ink, and a quiet teal. One typeface across every screen.</p>
+        <div class="font-caption"><span>Aa</span><div><strong>Inter</strong><br><small>400 · 500 · 600 · 700</small></div></div>
+      </aside>
+    </section>
+
+    <section class="palette-section" aria-labelledby="palette-title">
+      <div class="section-heading"><div><p class="eyebrow">02 / Color</p><h2 id="palette-title">A focused palette</h2></div><p>Brand swatches stay fixed.<br>Interface colors adapt to the theme.</p></div>
+      <div class="palette">
+        <div class="swatch"><div class="color-block blue"></div><div><strong>CREST blue</strong><code data-color="--crest-brand-blue"></code></div></div>
+        <div class="swatch"><div class="color-block ink"></div><div><strong>Ink navy</strong><code data-color="--crest-brand-ink"></code></div></div>
+        <div class="swatch"><div class="color-block teal"></div><div><strong>Research teal</strong><code data-color="--crest-brand-teal"></code></div></div>
+        <div class="swatch"><div class="color-block mist"></div><div><strong>Library mist</strong><code data-color="--crest-brand-mist"></code></div></div>
+        <div class="swatch"><div class="color-block paper"></div><div><strong>Paper white</strong><code data-color="--crest-brand-paper"></code></div></div>
+      </div>
+    </section>
+
+    <section id="interface" aria-labelledby="interface-title">
+      <div class="section-heading"><div><p class="eyebrow">03 / In the interface</p><h2 id="interface-title">Content comes first</h2></div><p>Consistent identity.<br>Layouts made for each device.</p></div>
+      <div class="specimen-grid">
+        <article class="library-panel">
+          <div class="sample-top"><span class="mini-wordmark">CREST</span><span class="sample-context">Library preview</span></div>
+          <h3>Research papers</h3>
+          <p class="supporting">Discover research from your school community.</p>
+          <label class="sr-only" for="search">Search sample research papers</label>
+          <input id="search" type="search" placeholder="Search by title or author" autocomplete="off">
+          <div class="result-meta"><span id="result-count" role="status">2 sample papers</span><span>Most recent</span></div>
+          <div class="papers">
+            <article class="research-row" data-search="school gardens environmental awareness ana reyes stem">
+              <div><span class="badge stem">STEM</span><span class="research-type">Quantitative</span></div>
+              <h4>School gardens and students' environmental awareness</h4>
+              <p>Ana Reyes and 3 coauthors</p>
+              <div class="paper-footer"><span>School research · 2026</span><button class="favorite" aria-label="Save School gardens paper" aria-pressed="false">Save</button></div>
+            </article>
+            <article class="research-row" data-search="student perspectives community reading programs miguel cruz humss">
+              <div><span class="badge humss">HUMSS</span><span class="research-type">Qualitative</span></div>
+              <h4>Student perspectives on community reading programs</h4>
+              <p>Miguel Cruz and 2 coauthors</p>
+              <div class="paper-footer"><span>School research · 2026</span><button class="favorite" aria-label="Save Community reading paper" aria-pressed="false">Save</button></div>
+            </article>
+          </div>
+          <p id="no-results" class="empty" hidden>No papers match your search. Try another title or clear the search.</p>
+          <p class="sample-disclaimer">Illustrative titles and names. Search and save operate within this preview.</p>
+        </article>
+
+        <div class="side-specimens">
+          <article class="type-panel">
+            <p class="eyebrow">One family / Inter</p>
+            <div class="type-title">Ideas worth<br>reading.</div>
+            <p class="type-body">Readable research titles. Clear form labels. Familiar navigation. The same voice on web and Android.</p>
+            <div class="type-weights"><span>Regular <b class="weight-400">Aa</b></span><span>Medium <b class="weight-500">Aa</b></span><span>Semibold <b class="weight-600">Aa</b></span><span>Bold <b class="weight-700">Aa</b></span></div>
+          </article>
+          <article class="status-panel">
+            <p class="eyebrow">Meaningful color</p><h3>Every state has a label</h3>
+            <div class="badges"><span class="badge info">Pending review</span><span class="badge warning">Changes requested</span><span class="badge success">Approved</span></div>
+            <p>Use color to support meaning. Keep the label visible in every theme.</p>
+          </article>
+          <article class="logo-panel">
+            <img src="../../android/app/src/main/ic_launcher-playstore.png" width="64" height="64" alt="Existing CREST document and search icon with connected outer ring">
+            <div><strong>Logo direction</strong><p>Retain the document-and-search idea. Simplify fine details for small sizes. Current icon shown as a legacy reference.</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer"><span class="wordmark">CREST</span><p>Bonifacio D. Borebor Sr. High School<br><span>Proposed identity · Inter 4.1 · Shared web and Android tokens</span></p><a href="../BRAND_GUIDE.md">Read the brand guide ↗</a></footer>
+  </main>
+  <script>
+    const toggle = document.getElementById('theme-toggle');
+    toggle.addEventListener('click', () => {
+      const dark = document.documentElement.dataset.theme !== 'dark';
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      toggle.setAttribute('aria-pressed', String(dark));
+      toggle.textContent = dark ? 'Light theme' : 'Dark theme';
+    });
+    const properties = getComputedStyle(document.documentElement);
+    document.querySelectorAll('[data-color]').forEach(element => {
+      element.textContent = properties.getPropertyValue(element.dataset.color).trim();
+    });
+    document.getElementById('search').addEventListener('input', event => {
+      const query = event.target.value.trim().toLowerCase();
+      let count = 0;
+      document.querySelectorAll('.research-row').forEach(row => {
+        row.hidden = !row.dataset.search.includes(query);
+        if (!row.hidden) count++;
+      });
+      document.getElementById('result-count').textContent = `${count} sample ${count === 1 ? 'paper' : 'papers'}`;
+      document.getElementById('no-results').hidden = count !== 0;
+    });
+    document.querySelectorAll('.favorite').forEach(button => button.addEventListener('click', () => {
+      const saved = button.getAttribute('aria-pressed') !== 'true';
+      button.setAttribute('aria-pressed', String(saved));
+      button.textContent = saved ? 'Saved' : 'Save';
+    }));
+  </script>
+</body>
+</html>
