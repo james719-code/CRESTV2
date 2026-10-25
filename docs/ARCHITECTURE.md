@@ -2,11 +2,13 @@
 
 CREST uses a single-activity Android architecture with Jetpack Compose, MVVM, repositories, and Hilt dependency injection.
 
+The Android Gradle project lives in `android/`, the future web frontend is reserved under `frontend/`, and shared documentation lives in `docs/`. Paths below are relative to the repository root.
+
 ## Layers
 
 ### UI
 
-Package: `app/src/main/java/com/bdbshs/crest/ui`
+Package: `android/app/src/main/java/com/bdbshs/crest/ui`
 
 - Compose screens own layout and user interaction.
 - Reusable components live under `ui/components` and `ui/screens/common`.
@@ -15,14 +17,14 @@ Package: `app/src/main/java/com/bdbshs/crest/ui`
 
 ### Domain
 
-Package: `app/src/main/java/com/bdbshs/crest/domain`
+Package: `android/app/src/main/java/com/bdbshs/crest/domain`
 
 - Use cases hold reusable business operations that should not belong to a composable.
 - Domain code should not depend on Android UI classes.
 
 ### Data
 
-Package: `app/src/main/java/com/bdbshs/crest/data`
+Package: `android/app/src/main/java/com/bdbshs/crest/data`
 
 - Repositories coordinate Firebase, Appwrite, DataStore, and local cache operations.
 - `FirebaseClient` and `AppwriteClient` isolate third-party SDK setup.

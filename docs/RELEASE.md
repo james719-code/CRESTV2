@@ -14,11 +14,11 @@ Configure these GitHub repository secrets:
 | `KEY_PASSWORD` | Release key password |
 | `GOOGLE_SERVICES_JSON` | Base64-encoded Firebase `google-services.json` |
 
-The release workflow decodes these files at build time. Do not commit the decoded files.
+The release workflow runs Gradle from `android/`, decodes Firebase configuration to `android/app/google-services.json`, and uploads APKs from `android/app/build/outputs/apk/release/`. Do not commit the decoded files.
 
 ## Local Release Check
 
-Before tagging:
+Before tagging, run these commands from `android/`:
 
 ```bash
 ./gradlew testDebugUnitTest
@@ -32,7 +32,7 @@ gradlew.bat testDebugUnitTest
 gradlew.bat assembleRelease
 ```
 
-`assembleRelease` requires the release signing environment variables described in `README.md`.
+`assembleRelease` requires the release signing environment variables described in [`README.md`](../README.md). Use an absolute path for `RELEASE_STORE_FILE` so it remains valid after changing directories.
 
 ## Tagging
 

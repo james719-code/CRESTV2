@@ -6,9 +6,9 @@ Thanks for improving CREST. This project supports a school e-library workflow, s
 
 1. Install Android Studio Ladybug 2024.2.1 or newer.
 2. Use JDK 17.
-3. Add `app/google-services.json`.
-4. Add Appwrite values to `local.properties`.
-5. Run `gradlew.bat assembleDebug` on Windows or `./gradlew assembleDebug` on macOS/Linux.
+3. Open the repository's `android/` directory in Android Studio.
+4. Add `android/app/google-services.json` and Appwrite values to `android/local.properties` (paths relative to the repository root).
+5. From `android/`, run `gradlew.bat assembleDebug` on Windows or `./gradlew assembleDebug` on macOS/Linux.
 
 ## Branches and Commits
 
@@ -27,7 +27,7 @@ Thanks for improving CREST. This project supports a school e-library workflow, s
 
 ## Validation
 
-Run the fastest relevant checks locally before opening a pull request:
+Run the fastest relevant checks locally from `android/` before opening a pull request:
 
 ```bash
 ./gradlew testDebugUnitTest

@@ -30,24 +30,40 @@ The app is built as a production-style Android project: Kotlin, Jetpack Compose,
 - Dependency injection with Hilt and repository-backed ViewModels
 - Unit, instrumented, and macrobenchmark test modules
 
+## Repository Layout
+
+```text
+android/           Android Gradle project, app, and macrobenchmarks
+frontend/          Reserved for the web frontend
+branding/          Shared identity, Inter fonts, design tokens, and platform guidance
+docs/              Shared architecture and release documentation
+```
+
+Open `android/` in Android Studio and run Gradle commands from that directory. Repository configuration, including GitHub workflows, stays at the root.
+
 ## Architecture
 
 CREST follows a single-activity Compose architecture with MVVM and repository boundaries.
 
 ```text
-app/
-  src/main/java/com/bdbshs/crest/
-    data/          Firebase, Appwrite, DataStore, cache, repositories
-    di/            Hilt modules
-    domain/        Use cases for reusable business flows
-    navigation/    Compose NavHost and routes
-    ui/            Compose screens, components, theme, ViewModels
-    utils/         Shared utility types
-benchmark/         Macrobenchmark test module
-gradle/            Version catalog and wrapper
+android/
+  app/
+    src/main/java/com/bdbshs/crest/
+      data/        Firebase, Appwrite, DataStore, cache, repositories
+      di/          Hilt modules
+      domain/      Use cases for reusable business flows
+      navigation/  Compose NavHost and routes
+      ui/          Compose screens, components, theme, ViewModels
+      utils/       Shared utility types
+  benchmark/       Macrobenchmark test module
+  gradle/          Version catalog and wrapper
 ```
 
 For more detail, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Shared Branding
+
+The Android app uses the shared identity in [branding/README.md](branding/README.md): bundled Inter fonts, CREST blue, teal accents, and matching light/dark themes. One token source generates CSS and the app's Compose values. The existing launcher artwork is retained. See [the UI validation report](docs/UI_UPGRADE.md) for the implementation and checks.
 
 ## Tech Stack
 
@@ -81,18 +97,18 @@ For more detail, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ```bash
 git clone https://github.com/james719-code/CRESTV2.git
-cd CRESTV2
+cd CRESTV2/android
 ```
 
-2. Open the project in Android Studio.
+2. Open the repository's `android/` directory in Android Studio.
 
 3. Add Firebase configuration.
 
-Place `google-services.json` in `app/`. Enable Firebase Authentication and Cloud Firestore in the Firebase project.
+Place `google-services.json` in `android/app/` (relative to the repository root). Enable Firebase Authentication and Cloud Firestore in the Firebase project.
 
 4. Add Appwrite configuration.
 
-Create or update `local.properties`:
+Create or update `android/local.properties` (relative to the repository root):
 
 ```properties
 APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
@@ -114,7 +130,7 @@ gradlew.bat assembleDebug
 
 ## Quality Gates
 
-Run these before opening a pull request:
+Run these from `android/` before opening a pull request:
 
 ```bash
 ./gradlew testDebugUnitTest
@@ -138,9 +154,9 @@ The app expects a Firebase Android client for package `com.bdbshs.crest`. Keep t
 
 Appwrite values are resolved in this order:
 
-1. `local.properties`
+1. `android/local.properties`
 2. Gradle properties passed with `-P`
-3. Build defaults in `app/build.gradle.kts`
+3. Build defaults in `android/app/build.gradle.kts`
 
 ### Release Signing
 
@@ -148,7 +164,7 @@ Release builds read signing values from environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `RELEASE_STORE_FILE` | Path to the keystore file |
+| `RELEASE_STORE_FILE` | Absolute path to the keystore file |
 | `RELEASE_STORE_PASSWORD` | Keystore password |
 | `RELEASE_KEY_ALIAS` | Signing key alias |
 | `RELEASE_KEY_PASSWORD` | Signing key password |
