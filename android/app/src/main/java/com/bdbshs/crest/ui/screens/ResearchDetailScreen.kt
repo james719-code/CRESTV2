@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.ResearchDetailViewModel
 import com.bdbshs.crest.ui.viewmodels.ResearchItem
@@ -92,22 +93,27 @@ fun ResearchDetailScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             uiState.isDetailsLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Loading research details…", style = MaterialTheme.typography.titleMedium)
                     CircularProgressIndicator()
+                    Text("Finding the title, authors, and PDF information.", style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = onNavigateBack) { Text("Back to library") }
                 }
             }
-            uiState.error != null -> ErrorState(message = uiState.error!!)
+            uiState.error != null && researchItem == null -> ErrorState(message = uiState.error!!, onBack = onNavigateBack)
             researchItem != null -> {
                 val context = LocalContext.current
                 var pdfRenderer by remember { mutableStateOf<PdfRenderer?>(null) }
                 var pageCount by remember { mutableIntStateOf(0) }
                 var pdfLoading by remember { mutableStateOf(false) }
+                var pdfOpenError by remember { mutableStateOf<String?>(null) }
                 val pdfMutex = remember { Mutex() }
 
                 LaunchedEffect(uiState.pdfFilePath) {
                     val filePath = uiState.pdfFilePath
                     if (filePath != null) {
                         pdfLoading = true
+                        pdfOpenError = null
                         withContext(Dispatchers.IO) {
                             try {
                                 val sourceFile = File(filePath)
@@ -119,7 +125,9 @@ fun ResearchDetailScreen(
                                     pageCount = renderer.pageCount
                                 }
                             } catch (e: Exception) {
-                                e.printStackTrace()
+                                withContext(Dispatchers.Main) {
+                                    pdfOpenError = "The PDF could not be opened. Try again or ask a teacher to check the file."
+                                }
                             }
                         }
                         pdfLoading = false
@@ -299,25 +307,20 @@ fun ResearchDetailScreen(
                             )
                         }
                     ) { paddingValues ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(paddingValues),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (uiState.pdfFilePath == null) {
-                                LoadPdfButton(
-                                    isLoading = uiState.isPdfLoading,
-                                    onClick = { viewModel.loadPdf(isOnline) },
-                                    modifier = Modifier.padding(horizontal = 16.dp)
-                                )
-                            } else {
-                                CircularProgressIndicator()
-                            }
-                        }
+                        ResearchOverview(
+                            researchItem = researchItem,
+                            isLoading = uiState.isPdfLoading || pdfLoading,
+                            onRead = {
+                                viewModel.clearPdfBytes()
+                                viewModel.loadPdf(isOnline)
+                            },
+                            readError = pdfOpenError ?: uiState.error,
+                            modifier = Modifier.padding(paddingValues)
+                        )
                     }
                 }
             }
+            else -> ErrorState("This research paper is not available.", onNavigateBack)
         }
     }
 }
@@ -325,67 +328,25 @@ fun ResearchDetailScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResearchMetadata(researchItem: ResearchItem, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        Column {
-            Text(
-                text = researchItem.title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                InfoChip(
-                    icon = Icons.Default.School, 
-                    text = researchItem.strand,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-                InfoChip(
-                    icon = Icons.Default.Book, 
-                    text = researchItem.type.name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                    contentColor = MaterialTheme.colorScheme.secondary
-                )
-            }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (researchItem.strand.isNotBlank()) com.bdbshs.crest.ui.components.MetadataBadge(researchItem.strand)
+            com.bdbshs.crest.ui.components.MetadataBadge(researchItem.type.name.lowercase().replaceFirstChar { it.titlecase(Locale.ROOT) })
+            if (researchItem.unfinished) com.bdbshs.crest.ui.components.MetadataBadge("In progress")
         }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(Icons.Default.Visibility, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-            Text(
-                text = "${researchItem.downloads} views",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Authors",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                researchItem.members.forEach { member ->
-                    AuthorChip(name = member)
+        Text(researchItem.title, style = MaterialTheme.typography.headlineMedium)
+        Text("Authors", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
+        Text(researchItem.members.joinToString(", ").ifBlank { "Author names not provided" }, style = MaterialTheme.typography.bodyLarge)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        if (researchItem.createdAt > 0) {
+            com.bdbshs.crest.ui.components.InformationLine(
+                Icons.Default.CalendarToday,
+                "Added " + remember(researchItem.createdAt) {
+                    java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(java.util.Date(researchItem.createdAt))
                 }
-            }
+            )
         }
+        com.bdbshs.crest.ui.components.InformationLine(Icons.Default.Download, "${researchItem.downloads} downloads")
     }
 }
 
@@ -572,66 +533,7 @@ private fun PdfPageItem(
 
 
 @Composable
-private fun LoadPdfButton(isLoading: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        if (isLoading) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(modifier = Modifier.size(48.dp))
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    "Downloading PDF...",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        } else {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                modifier = Modifier.size(120.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.AutoStories,
-                        contentDescription = null,
-                        modifier = Modifier.size(60.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "Ready to Read",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "Dive into this research paper now",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
-            Button(
-                onClick = onClick, 
-                modifier = Modifier.fillMaxWidth().height(60.dp),
-                shape = MaterialTheme.shapes.large,
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.MenuBook, null)
-                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                Text("Open Document", style = MaterialTheme.typography.titleMedium)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ErrorState(message: String) {
+private fun ErrorState(message: String, onBack: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -653,8 +555,58 @@ private fun ErrorState(message: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(32.dp))
-        Button(onClick = { /* Could add retry */ }) {
-            Text("Try Again")
+        Button(onClick = onBack) {
+            Text("Back to library")
+        }
+    }
+}
+
+@Composable
+internal fun ResearchOverview(
+    researchItem: ResearchItem,
+    isLoading: Boolean,
+    onRead: () -> Unit,
+    modifier: Modifier = Modifier,
+    readError: String? = null
+) {
+    LazyColumn(
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        readError?.let { message ->
+            item { com.bdbshs.crest.ui.components.FeedbackPanel("Paper could not open", message, "Try again", onRead) }
+        }
+        item {
+            val strand = com.bdbshs.crest.ui.components.strandStyle(researchItem.strand)
+            Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.large,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                Column {
+                    Box(
+                        Modifier.fillMaxWidth().height(112.dp).background(strand.container),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(strand.icon, null, Modifier.size(56.dp), tint = strand.content)
+                    }
+                    ResearchMetadata(researchItem, Modifier.padding(24.dp))
+                }
+            }
+        }
+        item {
+            Button(
+                onClick = onRead,
+                enabled = !isLoading,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(12.dp))
+                } else {
+                    Icon(Icons.AutoMirrored.Filled.MenuBook, null)
+                    Spacer(Modifier.width(12.dp))
+                }
+                Text(if (isLoading) "Opening paper…" else "Read paper")
+            }
         }
     }
 }

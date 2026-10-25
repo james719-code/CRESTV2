@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -57,6 +58,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bdbshs.crest.ui.components.AvatarStack
+import com.bdbshs.crest.ui.components.IconBadge
+import com.bdbshs.crest.ui.components.StepProgress
+import com.bdbshs.crest.ui.components.HomeSummary
+import com.bdbshs.crest.ui.components.HomeSectionHeading
+import com.bdbshs.crest.ui.components.HomeResearchRow
+import com.bdbshs.crest.ui.components.HomeEmptyResearch
 import com.bdbshs.crest.ui.viewmodels.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -161,50 +169,95 @@ fun StudentHomeScreen(
 
     Scaffold(
         modifier = modifier,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    ) { padding ->
+        StudentHomeContent(
+            uiState = uiState,
+            onLeaveGroup = { viewModel.leaveGroup() },
+            onCreateGroup = { showCreateGroupDialog = true },
+            onJoinGroup = { showJoinGroupDialog = true },
+            onUpload = onNavigateToUpload,
+            onUnsubmit = { showUnsubmitDialog = true },
+            onDownloadCertificate = { handleCertificateDownload() },
+            onResearchClick = onNavigateToResearchDetails,
+            onRetry = viewModel::onRefresh,
+            modifier = Modifier.padding(padding)
+        )
+    }
+}
+
+@Composable
+internal fun StudentHomeContent(
+    uiState: StudentHomeUiState,
+    onLeaveGroup: () -> Unit,
+    onCreateGroup: () -> Unit,
+    onJoinGroup: () -> Unit,
+    onUpload: () -> Unit,
+    onUnsubmit: () -> Unit,
+    onDownloadCertificate: () -> Unit,
+    onResearchClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    onRetry: () -> Unit = {}
+) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val paperColumns = if (maxWidth >= 760.dp) 2 else 1
         LazyColumn(
-            modifier = Modifier.padding(paddingValues),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            Modifier.widthIn(max = 840.dp).fillMaxSize().align(Alignment.TopCenter),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { GreetingCard(name = uiState.studentDetails?.name) }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    StatCard(Modifier.weight(1f), "Total Researches", uiState.totalResearchCount, Icons.Default.Public)
-                    StatCard(Modifier.weight(1f), "Your Strand's Researches", uiState.strandResearchCount, Icons.Default.School)
+                HomeSummary(
+                    uiState.studentDetails?.name?.takeIf { it.isNotBlank() } ?: "Student workspace",
+                    "Your research workspace",
+                    if (uiState.isLoading || uiState.loadError != null) emptyList() else listOf(
+                        uiState.totalResearchCount.toString() to "Library papers",
+                        uiState.strandResearchCount.toString() to "In your strand"
+                    )
+                )
+            }
+            if (uiState.loadError != null) {
+                item { com.bdbshs.crest.ui.components.FeedbackPanel("Workspace could not load", uiState.loadError, "Try again", onRetry) }
+            }
+            if (uiState.isLoading) {
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        Text("Loading your group and recent papers…", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
-            item {
-                Box(modifier = Modifier.animateContentSize()) {
+            if (uiState.loadError == null || uiState.groupDetails != null) {
+                item {
                     GroupInfoCard(
-                        uiState = uiState,
-                        onLeaveGroup = { viewModel.leaveGroup() },
-                        onCreateGroupClick = { showCreateGroupDialog = true },
-                        onJoinGroupClick = { showJoinGroupDialog = true },
-                        onUploadClick = onNavigateToUpload,
-                        onUnsubmitRequest = { showUnsubmitDialog = true },
-                        onDownloadAndLeave = { handleCertificateDownload() }
+                        uiState, onLeaveGroup, onCreateGroup, onJoinGroup, onUpload, onUnsubmit, onDownloadCertificate
                     )
                 }
             }
-            item {
-                Text("Recent Researches", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
-            }
+            item { HomeSectionHeading("Recent research papers", uiState.recentResearches.size.takeIf { it > 0 }) }
             if (uiState.isLoading && uiState.recentResearches.isEmpty()) {
-                // Shimmer can be added here
-            } else if (uiState.recentResearches.isEmpty()) {
-                item { Text("No recent researches found.", modifier = Modifier.padding(vertical = 16.dp), textAlign = TextAlign.Center) }
-            } else {
-                items(uiState.recentResearches, key = { it.id }) { research ->
-                    ResearchListItem(research = research, onClick = { onNavigateToResearchDetails(research.id) })
+                items(2) { com.bdbshs.crest.ui.screens.common.ShimmerResearchCardPlaceholder() }
+            } else if (uiState.recentResearches.isEmpty() && uiState.loadError == null) {
+                item {
+                    HomeEmptyResearch(
+                        "No recent papers available",
+                        "Papers appear here when added to the school library. You can prepare your group's submission now.",
+                        "Refresh library", onRetry
+                    )
+                }
+            }
+            items(uiState.recentResearches.chunked(paperColumns), key = { it.first().id }) { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    row.forEach { research ->
+                        HomeResearchRow(research, { onResearchClick(research.id) }, Modifier.weight(1f))
+                    }
+                    if (row.size < paperColumns) Spacer(Modifier.weight(1f))
                 }
             }
         }
     }
-
 }
-
 
 // --- FIX: Completely redesigned Certificate Composable for a modern look ---
 @Composable
@@ -479,6 +532,7 @@ private fun GroupInfoCard(
                 onLeaveGroup = onLeaveGroup,
                 onUploadClick = onUploadClick,
                 onUnsubmitRequest = onUnsubmitRequest,
+                memberNames = uiState.memberNames,
                 onDownloadAndLeave = onDownloadAndLeave
             )
         } else {
@@ -489,6 +543,7 @@ private fun GroupInfoCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GroupDetailsCard(
     groupId: String,
@@ -498,87 +553,109 @@ private fun GroupDetailsCard(
     onLeaveGroup: () -> Unit,
     onUploadClick: () -> Unit,
     onUnsubmitRequest: () -> Unit,
-    onDownloadAndLeave: () -> Unit
+    onDownloadAndLeave: () -> Unit,
+    memberNames: List<String> = emptyList()
 ) {
     val context = LocalContext.current
-    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Your Group", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(groupDetails.group_name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(8.dp))
-            Text("Members: ${groupDetails.group_member.size}", style = MaterialTheme.typography.bodyMedium)
-            Text("Strand: ${groupDetails.strand}", style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Group ID:", style = MaterialTheme.typography.bodyMedium)
-                    Text(groupId, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary))
-                }
-                IconButton(onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("Group ID", groupId))
-                    Toast.makeText(context, "Group ID copied!", Toast.LENGTH_SHORT).show()
-                }) {
-                    Icon(Icons.Outlined.ContentCopy, "Copy Group ID")
+    var detailsExpanded by rememberSaveable(groupId) { mutableStateOf(false) }
+    Surface(
+        shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp
+    ) {
+        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconBadge(Icons.Default.Groups, size = 48.dp, container = MaterialTheme.colorScheme.secondaryContainer, content = MaterialTheme.colorScheme.onSecondaryContainer)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Your research group", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(groupDetails.group_name, style = MaterialTheme.typography.titleLarge)
                 }
             }
+            StepProgress(
+                listOf("Group", "Submit", "Review"),
+                current = when {
+                    groupDetails.accepted_research -> 3
+                    groupDetails.uploaded -> 2
+                    else -> 1
+                },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (groupDetails.strand.isNotBlank()) com.bdbshs.crest.ui.components.MetadataBadge(groupDetails.strand)
+                when {
+                    groupDetails.accepted_research -> com.bdbshs.crest.ui.components.SubmissionStatusBadge("approved")
+                    groupDetails.uploaded -> com.bdbshs.crest.ui.components.SubmissionStatusBadge("pending")
+                    else -> com.bdbshs.crest.ui.components.MetadataBadge("Not submitted")
+                }
+                if (groupDetails.research_type.isNotBlank()) com.bdbshs.crest.ui.components.MetadataBadge(
+                    groupDetails.research_type.lowercase().replaceFirstChar { it.titlecase() }
+                )
+            }
+            if (groupDetails.research_title.isNotBlank()) Text(groupDetails.research_title, style = MaterialTheme.typography.titleSmall)
+            else Text(if (groupDetails.uploaded) "Research submitted for teacher review" else "Add your research title and PDF when your group is ready.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (groupDetails.comments.isNotEmpty()) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                Text("Teacher Comments", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    groupDetails.comments.forEach { comment ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.AutoMirrored.Filled.Comment, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(comment, style = MaterialTheme.typography.bodyMedium)
-                        }
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Teacher feedback", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        groupDetails.comments.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer) }
                     }
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-            if (groupDetails.accepted_research) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Text("Congratulations! Your research has been accepted.", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center)
-                    Button(onClick = onDownloadAndLeave, enabled = !isDownloadingCertificate) {
-                        if (isDownloadingCertificate) {
-                            CircularProgressIndicator(modifier = Modifier.size(ButtonDefaults.IconSize), color = LocalContentColor.current)
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text("Downloading...")
-                        } else {
-                            Icon(Icons.Default.Download, null, Modifier.size(ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text("Download Certificate & Leave")
-                        }
-                    }
+            val busy = isUpdating || isDownloadingCertificate
+            when {
+                groupDetails.accepted_research -> Button(
+                    onClick = onDownloadAndLeave, enabled = !isDownloadingCertificate,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                ) { Text(if (isDownloadingCertificate) "Downloading…" else "Download certificate & leave") }
+                groupDetails.uploaded -> Row(
+                    Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "With your teacher for review", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f)
+                    )
+                    OutlinedButton(onClick = onUnsubmitRequest, enabled = !busy) { Text("Unsubmit") }
                 }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (groupDetails.uploaded) {
-                        OutlinedButton(onClick = onUnsubmitRequest, enabled = !isUpdating && !isDownloadingCertificate) {
-                            Icon(Icons.Default.Cancel, "Unsubmit", Modifier.size(ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text("Unsubmit")
-                        }
-                    } else {
-                        Button(onClick = onUploadClick, enabled = !isUpdating && !isDownloadingCertificate) {
-                            Icon(Icons.Default.Upload, null, Modifier.size(ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text("Upload Research")
-                        }
-                    }
-                    OutlinedButton(onClick = onLeaveGroup, enabled = !isUpdating && !isDownloadingCertificate) {
-                        if (isUpdating) {
-                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                        } else {
-                            Text("Leave Group")
-                        }
-                    }
+                else -> Button(
+                    onClick = onUploadClick, enabled = !busy,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                ) { Text("Submit research") }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = { detailsExpanded = !detailsExpanded },
+                    contentPadding = PaddingValues(horizontal = 0.dp)
+                ) {
+                    Icon(if (detailsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (detailsExpanded) "Hide group details" else "Group details · ${groupDetails.group_member.size} members")
+                }
+                Spacer(Modifier.weight(1f))
+                if (memberNames.isNotEmpty()) AvatarStack(memberNames, size = 30.dp)
+            }
+            if (detailsExpanded) {
+                Text(
+                    if (memberNames.isNotEmpty()) "Members: " + memberNames.joinToString(", ") else "${groupDetails.group_member.size} group members",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Group ID: $groupId", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    IconButton(onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Group ID", groupId))
+                        Toast.makeText(context, "Group ID copied", Toast.LENGTH_SHORT).show()
+                    }) { Icon(Icons.Outlined.ContentCopy, "Copy Group ID") }
+                }
+            }
+            if (!groupDetails.accepted_research) {
+                TextButton(onClick = onLeaveGroup, enabled = !busy, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                    Text("Leave group", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
     }
 }
-
 
 @Composable
 private fun UnsubmitConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
@@ -607,7 +684,7 @@ private fun StatCard(modifier: Modifier = Modifier, label: String, count: Int, i
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = CardDefaults.outlinedCardBorder()
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(icon, null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
             Column {
                 Text(count.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -618,111 +695,14 @@ private fun StatCard(modifier: Modifier = Modifier, label: String, count: Int, i
 }
 
 @Composable
-private fun ResearchListItem(research: ResearchItem, onClick: () -> Unit) {
-    Card(onClick = onClick) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(research.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2)
-            Text(research.strand, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun GreetingCard(name: String?) {
-    val currentDate = remember {
-        SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date())
-    }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.extraLarge),
-        shape = MaterialTheme.shapes.extraLarge,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                        )
-                    )
-                )
-        ) {
-            // Decorative shapes for a "Modern Premium" feel
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .offset(x = 250.dp, y = (-50).dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f))
-            )
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .offset(x = (-40).dp, y = 100.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.05f))
-            )
-
-            Column(
-                modifier = Modifier
-                    .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 48.dp)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = "Welcome back,",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = name ?: "Student",
-                    style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    lineHeight = 44.sp,
-                    letterSpacing = (-1).sp
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = currentDate.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun GroupEmptyStateCard(onCreateGroupClick: () -> Unit, onJoinGroupClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = CardDefaults.outlinedCardBorder()
-    ) {
-        Column(modifier = Modifier.padding(24.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.Default.Groups, null, modifier = Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-            Spacer(Modifier.height(4.dp))
-            Text("No group yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Create or join a group to start collaborating on research.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onCreateGroupClick) {
-                    Text("Create Group")
-                }
-                OutlinedButton(onClick = onJoinGroupClick) {
-                    Text("Join Group")
-                }
+    Surface(color = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer, shape = MaterialTheme.shapes.medium) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Start your research group", style = MaterialTheme.typography.titleMedium)
+            Text("Create a group or join your classmates with their group ID.", style = MaterialTheme.typography.bodyMedium)
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = onCreateGroupClick, modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 48.dp), shape = MaterialTheme.shapes.small) { Text("Create a group") }
+                OutlinedButton(onClick = onJoinGroupClick, modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 48.dp), shape = MaterialTheme.shapes.small) { Text("Join a group") }
             }
         }
     }

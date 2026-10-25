@@ -2,56 +2,39 @@ package com.bdbshs.crest.ui.screens
 
 import android.annotation.SuppressLint
 import android.widget.Toast
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material.pullrefresh.*
 import androidx.compose.material3.*
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.bdbshs.crest.ui.components.ModernSearchBar
-import com.bdbshs.crest.ui.components.FilterChipsRow
-import com.bdbshs.crest.ui.components.FilterChipData
-import com.bdbshs.crest.ui.components.ModernFilterChip
-import com.bdbshs.crest.ui.components.FilterSectionTitle
-import com.bdbshs.crest.ui.components.ModernResearchCard
-import com.bdbshs.crest.ui.components.ResearchEmptyState
-import com.bdbshs.crest.ui.screens.common.EmptyState
+import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.common.ShimmerResearchCardPlaceholder
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.*
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResearchesScreen(
     userRole: UserType?,
@@ -62,309 +45,212 @@ fun ResearchesScreen(
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val researchesToShow by viewModel.filteredAndSortedResearches.collectAsState()
+    val papers by viewModel.filteredAndSortedResearches.collectAsState()
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
+    val listState = rememberLazyListState()
 
-    LaunchedEffect(userRole) {
-        viewModel.setUserRole(userRole)
-    }
-
-    LaunchedEffect(favoritesOnly) {
-        viewModel.setFavoritesOnly(favoritesOnly)
-    }
-
-    uiState.error?.let { message ->
-        LaunchedEffect(message) {
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
-        }
-    }
-
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = uiState.isRefreshing,
-        onRefresh = viewModel::onRefresh
-    )
-    
-    val gridState = androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState()
-    
-    LaunchedEffect(gridState, researchesToShow.size) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { lastVisibleIndex ->
-                if (lastVisibleIndex != null && lastVisibleIndex >= researchesToShow.size - 4) {
+    LaunchedEffect(userRole) { viewModel.setUserRole(userRole) }
+    LaunchedEffect(favoritesOnly) { viewModel.setFavoritesOnly(favoritesOnly) }
+    LaunchedEffect(listState, papers.size) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastIndex ->
+                if (lastIndex != null && papers.isNotEmpty() && lastIndex >= papers.size - 1) {
                     viewModel.loadMore()
                 }
             }
     }
 
-    // --- Dialogs and Sheets ---
-
-    // Action Dialog (Edit/Delete) - This is well-implemented and can remain an AlertDialog.
-    if (uiState.isActionDialogVisible && uiState.selectedResearchForAction != null) {
+    uiState.selectedResearchForAction?.takeIf { uiState.isActionDialogVisible }?.let { selected ->
         ActionDialog(
-            researchItem = uiState.selectedResearchForAction!!,
+            researchItem = selected,
             isDeleting = uiState.isDeleting,
             onDismiss = viewModel::dismissActionDialog,
             onEditClick = {
-                // Edit functionality - navigate to upload screen with research ID for editing
                 viewModel.dismissActionDialog()
-                scope.launch {
-                    // For now, navigate to details where editing can be done in future
-                    onNavigateToDetails(uiState.selectedResearchForAction!!.id)
-                }
+                onNavigateToDetails(selected.id)
             },
             onDeleteClick = viewModel::onDeleteConfirmed
         )
     }
-
-    // Filter Bottom Sheet - Replaced AlertDialog for a much better UX.
     if (uiState.isFilterDialogVisible) {
         FilterBottomSheet(
-            uiState = uiState,
-            sheetState = sheetState,
+            uiState = uiState, sheetState = sheetState,
             onDismiss = viewModel::dismissFilterDialog,
             onResearchTypeSelected = viewModel::onResearchTypeSelected,
             onStrandCheckedChange = viewModel::onStrandCheckedChange,
             onSortOptionSelected = viewModel::onSortOptionSelected,
             onApplyClick = {
-                scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    viewModel.applyFilters()
-                }
+                scope.launch { sheetState.hide() }.invokeOnCompletion { viewModel.applyFilters() }
             },
-            onResetClick = viewModel::resetFilters
+            onResetClick = {
+                viewModel.resetFilters()
+                if (favoritesOnly) viewModel.setFavoritesOnly(true)
+            }
         )
     }
+    ResearchLibraryContent(
+        uiState = uiState,
+        papers = papers,
+        favoritesOnly = favoritesOnly,
+        isOnline = isOnline,
+        listState = listState,
+        onQueryChange = viewModel::onSearchQueryChanged,
+        onFilterClick = viewModel::showFilterDialog,
+        onFavoritesClick = { viewModel.setFavoritesOnly(!uiState.showFavoritesOnly) },
+        onClearFilters = {
+            viewModel.resetFilters()
+            if (favoritesOnly) viewModel.setFavoritesOnly(true)
+        },
+        onRefresh = viewModel::onRefresh,
+        onPaperClick = { onNavigateToDetails(it.id) },
+        onFavoriteClick = viewModel::toggleResearchFavorite,
+        onManageClick = if (userRole == UserType.TEACHER && isOnline) viewModel::onResearchLongPressed else null,
+        onStrandToggle = viewModel::onStrandCheckedChange,
+        modifier = modifier
+    )
+}
 
-    // The entire screen is now a Column
-    Column(
-        modifier = modifier.fillMaxSize()
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+internal fun ResearchLibraryContent(
+    uiState: ResearchesUiState,
+    papers: List<ResearchItem>,
+    favoritesOnly: Boolean,
+    isOnline: Boolean,
+    onQueryChange: (String) -> Unit,
+    onFilterClick: () -> Unit,
+    onFavoritesClick: () -> Unit,
+    onClearFilters: () -> Unit,
+    onRefresh: () -> Unit,
+    onPaperClick: (ResearchItem) -> Unit,
+    onFavoriteClick: (ResearchItem) -> Unit,
+    onManageClick: ((ResearchItem) -> Unit)?,
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+    onStrandToggle: ((String, Boolean) -> Unit)? = null
+) {
+    val refreshState = rememberPullRefreshState(uiState.isRefreshing, onRefresh)
+    val activeCount = calculateActiveFilterCount(uiState)
+    val hasSearchFilters = uiState.searchQuery.isNotBlank() || activeCount > 0
+    Box(
+        modifier = modifier.fillMaxSize().pullRefresh(refreshState),
+        contentAlignment = Alignment.TopCenter
     ) {
-        // Modern Search Bar with filter button
-        ModernSearchBar(
-            query = uiState.searchQuery,
-            onQueryChange = viewModel::onSearchQueryChanged,
-            placeholder = if (favoritesOnly) "Search favorites..." else "Search by title or author...",
-            onFilterClick = viewModel::showFilterDialog,
-            activeFilterCount = calculateActiveFilterCount(uiState),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        if (!favoritesOnly) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                FilterChip(
-                    selected = uiState.showFavoritesOnly,
-                    onClick = { viewModel.setFavoritesOnly(!uiState.showFavoritesOnly) },
-                    label = { Text("Favorites") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = if (uiState.showFavoritesOnly) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            contentDescription = null,
-                            modifier = Modifier.size(FilterChipDefaults.IconSize)
-                        )
-                    }
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            item {
+                ModernSearchBar(
+                    query = uiState.searchQuery,
+                    onQueryChange = onQueryChange,
+                    placeholder = "Search title or author",
+                    onFilterClick = onFilterClick,
+                    activeFilterCount = activeCount
                 )
             }
-        }
-        
-        // Quick filter chips for strands
-        FilterChipsRow(
-            chips = uiState.strands.map { strand ->
-                FilterChipData(
-                    id = strand.name,
-                    label = strand.name,
-                    isSelected = strand.isSelected,
-                    icon = when (strand.name.uppercase()) {
-                        "STEM" -> Icons.Outlined.Science
-                        "HUMSS" -> Icons.Outlined.Psychology
-                        "ABM" -> Icons.Outlined.BusinessCenter
-                        "TVL" -> Icons.Outlined.Construction
-                        "GAS" -> Icons.Outlined.School
-                        else -> null
-                    }
-                )
-            },
-            onChipClick = { chip ->
-                viewModel.onStrandCheckedChange(chip.id, !chip.isSelected)
-            },
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        // The content area with pull-to-refresh
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pullRefresh(pullRefreshState)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    LazyVerticalStaggeredGrid(
-                        columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalItemSpacing = 12.dp,
-                    ) {
-                        items(10) { ShimmerResearchCardPlaceholder() }
-                    }
-                }
-                researchesToShow.isEmpty() -> {
-                    if (favoritesOnly || uiState.showFavoritesOnly) {
-                        EmptyState(
-                            icon = Icons.Default.FavoriteBorder,
-                            message = "No favorite researches yet.\nTap the heart icon to save one."
-                        )
-                    } else {
-                        ResearchEmptyState(
-                            isSearchResult = uiState.searchQuery.isNotEmpty(),
-                            searchQuery = uiState.searchQuery,
-                            onClearSearch = { viewModel.onSearchQueryChanged("") }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!favoritesOnly && isOnline) {
+                        FilterChip(
+                            selected = uiState.showFavoritesOnly,
+                            onClick = onFavoritesClick,
+                            label = { Text("Favorites") },
+                            leadingIcon = { Icon(Icons.Outlined.FavoriteBorder, null, Modifier.size(18.dp)) }
                         )
                     }
-                }
-                else -> {
-                    LazyVerticalStaggeredGrid(
-                        state = gridState,
-                        columns = StaggeredGridCells.Adaptive(minSize = 160.dp),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalItemSpacing = 12.dp
-                    ) {
-                        items(researchesToShow, key = { it.id }) { research ->
-                            ModernResearchCard(
-                                research = research,
-                                onClick = { onNavigateToDetails(research.id) },
-                                onLongClick = { viewModel.onResearchLongPressed(research) },
-                                onFavoriteClick = { viewModel.toggleResearchFavorite(research) },
-                                isFavorite = research.id in uiState.favoriteResearchIds,
-                                isFavoriteUpdating = research.id in uiState.favoriteUpdateInProgressIds
+                    if (onStrandToggle != null) {
+                        uiState.strands.forEach { strand ->
+                            FilterChip(
+                                selected = strand.isSelected,
+                                onClick = { onStrandToggle(strand.name, !strand.isSelected) },
+                                label = { Text(strand.name) }
                             )
                         }
-                        
-                        if (uiState.isLoadingMore) {
-                            item {
-                                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                                }
-                            }
-                        }
                     }
-                }
-            }
-            PullRefreshIndicator(
-                refreshing = uiState.isRefreshing,
-                state = pullRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter),
-                backgroundColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-}
-
-// Helper function to calculate active filter count
-private fun calculateActiveFilterCount(uiState: ResearchesUiState): Int {
-    var count = 0
-    if (uiState.selectedResearchType != null) count++
-    count += uiState.strands.count { it.isSelected }
-    if (uiState.selectedSortOption != SortOption.DateNewest) count++
-    return count
-}
-
-// --- REMOVED: Old SearchBarWithFilter (replaced with ModernSearchBar) ---
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun ResearchCard(
-    research: ResearchItem,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
-    val strandColor = when (research.strand.uppercase()) {
-        "STEM" -> STEMColor
-        "HUMSS" -> HUMSSColor
-        "ABM" -> ABMColor
-        "TVL" -> TVLColor
-        "GAS" -> GASColor
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    ) {
-        // Use intrinsic height to ensure the Box fills the Row's height
-        Row(
-            Modifier
-                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                .height(IntrinsicSize.Min)
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(6.dp)
-                    .fillMaxHeight() // This now works correctly with IntrinsicSize.Min
-                    .background(strandColor)
-            )
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = research.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "by ${research.members.joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = research.strand,
-                        color = strandColor,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                    val typeAndSort = listOfNotNull(
+                        uiState.selectedResearchType?.name?.lowercase()?.replaceFirstChar { it.titlecase() },
+                        uiState.selectedSortOption.takeIf { it != SortOption.DateNewest }?.displayName
                     )
-                    if (research.unfinished) {
-                        Icon(
-                            imageVector = Icons.Default.Construction,
-                            contentDescription = "Unfinished Research",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp)
+                    if (typeAndSort.isNotEmpty() || (onStrandToggle == null && uiState.strands.any { it.isSelected })) {
+                        InputChip(
+                            selected = true, onClick = onFilterClick,
+                            label = { Text((typeAndSort + listOfNotNull(
+                                uiState.strands.filter { it.isSelected }.joinToString(", ")
+                                    .takeIf { it.isNotBlank() && onStrandToggle == null }
+                            )).joinToString(" · ")) }
                         )
                     }
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(
-                        imageVector = Icons.Default.Visibility,
-                        contentDescription = "Views",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (hasSearchFilters) {
+                        TextButton(onClick = onClearFilters) { Text("Clear filters") }
+                    }
+                }
+            }
+            item {
+                Text(
+                    if (uiState.isLoading) "Loading papers…" else if (uiState.error != null && papers.isEmpty()) "Paper count unavailable" else "${papers.size} ${if (papers.size == 1) "paper" else "papers"} · ${uiState.selectedSortOption.displayName}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (uiState.error != null) {
+                item { FeedbackPanel("Could not update the library", uiState.error!!, "Try again", onRefresh) }
+            }
+            when {
+                uiState.isLoading -> items(4) { ShimmerResearchCardPlaceholder() }
+                papers.isEmpty() && uiState.error == null -> item {
+                    EmptyCollectionPanel(
+                        title = if (hasSearchFilters) "No papers match your search" else if (uiState.showFavoritesOnly) "No favorite papers yet" else "No research papers yet",
+                        message = if (hasSearchFilters) "Try another title or clear the filters." else if (uiState.showFavoritesOnly) "Tap the heart on a paper in Research to save it here." else "Teacher papers and approved student research appear here. Groups can prepare a submission from Home.",
+                        actionLabel = if (hasSearchFilters) "Clear filters" else "Refresh papers",
+                        onAction = if (hasSearchFilters) onClearFilters else onRefresh,
+                        guidance = if (!hasSearchFilters && !uiState.showFavoritesOnly) listOf(
+                            "For students" to "Create or join a group from Home, then submit your research PDF for teacher review.",
+                            "For teachers" to "Add research from Home or approve a submitted group paper."
+                        ) else emptyList()
                     )
-                    Text(
-                        text = research.downloads.toString(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                else -> itemsIndexed(papers, key = { _, paper -> paper.id }) { index, paper ->
+                    ModernResearchCard(
+                        research = paper,
+                        onClick = { onPaperClick(paper) },
+                        onLongClick = { onManageClick?.invoke(paper) },
+                        onFavoriteClick = if (isOnline) ({ onFavoriteClick(paper) }) else null,
+                        isFavorite = paper.id in uiState.favoriteResearchIds,
+                        isFavoriteUpdating = paper.id in uiState.favoriteUpdateInProgressIds,
+                        onManageClick = onManageClick?.let { manage -> { manage(paper) } }
                     )
                 }
             }
+            if (uiState.isLoadingMore) {
+                item {
+                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(24.dp))
+                    }
+                }
+            }
         }
+        PullRefreshIndicator(
+            refreshing = uiState.isRefreshing, state = refreshState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            backgroundColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary
+        )
     }
 }
+
+private fun calculateActiveFilterCount(uiState: ResearchesUiState): Int =
+    (if (uiState.selectedResearchType != null) 1 else 0) +
+        uiState.strands.count { it.isSelected } +
+        (if (uiState.selectedSortOption != SortOption.DateNewest) 1 else 0)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -417,6 +303,7 @@ private fun FilterBottomSheet(
 
             // --- Scrollable Filter Options ---
             LazyColumn(
+                modifier = Modifier.weight(1f, fill = false),
                 contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
@@ -474,16 +361,16 @@ private fun FilterBottomSheet(
             // --- Action Button ---
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
             ) {
                 Button(
                     onClick = onApplyClick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(20.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
+                        .heightIn(min = 48.dp),
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Icon(Icons.Default.FilterList, null)
                     Spacer(Modifier.width(8.dp))

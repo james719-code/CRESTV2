@@ -16,7 +16,8 @@ fun HomeScreen(
     onNavigateToGroupUpload: () -> Unit,
     onNavigateToResearchDetails: (String) -> Unit,
     onNavigateToTeacherUpload: () -> Unit,
-    onNavigateToAccounts: () -> Unit
+    onNavigateToAccounts: () -> Unit,
+    onNavigateToGroups: () -> Unit
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -34,11 +35,12 @@ fun HomeScreen(
                 viewModel = hiltViewModel(),
                 onNavigateToUploadResearch = onNavigateToTeacherUpload,
                 onNavigateToResearchDetails = onNavigateToResearchDetails,
-                onNavigateToAccounts = onNavigateToAccounts
+                onNavigateToAccounts = onNavigateToAccounts,
+                onNavigateToGroups = onNavigateToGroups
             )
             else -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    com.bdbshs.crest.ui.components.LoadingState("Loading your school workspace…")
                 }
             }
         }

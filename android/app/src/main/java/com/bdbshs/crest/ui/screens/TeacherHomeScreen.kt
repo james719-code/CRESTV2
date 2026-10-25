@@ -17,6 +17,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.UploadFile
+import androidx.compose.material.icons.outlined.RateReview
+import androidx.compose.material.icons.outlined.HowToReg
+import androidx.compose.material.icons.outlined.NoteAdd
+import com.bdbshs.crest.ui.components.ActionTile
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,9 +31,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.bdbshs.crest.ui.components.AdaptivePair
+import com.bdbshs.crest.ui.components.HomeSummary
+import com.bdbshs.crest.ui.components.HomeSectionHeading
+import com.bdbshs.crest.ui.components.HomeResearchRow
+import com.bdbshs.crest.ui.components.HomeEmptyResearch
 import com.bdbshs.crest.ui.viewmodels.DashboardCardItem
 import com.bdbshs.crest.ui.viewmodels.SimpleResearch
 import com.bdbshs.crest.ui.viewmodels.TeacherHomeUiState
@@ -44,6 +54,7 @@ fun TeacherHomeScreen(
     onNavigateToUploadResearch: () -> Unit,
     onNavigateToResearchDetails: (String) -> Unit,
     onNavigateToAccounts: () -> Unit,
+    onNavigateToGroups: () -> Unit,
     viewModel: TeacherHomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -73,441 +84,204 @@ fun TeacherHomeScreen(
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToUploadResearch) {
-                Icon(Icons.Default.Add, contentDescription = "Upload Research")
-            }
-        }
-    ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                // 1. Greeter Section
-                item {
-                    GreeterCard(
-                        teacherName = uiState.teacherName,
-                        dashboardItems = uiState.dashboardItems
-                    )
-                }
-
-                // 2. Quick Actions
-                item {
-                    QuickActionsSection(
-                        onUploadResearch = onNavigateToUploadResearch,
-                        onUploadDocument = viewModel::showUploadDialog,
-                        onManageAccounts = onNavigateToAccounts
-                    )
-                }
-
-                // 3. Simple Dashboard Stats
-                if (uiState.dashboardItems.isNotEmpty()) {
-                    item {
-                        StatsGrid(items = uiState.dashboardItems)
-                    }
-                }
-
-                // 4. Recent Researches
-                if (uiState.recentResearches.isNotEmpty()) {
-                    item {
-                        RecentResearchesSection(
-                            researches = uiState.recentResearches,
-                            onItemClick = onNavigateToResearchDetails
-                        )
-                    }
-                }
-                
-                // Reduced bottom padding
-                item { Spacer(modifier = Modifier.height(32.dp)) }
-            }
-        }
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        TeacherHomeContent(
+            uiState = uiState,
+            onNavigateToUploadResearch = onNavigateToUploadResearch,
+            onNavigateToResearchDetails = onNavigateToResearchDetails,
+            onNavigateToAccounts = onNavigateToAccounts,
+            onNavigateToGroups = onNavigateToGroups,
+            onUploadDocument = viewModel::showUploadDialog,
+            onRetry = viewModel::onRefresh,
+            modifier = Modifier.padding(padding)
+        )
     }
 }
 
 @Composable
-private fun GreeterCard(teacherName: String, dashboardItems: List<DashboardCardItem>) {
-    val currentDate = remember {
-        SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date())
-    }
-    
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.extraLarge),
-        shape = MaterialTheme.shapes.extraLarge,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                        )
-                    )
-                )
-        ) {
-            // Decorative shapes for a "Modern Premium" feel
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .offset(x = 250.dp, y = (-50).dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f))
-            )
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .offset(x = (-80).dp, y = 80.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.05f))
-            )
-
-            Row(
-                modifier = Modifier
-                    .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 48.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Welcome back,",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                    Text(
-                        text = if (teacherName.isNotBlank()) teacherName else "Teacher",
-                        style = MaterialTheme.typography.displayMedium.copy(fontSize = 38.sp),
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        lineHeight = 44.sp,
-                        letterSpacing = (-1).sp
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
-                    Text(
-                        text = currentDate.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                    )
-                }
-
-                // Mini stats on the right
-                if (dashboardItems.isNotEmpty()) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        dashboardItems.take(2).forEach { item ->
-                            val label = remember(item.title) { 
-                                item.title.split(" ").last() 
-                            }
-                            Surface(
-                                color = Color.White.copy(alpha = 0.15f),
-                                shape = CircleShape
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = item.icon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = Color.White
-                                    )
-                                    Text(
-                                        text = "${item.value} $label",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickActionsSection(
-    onUploadResearch: () -> Unit,
+internal fun TeacherHomeContent(
+    uiState: TeacherHomeUiState,
+    onNavigateToUploadResearch: () -> Unit,
+    onNavigateToResearchDetails: (String) -> Unit,
+    onNavigateToAccounts: () -> Unit,
+    onNavigateToGroups: () -> Unit,
     onUploadDocument: () -> Unit,
-    onManageAccounts: () -> Unit
+    modifier: Modifier = Modifier,
+    onRetry: () -> Unit = {}
 ) {
-    Column {
-        Text(
-            text = "Quick Actions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val paperColumns = if (maxWidth >= 760.dp) 2 else 1
+        LazyColumn(
+            Modifier.widthIn(max = 840.dp).fillMaxSize().align(Alignment.TopCenter),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            QuickActionCard(
-                title = "Upload\nResearch",
-                icon = Icons.Outlined.Description,
-                onClick = onUploadResearch,
-                modifier = Modifier.weight(1f)
-            )
-            QuickActionCard(
-                title = "Upload\nDocument",
-                icon = Icons.Outlined.UploadFile,
-                onClick = onUploadDocument,
-                modifier = Modifier.weight(1f)
-            )
-            QuickActionCard(
-                title = "Manage\nAccounts",
-                icon = Icons.Outlined.ManageAccounts,
-                onClick = onManageAccounts,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuickActionCard(
-    title: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.height(100.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+            item {
+                HomeSummary(
+                    uiState.teacherName.ifBlank { "Teacher workspace" },
+                    "Your teaching workspace",
+                    if (uiState.isLoading || uiState.loadError != null) emptyList() else
+                        uiState.dashboardItems.mapNotNull {
+                            when (it.title) {
+                                "Total Researches" -> it.value to "Library papers"
+                                "Total Accounts" -> it.value to "School accounts"
+                                else -> null
+                            }
+                        }
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                lineHeight = MaterialTheme.typography.labelSmall.lineHeight
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatsGrid(items: List<DashboardCardItem>) {
-    Column {
-        Text(
-            text = "Overview",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        // Manual grid layout
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            val chunkedItems = items.chunked(2)
-            chunkedItems.forEach { rowItems ->
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    rowItems.forEach { item ->
-                        Box(modifier = Modifier.weight(1f)) {
-                            StatCard(item = item)
+            if (uiState.loadError != null) {
+                item { com.bdbshs.crest.ui.components.FeedbackPanel("Workspace could not load", uiState.loadError, "Try again", onRetry) }
+            }
+            if (uiState.isLoading) {
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        Text("Loading review counts and recent papers…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            } else if (uiState.loadError == null) {
+                item {
+                    HomeSectionHeading("Review queue")
+                }
+                item {
+                    val pendingPapers = uiState.dashboardItems.firstOrNull { it.title == "Pending Researches" }?.value
+                    val pendingAccounts = uiState.dashboardItems.firstOrNull { it.title == "Pending Accounts" }?.value
+                    AdaptivePair(
+                        first = { tile ->
+                            ActionTile(
+                                Icons.Outlined.RateReview, "Review group submissions", tile,
+                                supporting = pendingPapers?.let { "$it pending papers" } ?: "Open queue",
+                                badge = pendingPapers, onClick = onNavigateToGroups,
+                                container = if ((pendingPapers?.toIntOrNull() ?: 0) > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                iconContainer = MaterialTheme.colorScheme.surface,
+                                iconContent = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        second = { tile ->
+                            ActionTile(
+                                Icons.Outlined.HowToReg, "Review school accounts", tile,
+                                supporting = pendingAccounts?.let { "$it pending accounts" } ?: "Open queue",
+                                badge = pendingAccounts, onClick = onNavigateToAccounts,
+                                container = if ((pendingAccounts?.toIntOrNull() ?: 0) > 0) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                                iconContainer = MaterialTheme.colorScheme.surface,
+                                iconContent = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    )
+                }
+            }
+            item {
+                AdaptivePair(
+                    first = { button ->
+                        FilledTonalButton(
+                            onClick = onNavigateToUploadResearch, modifier = button.heightIn(min = 56.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Icon(Icons.Outlined.NoteAdd, null, Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Add research paper", maxLines = 2, textAlign = TextAlign.Center)
+                        }
+                    },
+                    second = { button ->
+                        FilledTonalButton(
+                            onClick = onUploadDocument, modifier = button.heightIn(min = 56.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
+                        ) {
+                            Icon(Icons.Outlined.UploadFile, null, Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Upload document", maxLines = 2, textAlign = TextAlign.Center)
                         }
                     }
-                    // Fill empty space if row is not full
-                    if (rowItems.size < 2) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                )
+            }
+            item {
+                HomeSectionHeading("Recent research papers", uiState.recentResearches.size.takeIf { it > 0 })
+            }
+            if (uiState.isLoading && uiState.recentResearches.isEmpty()) {
+                items(2) { com.bdbshs.crest.ui.screens.common.ShimmerResearchCardPlaceholder() }
+            } else if (uiState.recentResearches.isEmpty() && uiState.loadError == null) {
+                item {
+                    HomeEmptyResearch(
+                        "No research papers added yet",
+                        "Add a paper or review a group submission to grow the library.",
+                        "Add research paper", onNavigateToUploadResearch
+                    )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StatCard(item: DashboardCardItem) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = item.value,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentResearchesSection(
-    researches: List<SimpleResearch>,
-    onItemClick: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Recent Researches",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Column {
-                researches.forEachIndexed { index, research ->
-                    RecentResearchCard(
-                        research = research, 
-                        onClick = { onItemClick(research.id) }
-                    )
-                    if (index < researches.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            items(uiState.recentResearches.chunked(paperColumns), key = { it.first().id }) { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    row.forEach { research ->
+                        HomeResearchRow(
+                            research = com.bdbshs.crest.ui.viewmodels.ResearchItem(
+                                id = research.id, title = research.title, members = research.members, strand = research.strand,
+                                type = research.type, downloads = research.downloads, unfinished = research.unfinished, createdAt = research.date
+                            ),
+                            onClick = { onNavigateToResearchDetails(research.id) },
+                            modifier = Modifier.weight(1f)
                         )
                     }
+                    if (row.size < paperColumns) Spacer(Modifier.weight(1f))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceTaskCard(title: String, count: String?, description: String, onClick: () -> Unit, modifier: Modifier, secondary: Boolean = false) {
+    Surface(
+        onClick = onClick, modifier = modifier,
+        color = if (secondary) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = if (secondary) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                count?.let { Text(it, style = MaterialTheme.typography.titleLarge) }
+                Text(if (count == null) "Open queue" else description, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(18.dp))
+            }
+            Text(title, style = MaterialTheme.typography.titleSmall)
+        }
+    }
+}
+
+@Composable
+private fun TeacherDeskAction(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = Color.Transparent) {
+        Column {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(icon, null, Modifier.size(28.dp), tint = MaterialTheme.colorScheme.secondary)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
 
 @Composable
 private fun RecentResearchCard(research: SimpleResearch, onClick: () -> Unit) {
-    val dateString = remember(research.date) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(research.title, style = MaterialTheme.typography.titleLarge)
         if (research.date > 0) {
-            SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(research.date))
-        } else {
-            ""
-        }
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(MaterialTheme.shapes.small)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Article,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = research.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                remember(research.date) { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(research.date)) },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (dateString.isNotEmpty()) {
-                Text(
-                    text = dateString,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
-        
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
