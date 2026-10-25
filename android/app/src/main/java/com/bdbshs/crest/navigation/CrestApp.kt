@@ -300,14 +300,15 @@ private fun MainPagerRouteContent(
         navigationActions = navigationActions,
         isOnline = isOnline,
         initialPage = initialPage,
-        homeContent = { padding, userRole ->
+        homeContent = { padding, userRole, onOpenGroups ->
             HomeScreen(
                 modifier = Modifier.padding(padding),
                 userRole = userRole,
                 onNavigateToGroupUpload = navigationActions::navigateToGroupUpload,
                 onNavigateToResearchDetails = navigationActions::navigateToResearchDetails,
                 onNavigateToTeacherUpload = navigationActions::navigateToTeacherUpload,
-                onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) }
+                onNavigateToAccounts = { navigationActions.navigateTo(AppDestination.Accounts) },
+                onNavigateToGroups = onOpenGroups
             )
         },
         researchesContent = { padding, userRole ->
@@ -322,7 +323,8 @@ private fun MainPagerRouteContent(
             DocumentsScreen(
                 modifier = Modifier.padding(padding),
                 userRole = userRole,
-                viewModel = hiltViewModel()
+                viewModel = hiltViewModel(),
+                onGoHome = navigationActions::navigateToHome
             )
         },
         groupsContent = { padding, _ ->

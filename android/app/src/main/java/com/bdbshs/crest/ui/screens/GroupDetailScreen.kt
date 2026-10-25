@@ -63,66 +63,85 @@ fun GroupDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isOnline by rememberNetworkState()
+    val pdfPath = uiState.pdfFilePath
+    if (uiState.isShowingPdf && pdfPath != null) {
+        PdfViewerScreen(pdfPath, viewModel::hidePdfViewer)
+        return
+    }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(uiState.group?.group_name ?: "Group details", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
+            )
+        }
+    ) { padding ->
+        GroupDetailsContent(
+            uiState, { viewModel.loadPdf(isOnline) }, viewModel::approveSubmission, viewModel::denySubmission,
+            viewModel::onDenialCommentChange, viewModel::onRefresh, Modifier.padding(padding)
+        )
+    }
+}
 
-    // --- UI now animates based on your requested flag ---
-    AnimatedContent(
-        targetState = uiState.isShowingPdf,
-        label = "DetailToPdfTransition"
-    ) { isShowingPdf ->
-        if (isShowingPdf) {
-            // We still need to null-check the pdfFilePath in case of a state anomaly,
-            // but the primary driver is the boolean flag.
-            uiState.pdfFilePath?.let { pdfFilePath ->
-                PdfViewerScreen(
-                    pdfFilePath = pdfFilePath,
-                    // The back button calls the new function
-                    onNavigateBack = viewModel::hidePdfViewer
-                )
-            }
-        } else {
-            // --- GROUP DETAILS UI (unchanged) ---
-            val group = uiState.group
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(group?.group_name ?: "Group Details", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
-                    )
+@Composable
+internal fun GroupDetailsContent(
+    state: com.bdbshs.crest.ui.viewmodels.GroupDetailUiState,
+    onReadPdf: () -> Unit,
+    onApprove: () -> Unit,
+    onDeny: () -> Unit,
+    onComment: (String) -> Unit,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        item { com.bdbshs.crest.ui.components.ContentHeader(state.group?.group_name ?: "Group details", "Submission, members, and teacher review.") }
+        if (state.isLoading) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    Text("Loading group and submission details…", style = MaterialTheme.typography.bodyMedium)
                 }
-            ) { paddingValues ->
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    when {
-                        uiState.isLoading -> CircularProgressIndicator()
-                        uiState.error != null -> ErrorState(message = uiState.error!!)
-                        group != null -> {
-                            LazyColumn(
-                                contentPadding = PaddingValues(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                item { GroupInfoSection(group = group) }
-                                item { GroupMembersSection(memberNames = uiState.memberNames) }
-                                if (group.uploaded && !group.accepted_research) {
-                                    item {
-                                        ReviewSection(
-                                            researchTitle = group.research_title,
-                                            comment = uiState.denialComment,
-                                            isPdfLoading = uiState.isPdfLoading,
-                                            isUpdating = uiState.isUpdating,
-                                            onCommentChange = viewModel::onDenialCommentChange,
-                                            onViewPdfClick = { viewModel.loadPdf(isOnline) },
-                                            onApprove = viewModel::approveSubmission,
-                                            onDeny = viewModel::denySubmission
-                                        )
-                                    }
-                                }
-                            }
-                        }
+            }
+        }
+        state.error?.let { message ->
+            item { com.bdbshs.crest.ui.components.FeedbackPanel("Group needs attention", message, "Refresh group", onRefresh) }
+        }
+        state.group?.let { group ->
+            item { GroupInfoSection(group) }
+            if (group.research_title.isNotBlank()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Research paper", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text(group.research_title, style = MaterialTheme.typography.titleLarge)
+                        if (group.research_type.isNotBlank()) Text(group.research_type.lowercase().replaceFirstChar { it.titlecase() }, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
+            item { GroupMembersSection(state.memberNames) }
+            if (group.uploaded && !group.accepted_research) {
+                item { ReviewSection(group.research_title, state.denialComment, state.isPdfLoading, state.isUpdating,
+                    onComment, onReadPdf, onApprove, onDeny) }
+            } else if (group.accepted_research) {
+                item {
+                    com.bdbshs.crest.ui.components.FeedbackPanel(
+                        "Research approved", "This group's submission has been approved and added to the research collection.",
+                        "Refresh group", onRefresh, isError = false
+                    )
+                }
+            } else {
+                item {
+                    com.bdbshs.crest.ui.components.EmptyCollectionPanel(
+                        "No research paper submitted",
+                        "Members can add a research title and PDF from their student workspace. Review controls will appear after submission.",
+                        "Refresh group", onRefresh
+                    )
+                }
+            }
+        }
+        if (!state.isLoading && state.group == null && state.error == null) {
+            item { com.bdbshs.crest.ui.components.EmptyCollectionPanel(
+                "Group details are unavailable", "This group may have been removed, or its details have not loaded.", "Try again", onRefresh
+            ) }
         }
     }
 }
@@ -147,7 +166,7 @@ private fun PdfViewerScreen(pdfFilePath: String, onNavigateBack: () -> Unit) {
 @Composable
 private fun GroupInfoSection(group: com.bdbshs.crest.ui.viewmodels.GroupItem) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Text("Group Information", style = MaterialTheme.typography.titleLarge)
             HorizontalDivider()
             InfoRow(icon = Icons.Default.Info, label = "Strand", value = group.strand)
@@ -172,11 +191,11 @@ private fun GroupInfoSection(group: com.bdbshs.crest.ui.viewmodels.GroupItem) {
 @Composable
 private fun GroupMembersSection(memberNames: List<String>) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Text("Members (${memberNames.size})", style = MaterialTheme.typography.titleLarge)
             HorizontalDivider()
             if (memberNames.isEmpty()) {
-                InfoRow(icon = Icons.Default.Person, value = "Loading members or none found...")
+                InfoRow(icon = Icons.Default.Person, value = "Member names are not available.")
             } else {
                 memberNames.forEach { name ->
                     InfoRow(icon = Icons.Default.Person, value = name)
@@ -199,7 +218,7 @@ private fun ReviewSection(
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Review Submission", style = MaterialTheme.typography.titleLarge)

@@ -72,59 +72,23 @@ fun GroupsScreen(
         )
     }
 
-    Column(
-        modifier = modifier.fillMaxSize()
-    ) {
-        ModernSearchBar(
-            query = uiState.searchQuery,
-            onQueryChange = viewModel::onSearchQueryChanged,
-            placeholder = "Search by group name...",
-            onFilterClick = { isSheetOpen = true },
-            activeFilterCount = (if (uiState.showPendingOnly) 1 else 0) + 
-                               (if (uiState.showAcceptedOnly) 1 else 0) + 
-                               (if (uiState.selectedSortOption != GroupSortOption.NameAZ) 1 else 0),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pullRefresh(pullRefreshState)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        userScrollEnabled = false
-                    ) {
-                        items(10) { ShimmerListItemPlaceholder() }
-                    }
-                }
-                groupsToShow.isEmpty() -> {
-                    EmptyState(icon = Icons.Default.SearchOff, message = "No groups match your search or filters.")
-                }
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(groupsToShow, key = { it.id }) { group ->
-                            GroupCard(
-                                group = group,
-                                onClick = { onNavigateToDetails(group.id) }
-                            )
-                        }
-                    }
-                }
-            }
-            PullRefreshIndicator(uiState.isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
-        }
-    }
+    GroupsContent(
+        state = uiState,
+        groups = groupsToShow,
+        onQuery = viewModel::onSearchQueryChanged,
+        onFilter = { isSheetOpen = true },
+        onPending = viewModel::onShowPendingOnlyToggled,
+        onAccepted = viewModel::onShowAcceptedOnlyToggled,
+        onClearFilters = {
+            viewModel.onSearchQueryChanged("")
+            viewModel.onShowPendingOnlyToggled(false)
+            viewModel.onShowAcceptedOnlyToggled(false)
+        },
+        onRefresh = viewModel::onRefresh,
+        onGroupClick = { onNavigateToDetails(it.id) },
+        modifier = modifier
+    )
 }
-
-
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -175,6 +139,7 @@ private fun FilterSortBottomSheet(
             )
 
             LazyColumn(
+                modifier = Modifier.weight(1f, fill = false),
                 contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {

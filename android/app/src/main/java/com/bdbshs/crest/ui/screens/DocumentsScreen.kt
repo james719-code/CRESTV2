@@ -49,7 +49,8 @@ import androidx.core.net.toUri
 fun DocumentsScreen(
     userRole: UserType?,
     modifier: Modifier = Modifier,
-    viewModel: DocumentsViewModel = hiltViewModel()
+    viewModel: DocumentsViewModel = hiltViewModel(),
+    onGoHome: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val documentsToShow by viewModel.filteredAndSortedDocuments.collectAsState()
@@ -58,13 +59,6 @@ fun DocumentsScreen(
 
     LaunchedEffect(userRole) {
         viewModel.setUserRole(userRole)
-    }
-
-    uiState.error?.let {
-        LaunchedEffect(it) {
-            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
-        }
     }
 
     if (uiState.isEditDialogVisible && uiState.selectedDocumentForEdit != null) {
@@ -95,126 +89,32 @@ fun DocumentsScreen(
         )
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        ModernSearchBar(
-            query = uiState.searchQuery,
-            onQueryChange = viewModel::onSearchQueryChanged,
-            placeholder = "Search documents...",
-            onFilterClick = { isFilterSheetOpen = true },
-            activeFilterCount = if (uiState.selectedSortOption != DocumentSortOption.DateNewest) 1 else 0,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-        )
-        HorizontalDivider()
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pullRefresh(pullRefreshState)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(10) { ShimmerListItemPlaceholder() }
-                    }
-                }
-                documentsToShow.isEmpty() -> {
-                    EmptyState(icon = Icons.Default.Description, message = "No documents found.\nTry a different search or sort.")
-                }
-                else -> {
-                    LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(documentsToShow, key = { it.id }) { document ->
-                            DocumentCard(
-                                document = document,
-                                userRole = uiState.userRole,
-                                onClick = {
-                                    // --- THIS IS THE FIX ---
-                                    // Re-added the download to browser logic
-                                    // --- THIS IS THE FIX ---
-                                    // Use DownloadManager for more robust downloading
-                                    val fileUri = AppwriteClient.getDownloadUrl(
-                                        bucketId = StorageConfig.BUCKET_ID,
-                                        fileId = document.file_link
-                                    )
-                                    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                                    val request = DownloadManager.Request(fileUri.toUri())
-                                        .setTitle(document.name) // Title of the download notification
-                                        .setDescription("Downloading ${document.name}") // Description of the download notification
-                                        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED) // Show notification
-                                        .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, document.name) // Save to Downloads folder
-                                        .setAllowedOverMetered(true) // Allow download over mobile data
-                                        .setAllowedOverRoaming(true) // Allow download over roaming
-
-                                    try {
-                                        downloadManager.enqueue(request)
-                                        Toast.makeText(context, "Downloading ${document.name}...", Toast.LENGTH_SHORT).show()
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
-                                        e.printStackTrace()
-                                    }
-                                },
-                                onLongClick = { viewModel.onDocumentLongPress(document) }
-                            )
-                        }
-                    }
-                }
+    DocumentsContent(
+        state = uiState,
+        documents = documentsToShow,
+        onQuery = viewModel::onSearchQueryChanged,
+        onFilter = { isFilterSheetOpen = true },
+        onRefresh = viewModel::onRefresh,
+        onDownload = { document ->
+            try {
+                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val request = DownloadManager.Request(AppwriteClient.getDownloadUrl(StorageConfig.BUCKET_ID, document.file_link).toUri())
+                    .setTitle(document.name)
+                    .setDescription("Downloading ${document.name}")
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, document.name)
+                    .setAllowedOverMetered(true)
+                    .setAllowedOverRoaming(true)
+                downloadManager.enqueue(request)
+                Toast.makeText(context, "Downloading ${document.name}…", Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
+                Toast.makeText(context, "Could not start the download. Try again.", Toast.LENGTH_LONG).show()
             }
-            PullRefreshIndicator(uiState.isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
-        }
-    }
-}
-
-// --- Card & Components ---
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun DocumentCard(
-    document: DocumentItem,
-    userRole: UserType?,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
-    val isTeacher = userRole == UserType.TEACHER
-    Card(
-        modifier = Modifier.fillMaxWidth().then(
-            if (isTeacher) Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            else Modifier.clickable(onClick = onClick)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Description,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = document.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = document.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.Download,
-                contentDescription = "Download",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+        },
+        onManage = viewModel::onDocumentLongPress,
+        onGoHome = onGoHome,
+        modifier = modifier
+    )
 }
 
 // --- Filter/Sort Bottom Sheet ---
@@ -264,6 +164,7 @@ private fun DocumentFilterSortBottomSheet(
             )
 
             LazyColumn(
+                modifier = Modifier.weight(1f, fill = false),
                 contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {

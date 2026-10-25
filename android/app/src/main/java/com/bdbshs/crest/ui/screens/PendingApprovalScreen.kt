@@ -1,6 +1,8 @@
 package com.bdbshs.crest.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material3.Button
@@ -22,6 +24,8 @@ fun PendingApprovalScreen(onSignOut: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .safeDrawingPadding()
+            .verticalScroll(rememberScrollState())
             .padding(32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -36,7 +40,7 @@ fun PendingApprovalScreen(onSignOut: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Account Pending Approval",
+            text = "Waiting for account approval",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
@@ -44,7 +48,7 @@ fun PendingApprovalScreen(onSignOut: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Your account has been created successfully. Please wait for an administrator to review and approve your registration. You will be notified once you have access.",
+            text = "A teacher needs to approve your registration before you can access the school library.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -53,7 +57,7 @@ fun PendingApprovalScreen(onSignOut: () -> Unit) {
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(onClick = onSignOut) {
-            Text("Sign Out")
+            Text("Sign out")
         }
     }
 }

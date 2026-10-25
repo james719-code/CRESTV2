@@ -1,47 +1,62 @@
 package com.bdbshs.crest.ui.screens
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import android.content.Intent
+import android.content.ActivityNotFoundException
+import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.RateReview
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bdbshs.crest.ui.components.CrestIllustration
+import com.bdbshs.crest.ui.components.IconBadge
+import com.bdbshs.crest.ui.components.heroContainer
+import com.bdbshs.crest.ui.components.heroContent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.R
+import com.bdbshs.crest.ui.components.CrestMark
+import com.bdbshs.crest.ui.components.FeedbackPanel
+import com.bdbshs.crest.ui.theme.CRESTTheme
 import com.bdbshs.crest.ui.viewmodels.LoginResult
 import com.bdbshs.crest.ui.viewmodels.LoginViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -52,51 +67,37 @@ fun LoginScreen(
     loginViewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-
     val uiState by loginViewModel.uiState.collectAsState()
-
     val credentialManager = remember { CredentialManager.create(context) }
-
-    var showContent by remember { mutableStateOf(false) }
-    val logoScale = remember { Animatable(0.9f) }
-
-    LaunchedEffect(Unit) {
-        delay(100)
-        showContent = true
-        logoScale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(600, easing = FastOutSlowInEasing)
-        )
-    }
+    var isRequestingCredential by remember { mutableStateOf(false) }
+    var credentialIssue by remember { mutableStateOf<String?>(null) }
 
     val signIn: () -> Unit = {
-        coroutineScope.launch {
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(context.getString(R.string.default_web_client_id))
-                .build()
-
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
-
-            try {
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context,
-                )
-                loginViewModel.signInWithGoogleCredential(result)
-
-            } catch (e: GetCredentialException) {
-                Log.e("LoginScreen", "GetCredentialException", e)
-                snackbarHostState.showSnackbar("Sign-in was canceled or failed.")
+        if (!isRequestingCredential && !uiState.isLoading) {
+            isRequestingCredential = true
+            credentialIssue = null
+            scope.launch {
+                try {
+                    val option = GetGoogleIdOption.Builder()
+                        .setFilterByAuthorizedAccounts(false)
+                        .setServerClientId(context.getString(R.string.default_web_client_id))
+                        .build()
+                    val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+                    loginViewModel.signInWithGoogleCredential(credentialManager.getCredential(context, request))
+                } catch (e: NoCredentialException) {
+                    credentialIssue = "No Google account is available on this device. Add your account in Settings, then return to sign in."
+                } catch (e: GetCredentialException) {
+                    Log.e("LoginScreen", "Google sign-in failed", e)
+                    snackbarHostState.showSnackbar("Sign-in did not finish. Try again when you're ready.")
+                } finally {
+                    isRequestingCredential = false
+                }
             }
         }
     }
-
-    LaunchedEffect(key1 = Unit) {
+    LaunchedEffect(Unit) {
         loginViewModel.loginResult.collect { result ->
             when (result) {
                 is LoginResult.NavigateToHome -> onNavigateToHome()
@@ -105,247 +106,175 @@ fun LoginScreen(
             }
         }
     }
-
-    uiState.error?.let { errorMessage ->
-        LaunchedEffect(errorMessage) {
-            snackbarHostState.showSnackbar(errorMessage)
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
             loginViewModel.clearError()
         }
     }
-
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+            Modifier.fillMaxSize().padding(padding).imePadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Background Decorative Elements
-            LoginBackgroundDecorations()
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 3.dp
-                    )
-                } else {
-                    AnimatedVisibility(
-                        visible = showContent,
-                        enter = fadeIn(tween(600)) + slideInVertically(
-                            initialOffsetY = { it / 6 },
-                            animationSpec = tween(600, easing = FastOutSlowInEasing)
-                        )
-                    ) {
-                        LoginScreenContent(
-                            isLoading = uiState.isLoading,
-                            logoScale = logoScale.value,
-                            onGoogleLoginClick = signIn
-                        )
+            LoginScreenContent(
+                isLoading = uiState.isLoading || isRequestingCredential,
+                onGoogleLoginClick = signIn,
+                credentialIssue = credentialIssue,
+                onAddAccount = {
+                    try {
+                        context.startActivity(Intent(Settings.ACTION_ADD_ACCOUNT).putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google")))
+                    } catch (_: ActivityNotFoundException) {
+                        context.startActivity(Intent(Settings.ACTION_SETTINGS))
                     }
                 }
-            }
+            )
         }
-    }
-}
-
-@Composable
-private fun LoginBackgroundDecorations() {
-    val infiniteTransition = rememberInfiniteTransition(label = "login_bg")
-    
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2f * Math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phase"
-    )
-
-    val color1 = MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
-    val color2 = MaterialTheme.colorScheme.secondary.copy(alpha = 0.02f)
-
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val width = size.width
-        val height = size.height
-
-        // Coherent floating circles using sine/cosine for smooth looping
-        drawCircle(
-            color = color1,
-            radius = 320.dp.toPx(),
-            center = Offset(
-                x = width * 0.2f + (kotlin.math.cos(phase) * 40.dp.toPx()),
-                y = height * 0.2f + (kotlin.math.sin(phase) * 30.dp.toPx())
-            )
-        )
-
-        drawCircle(
-            color = color2,
-            radius = 280.dp.toPx(),
-            center = Offset(
-                x = width * 0.8f + (kotlin.math.sin(phase) * 50.dp.toPx()),
-                y = height * 0.7f + (kotlin.math.cos(phase) * 40.dp.toPx())
-            )
-        )
     }
 }
 
 @Composable
 internal fun LoginScreenContent(
     isLoading: Boolean,
-    logoScale: Float,
-    onGoogleLoginClick: () -> Unit
+    onGoogleLoginClick: () -> Unit,
+    credentialIssue: String? = null,
+    onAddAccount: (() -> Unit)? = null
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo Section
-        Box(
-            modifier = Modifier
-                .scale(logoScale)
-                .size(140.dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+        LoginBrandHeader()
+        Column(
+            Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "App Logo",
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
+            Text(
+                "CREST helps students and teachers find, submit, review, and preserve school research.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
+                LoginFeature(Icons.Outlined.Search, "Find research", "Browse papers from your school by title, author, or strand.")
+                LoginFeature(Icons.Outlined.Groups, "Work with your group", "Create a group and submit your research for review.")
+                LoginFeature(Icons.Outlined.RateReview, "Get feedback", "Teachers review, comment, and approve submissions.")
+            }
+            LoginActions(isLoading, onGoogleLoginClick, credentialIssue, onAddAccount)
+            Text(
+                "Bonifacio D. Borebor Sr. High School",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Text Section
-        Text(
-            text = "Welcome to".uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-            letterSpacing = 4.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "CREST",
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = (-2).sp
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Your digital gateway to institutional\nresearch and academic excellence.",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            lineHeight = 24.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(64.dp))
-
-        // Login Card/Button Section
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-            tonalElevation = 2.dp,
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp, 
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f)
-                    )
-                )
-            )
+@Composable
+private fun LoginBrandHeader() {
+    Box(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp))
+            .background(heroContainer())
+    ) {
+        Column(
+            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 24.dp).padding(top = 20.dp, bottom = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Button(
-                    onClick = onGoogleLoginClick,
-                    enabled = !isLoading,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 0.dp,
-                        pressedElevation = 4.dp
-                    )
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Surface(
-                                modifier = Modifier.size(28.dp),
-                                shape = CircleShape,
-                                color = Color.White
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_google_logo),
-                                    contentDescription = "Google Logo",
-                                    modifier = Modifier.padding(6.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = "Sign in with Google",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+            CrestMark(96.dp)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "CREST",
+                style = MaterialTheme.typography.headlineLarge.copy(letterSpacing = 1.68.sp),
+                color = heroContent()
+            )
+            Text(
+                "School research, shared.",
+                style = MaterialTheme.typography.titleMedium,
+                color = heroContent().copy(alpha = .85f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() }
+            )
+            Spacer(Modifier.height(16.dp))
+            CrestIllustration(Modifier.width(120.dp).height(66.dp))
+        }
+    }
+}
+
+@Composable
+private fun LoginFeature(icon: ImageVector, title: String, detail: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconBadge(icon)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun LoginActions(
+    isLoading: Boolean,
+    onGoogleLoginClick: () -> Unit,
+    credentialIssue: String?,
+    onAddAccount: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Button(
+            onClick = onGoogleLoginClick,
+            enabled = !isLoading,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            shape = CircleShape,
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = LocalContentColor.current,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Surface(color = Color.White, shape = CircleShape) {
+                    Image(painterResource(R.drawable.ic_google_logo), null, Modifier.padding(4.dp).size(20.dp))
                 }
             }
+            Spacer(Modifier.width(12.dp))
+            Text(if (isLoading) "Signing in…" else "Continue with Google", style = MaterialTheme.typography.labelLarge)
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
+        if (credentialIssue != null && onAddAccount != null) {
+            FeedbackPanel("Add a Google account", credentialIssue, "Open account settings", onAddAccount)
+        }
         Text(
-            text = "By signing in, you agree to our\nTerms of Service and Privacy Policy.",
-            style = MaterialTheme.typography.labelSmall,
+            "New to CREST? Use your Google account to register. New student registrations require teacher approval.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            lineHeight = 16.sp,
-            letterSpacing = 0.5.sp
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
+
+@Preview(name = "Sign in · Light", showBackground = true, backgroundColor = 0xFFF5F7FB)
+@Composable
+private fun LoginPreview() { CRESTTheme { LoginScreenContent(false, {}) } }
+
+@Preview(name = "Sign in · Dark", showBackground = true, backgroundColor = 0xFF0E1726)
+@Composable
+private fun LoginDarkPreview() { CRESTTheme(darkTheme = true) { LoginScreenContent(false, {}) } }
+
+@Preview(name = "Sign in · Large text", showBackground = true, widthDp = 320, heightDp = 640, fontScale = 2f)
+@Composable
+private fun LoginLargeTextPreview() { CRESTTheme { LoginScreenContent(false, {}) } }
+
+@Preview(name = "Sign in · Loading", showBackground = true)
+@Composable
+private fun LoginLoadingPreview() { CRESTTheme { LoginScreenContent(true, {}) } }
+
+@Preview(name = "Sign in · Tablet", showBackground = true, widthDp = 1000, heightDp = 700)
+@Composable
+private fun LoginTabletPreview() { CRESTTheme { LoginScreenContent(false, {}) } }

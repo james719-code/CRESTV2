@@ -63,82 +63,16 @@ fun AccountsScreen(
         }
     }
 
-    // --- MAIN UI ---
-    Column(
+    AccountsContent(
+        state = uiState,
+        accounts = accountsToShow,
+        onQuery = viewModel::onSearchQueryChanged,
+        onFilter = viewModel::showFilterDialog,
+        onStatus = viewModel::onStatusSelected,
+        onRefresh = viewModel::onRefresh,
+        onAccount = viewModel::onAccountClicked,
         modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // --- Custom Header ---
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
-        ) {
-            Text(
-                text = "User Directory",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "Manage institutional access and account status.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // --- Standalone Search Bar ---
-        SearchBarWithFilter(
-            query = uiState.searchQuery,
-            onQueryChange = viewModel::onSearchQueryChanged,
-            onFilterClick = viewModel::showFilterDialog
-        )
-
-        // --- Content Area with List ---
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pullRefresh(pullRefreshState)
-        ) {
-            if (uiState.isLoading) {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    userScrollEnabled = false
-                ) {
-                    items(10) { ShimmerListItemPlaceholder() }
-                }
-            } else if (accountsToShow.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.SearchOff,
-                    message = "No accounts found.\nTry a different search or filter."
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            text = "Matching Results (${accountsToShow.size})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
-                        )
-                    }
-                    items(accountsToShow, key = { it.uid }) { account ->
-                        AccountCard(
-                            account = account,
-                            onClick = { viewModel.onAccountClicked(account) }
-                        )
-                    }
-                }
-            }
-            PullRefreshIndicator(uiState.isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
-        }
-    }
+    )
 }
 
 // A consistent, reusable Search Bar composable

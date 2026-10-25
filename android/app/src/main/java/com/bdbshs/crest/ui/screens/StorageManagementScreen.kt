@@ -105,72 +105,59 @@ fun StorageManagementScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+        StorageContent(
+            state = uiState,
+            onRefresh = viewModel::loadStorageData,
+            onClearPdf = viewModel::showClearPdfCacheDialog,
+            onClearAll = viewModel::showClearAllCacheDialog,
+            onToggleSelection = viewModel::toggleSelection,
+            modifier = Modifier.padding(padding)
+        )
+    }
+}
+
+@Composable
+internal fun StorageContent(
+    state: StorageUiState,
+    onRefresh: () -> Unit,
+    onClearPdf: () -> Unit,
+    onClearAll: () -> Unit,
+    onToggleSelection: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        item {
+            com.bdbshs.crest.ui.components.ContentHeader(
+                "Saved paper storage",
+                "Manage the downloaded research and temporary files on this device."
+            )
+        }
+        state.error?.let { message ->
+            item { com.bdbshs.crest.ui.components.FeedbackPanel("Storage could not load", message, "Try again", onRefresh) }
+        }
+        if (state.isLoading) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    Text("Checking saved files…", style = MaterialTheme.typography.bodyMedium)
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Storage Summary Card
+        } else if (state.error == null) {
+            item { StorageSummaryCard(state.pdfCacheSize, state.totalAppCacheSize, onClearPdf, onClearAll) }
+            item { Text("Saved research PDFs · ${state.cachedResearches.size} files", style = MaterialTheme.typography.titleMedium) }
+            if (state.cachedResearches.isEmpty()) {
                 item {
-                    StorageSummaryCard(
-                        pdfCacheSize = uiState.pdfCacheSize,
-                        totalAppCacheSize = uiState.totalAppCacheSize,
-                        onClearPdfCache = viewModel::showClearPdfCacheDialog,
-                        onClearAllCache = viewModel::showClearAllCacheDialog
+                    com.bdbshs.crest.ui.components.EmptyCollectionPanel(
+                        "No papers saved on this device",
+                        "Open a research PDF while online to save a copy for offline reading. This page lists the files stored locally, not every paper in the school library.",
+                        "Refresh saved files", onRefresh,
+                        listOf("Clearing storage" to "Removing a local copy does not delete the school research paper. It will need to be downloaded again before offline reading.")
                     )
                 }
-
-                // Section Header
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Cached Research PDFs",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${uiState.cachedResearches.size} files",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Cached Research List
-                if (uiState.cachedResearches.isEmpty()) {
-                    item {
-                        EmptyState(
-                            icon = Icons.Outlined.FolderOpen,
-                            message = "No cached research files.\nDownloaded PDFs will appear here."
-                        )
-                    }
-                } else {
-                    items(
-                        items = uiState.cachedResearches,
-                        key = { it.fileId }
-                    ) { item ->
-                        CachedResearchCard(
-                            item = item,
-                            onToggleSelect = { viewModel.toggleSelection(item.fileId) }
-                        )
-                    }
-                }
-
-                // Bottom padding for FAB
-                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
+        }
+        items(state.cachedResearches, key = { it.fileId }) { item ->
+            CachedResearchCard(item, { onToggleSelection(item.fileId) })
         }
     }
 }
@@ -326,7 +313,7 @@ private fun CachedResearchCard(
         )
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -412,7 +399,7 @@ private fun SelectionActionBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

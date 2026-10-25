@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -48,12 +49,12 @@ fun SignUpDetails(
     val coroutineScope = rememberCoroutineScope()
 
     // Input states for Student details (kept local to the screen for validation)
-    var studentName by remember { mutableStateOf("") }
-    var lrn by remember { mutableStateOf("") }
+    var studentName by rememberSaveable { mutableStateOf("") }
+    var lrn by rememberSaveable { mutableStateOf("") }
 
     // Input states for Teacher details (kept local)
-    var teacherName by remember { mutableStateOf("") }
-    var teacherEmail by remember { mutableStateOf("") }
+    var teacherName by rememberSaveable { mutableStateOf("") }
+    var teacherEmail by rememberSaveable { mutableStateOf("") }
 
     // Validation states (kept local for immediate UI feedback)
     var studentNameError by remember { mutableStateOf(false) }
@@ -84,7 +85,6 @@ fun SignUpDetails(
                 actionLabel = "Dismiss",
                 duration = SnackbarDuration.Short
             )
-            viewModel.clearError() // Clear error after showing
         }
     }
 
@@ -223,32 +223,32 @@ fun SignUpDetails(
 }
 
 @Composable
-private fun RoleSelectionScreen(
+internal fun RoleSelectionScreen(
     onStudentSelected: () -> Unit,
     onTeacherSelected: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         Text(
-            text = "I am a...",
+            text = "Choose your school role",
             style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 32.dp),
+            modifier = Modifier.padding(top = 16.dp),
             textAlign = TextAlign.Center
         )
 
         // Both student and teacher cards are explicitly added here.
         RoleSelectionCard(
             title = "Student",
-            description = "Access researches and documents, manage groups, and track your progress.",
+            description = "Find research, work with your group, submit a PDF, and receive teacher feedback. Student registrations need approval.",
             onClick = onStudentSelected,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp)) // Space between the two cards
         RoleSelectionCard(
             title = "Teacher",
             description = "Manage accounts, oversee research submissions, and access teaching resources.",
@@ -267,7 +267,7 @@ private fun RoleSelectionCard(
 ) {
     Card(
         modifier = modifier
-            .heightIn(max = 200.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -275,7 +275,7 @@ private fun RoleSelectionCard(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -307,7 +307,7 @@ private fun RoleSelectionCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StudentSignUpForm(
+internal fun StudentSignUpForm(
     uiState: SignUpDetailsUiState,
     studentName: String,
     onStudentNameChange: (String) -> Unit,
@@ -464,7 +464,7 @@ private fun StudentSignUpForm(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TeacherSignUpForm(
+internal fun TeacherSignUpForm(
     uiState: SignUpDetailsUiState,
     teacherName: String,
     onTeacherNameChange: (String) -> Unit,

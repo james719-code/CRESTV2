@@ -13,7 +13,10 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -84,7 +87,7 @@ fun MainScreen(
     val title = remember(currentRoute, isOnline) {
         val baseTitle = when (currentRoute) {
             AppDestination.Home.route -> "Home"
-            AppDestination.Researches.route -> "Researches"
+            AppDestination.Researches.route -> "Research"
             AppDestination.Documents.route -> "Documents"
             AppDestination.Favorites.route -> "Favorites"
             AppDestination.Groups.route -> "Groups"
@@ -206,7 +209,7 @@ fun MainScreenWithPager(
     navigationActions: NavigationActions,
     isOnline: Boolean,
     initialPage: Int = 0,
-    homeContent: @Composable (PaddingValues, UserType?) -> Unit,
+    homeContent: @Composable (PaddingValues, UserType?, () -> Unit) -> Unit,
     researchesContent: @Composable (PaddingValues, UserType?) -> Unit,
     documentsContent: @Composable (PaddingValues, UserType?) -> Unit,
     groupsContent: (@Composable (PaddingValues, UserType?) -> Unit)? = null
@@ -236,7 +239,7 @@ fun MainScreenWithPagerContent(
     navigationActions: NavigationActions,
     isOnline: Boolean,
     initialPage: Int,
-    homeContent: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit,
+    homeContent: @Composable (padding: PaddingValues, userRole: UserType?, onOpenGroups: () -> Unit) -> Unit,
     researchesContent: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit,
     documentsContent: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit,
     groupsContent: (@Composable (padding: PaddingValues, userRole: UserType?) -> Unit)?,
@@ -246,6 +249,7 @@ fun MainScreenWithPagerContent(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val useRail = isOnline && LocalConfiguration.current.screenWidthDp >= 600
 
     // Bottom sheet state for profile menu
     val sheetState = rememberModalBottomSheetState()
@@ -293,6 +297,15 @@ fun MainScreenWithPagerContent(
         pageCount = { pageCount }
     )
 
+    // Resolve role-dependent destinations after the cached or remote role arrives.
+    var initialPageResolved by rememberSaveable(initialPage, isOnline) { mutableStateOf(false) }
+    LaunchedEffect(initialPage, isOnline, uiState.userRole) {
+        if (!initialPageResolved && (!isOnline || uiState.userRole != null)) {
+            pagerState.scrollToPage(if (isOnline) initialPage.coerceIn(0, pageCount - 1) else 0)
+            initialPageResolved = true
+        }
+    }
+
     // Sync pager with navigation
     val currentRoute = remember(pagerState.currentPage, isOnline) {
         if (!isOnline) {
@@ -311,11 +324,11 @@ fun MainScreenWithPagerContent(
     // Title based on current page
     val title = remember(pagerState.currentPage, isOnline) {
         if (!isOnline) {
-            "Researches (Cached)"
+            "Saved research"
         } else {
             when (pagerState.currentPage) {
                 0 -> "Home"
-                1 -> "Researches"
+                1 -> "Research"
                 2 -> "Documents"
                 3 -> "Groups"
                 else -> "CREST"
@@ -387,7 +400,7 @@ fun MainScreenWithPagerContent(
         },
         bottomBar = {
             AnimatedVisibility(
-                visible = bottomNavItems.isNotEmpty(),
+                visible = bottomNavItems.isNotEmpty() && !useRail,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
             ) {
@@ -411,17 +424,37 @@ fun MainScreenWithPagerContent(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (isOnline) {
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                beyondViewportPageCount = 1 // Preload adjacent pages
-            ) { page ->
-                when (page) {
-                    0 -> homeContent(paddingValues, uiState.userRole)
-                    1 -> researchesContent(paddingValues, uiState.userRole)
-                    2 -> documentsContent(paddingValues, uiState.userRole)
-                    3 -> groupsContent?.invoke(paddingValues, uiState.userRole)
+        if (uiState.userRole == null && uiState.error != null) {
+            Box(Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)) {
+                FeedbackPanel(
+                    "Your school workspace could not load",
+                    "Your account role could not be verified. Return to sign-in and try again, or ask a teacher to check your access.",
+                    "Return to sign-in", onSignOutClick
+                )
+            }
+        } else if (isOnline) {
+            Row(Modifier.fillMaxSize()) {
+                if (useRail) {
+                    CrestNavigationRail(
+                        items = bottomNavItems,
+                        selectedIndex = pagerState.currentPage,
+                        onItemClick = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+                        modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
+                    )
+                }
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    beyondViewportPageCount = 1 // Preload adjacent pages
+                ) { page ->
+                    when (page) {
+                        0 -> homeContent(paddingValues, uiState.userRole) {
+                            if (pageCount > 3) scope.launch { pagerState.animateScrollToPage(3) }
+                        }
+                        1 -> researchesContent(paddingValues, uiState.userRole)
+                        2 -> documentsContent(paddingValues, uiState.userRole)
+                        3 -> groupsContent?.invoke(paddingValues, uiState.userRole)
+                    }
                 }
             }
         } else {
@@ -439,7 +472,7 @@ private fun MainScreenWithPagerPreview() {
             navigationActions = NavigationActions(rememberNavController()),
             isOnline = true,
             initialPage = 0,
-            homeContent = { padding, _ ->
+            homeContent = { padding, _, _ ->
                 Box(modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()) {
