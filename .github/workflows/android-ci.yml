@@ -2,15 +2,34 @@ name: Android CI
 
 on:
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "frontend/**"
   push:
     branches:
       - master
       - main
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "frontend/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Unit tests and debug build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
 
     steps:
       - name: Checkout
@@ -24,6 +43,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Create placeholder Firebase config
         run: |
@@ -60,7 +81,9 @@ jobs:
           JSON
 
       - name: Make Gradle wrapper executable
-        run: chmod +x gradlew
+        run: |
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
 
       - name: Validate
-        run: ./gradlew testDebugUnitTest assembleDebug
+        run: ./gradlew --stacktrace testDebugUnitTest assembleDebug

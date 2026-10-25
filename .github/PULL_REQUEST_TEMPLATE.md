@@ -4,6 +4,8 @@
 
 ## Validation
 
+Run Android checks from `android/`:
+
 - [ ] `./gradlew testDebugUnitTest`
 - [ ] `./gradlew assembleDebug`
 - [ ] `./gradlew connectedDebugAndroidTest` when UI/navigation changed

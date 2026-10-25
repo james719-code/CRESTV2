@@ -2,24 +2,32 @@
 *.iml
 .gradle
 /local.properties
+/android/local.properties
 /.idea/
+/android/.idea/
 /captures
+/android/captures/
 
 # --- Build Outputs ---
 **/build/
 /release/
 /debug/
+/android/release/
+/android/debug/
 
 # --- Kotlin / Java ---
 *.class
 **/out/
 /.kotlin/
+/android/.kotlin/
 
 # --- NDK / Native Code ---
 .externalNativeBuild
 .cxx/
 /obj/
 /libs/
+/android/obj/
+/android/libs/
 
 # --- Logs & Temp ---
 *.log
@@ -41,7 +49,12 @@ google-services.json
 /crest_jks
 /crest_jks.txt
 /firebase_base64.txt
+/android/crest_jks
+/android/crest_jks.txt
+/android/firebase_base64.txt
 
 # --- Generated local docs ---
 /CREST_User_Guide.html
 /CREST_User_Guide.pdf
+/docs/CREST_User_Guide.html
+/docs/CREST_User_Guide.pdf

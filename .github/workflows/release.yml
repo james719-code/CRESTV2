@@ -5,10 +5,18 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build signed APK
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android
     permissions:
       contents: write
     steps:
@@ -24,33 +32,36 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Decode keystore
-        id: decode_keystore
-        uses: timheuer/base64-to-file@v1.2
-        with:
-          fileName: "release_key.jks"
-          encodedString: ${{ secrets.SIGNING_KEY }}
-
-      - name: Decode Firebase config
-        id: decode_google_services
-        uses: timheuer/base64-to-file@v1.2
-        with:
-          fileName: "google-services.json"
-          encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          fileDir: "./app"
-
       - name: Make gradlew executable
         run: |
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Build release APK
-        run: ./gradlew assembleRelease
+      - name: Decode release inputs
+        shell: bash
         env:
-          RELEASE_STORE_FILE: ${{ steps.decode_keystore.outputs.filePath }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          for name in SIGNING_KEY GOOGLE_SERVICES_JSON KEY_STORE_PASSWORD ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing required secret: ${name}"
+              exit 1
+            fi
+          done
+
+          printf '%s' "${SIGNING_KEY}" | base64 --decode > "${RUNNER_TEMP}/release_key.jks"
+          printf '%s' "${GOOGLE_SERVICES_JSON}" | base64 --decode > app/google-services.json
+
+      - name: Test and build release APK
+        run: ./gradlew --stacktrace testDebugUnitTest assembleRelease
+        env:
+          RELEASE_STORE_FILE: ${{ runner.temp }}/release_key.jks
           RELEASE_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -58,7 +69,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: "app/build/outputs/apk/release/*.apk"
+          files: "android/app/build/outputs/apk/release/*.apk"
           name: Release ${{ github.ref_name }}
           body: |
             Automated Android release for ${{ github.ref_name }}.
