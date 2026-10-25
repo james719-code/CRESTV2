@@ -58,3 +58,9 @@ google-services.json
 /CREST_User_Guide.pdf
 /docs/CREST_User_Guide.html
 /docs/CREST_User_Guide.pdf
+
+# --- Local UI review captures (artifacts/ui-audit is tracked) ---
+/artifacts/redesign/
+/artifacts/home-ui/
+/artifacts/login-ui/
+/artifacts/ui-audit/
