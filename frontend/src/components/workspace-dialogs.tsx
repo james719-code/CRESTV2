@@ -657,7 +657,9 @@ export function FileViewer({
         <DialogHeader>
           <DialogTitle>{file?.title || 'Research PDF'}</DialogTitle>
           <DialogDescription>
-            {isDemo ? 'Teacher workspace demo' : 'School research document'}
+            {isDemo
+              ? 'Teacher workspace demo'
+              : 'School research document · Saved in this browser for up to 30 days. Access is checked each time.'}
           </DialogDescription>
         </DialogHeader>
         {isDemo && file?.id.startsWith('sample-') ? (

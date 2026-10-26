@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth'
+
 import {
   arrayUnion,
   collection,
@@ -16,14 +17,19 @@ import {
   type DocumentData,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { ResearchGroup, Teacher, UploadInput, Workspace } from '../domain'
+import type { ResearchGroup, StudentAccountStatus, StudentDecision, Teacher, UploadInput, Workspace } from '../domain'
 import { researchType, validateReview } from '../domain'
+import { reviewStudentAccount } from './student-accounts'
+import { clearSchoolFileCache, deleteFile, uploadFile } from './storage'
+import { notifyEvent } from './edge'
+export { readFile } from './storage'
 
 const app = initializeApp({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
 })
 const auth = getAuth(app)
 const db = getFirestore(app)
@@ -87,6 +93,7 @@ export function observeWorkspace(callbacks: {
       stopRole?.()
       clearData()
       if (!user) {
+        void clearSchoolFileCache()
         callbacks.session('signed-out', null)
         return
       }
@@ -96,6 +103,7 @@ export function observeWorkspace(callbacks: {
         doc(db, paths.teachers, user.uid),
         (role) => {
           if (!role.exists() || role.data().access !== true) {
+            void clearSchoolFileCache()
             clearData()
             watching = false
             callbacks.session('denied', null)
@@ -134,6 +142,7 @@ export function observeWorkspace(callbacks: {
                     strand: string(data.strand),
                     groupId: string(data.groupId) || string(data.group_id),
                     accepted: data.accepted === true,
+                    declined: data.declined === true,
                   })),
                   teachers: rows('teachers').map(({ id, data }) => ({
                     id,
@@ -208,6 +217,7 @@ export async function login() {
 
 export async function logout() {
   await signOut(auth)
+  await clearSchoolFileCache()
 }
 
 function currentTeacherRef() {
@@ -254,48 +264,27 @@ export async function reviewGroup(id: string, decision: 'approve' | 'changes', f
     })
     tx.update(groupRef, { accepted_research: true, uploaded: false })
   })
+  await notifyEvent('group-reviewed', id)
 }
 
 export async function approveAccount(id: string, role: 'student' | 'teacher') {
+  if (role === 'student') return reviewStudent(id, 'approve', 'pending')
   const roleRef = currentTeacherRef()
-  const accountRef = doc(db, role === 'student' ? paths.students : paths.teachers, id)
+  const accountRef = doc(db, paths.teachers, id)
   await runTransaction(db, async (tx) => {
     const teacher = await tx.get(roleRef)
     const account = await tx.get(accountRef)
     if (teacher.data()?.access !== true) throw new Error('An approved teacher account is required.')
     if (!account.exists()) throw new Error('This account no longer exists.')
-    tx.update(accountRef, { [role === 'student' ? 'accepted' : 'access']: true })
+    if (account.data()?.access === true) throw new Error('This account has already been approved.')
+    tx.update(accountRef, { access: true })
   })
+  await notifyEvent('account-approved', id, role)
 }
 
-const storage = {
-  endpoint: String(import.meta.env.VITE_APPWRITE_ENDPOINT || '').replace(/\/$/, ''),
-  project: String(import.meta.env.VITE_APPWRITE_PROJECT_ID || ''),
-  bucket: String(import.meta.env.VITE_APPWRITE_BUCKET_ID || ''),
-}
-
-function fileEndpoint(fileId?: string) {
-  if (!storage.endpoint || !storage.project || !storage.bucket)
-    throw new Error('School file storage has not been connected yet.')
-  const endpoint = new URL(storage.endpoint)
-  if (!['https:', 'http:'].includes(endpoint.protocol))
-    throw new Error('The school storage address is invalid.')
-  return `${storage.endpoint}/storage/buckets/${encodeURIComponent(storage.bucket)}/files${fileId ? `/${encodeURIComponent(fileId)}` : ''}`
-}
-
-export async function readFile(fileId: string): Promise<Blob> {
-  const response = await fetch(`${fileEndpoint(fileId)}/view`, {
-    headers: { 'X-Appwrite-Project': storage.project },
-    credentials: 'include',
-  })
-  if (!response.ok)
-    throw new Error(
-      'The PDF could not be opened. Check your connection and school file permissions.',
-    )
-  const blob = await response.blob()
-  if (!blob.type.includes('pdf'))
-    throw new Error('This file is not a PDF. Ask the uploader to check the document.')
-  return blob
+export async function reviewStudent(id: string, decision: StudentDecision, expected: StudentAccountStatus) {
+  await reviewStudentAccount(db, currentTeacherRef().id, id, decision, expected)
+  if (decision === 'approve') await notifyEvent('account-approved', id, 'student')
 }
 
 export async function upload(input: UploadInput) {
@@ -305,21 +294,7 @@ export async function upload(input: UploadInput) {
     const role = await tx.get(roleRef)
     if (role.data()?.access !== true) throw new Error('An approved teacher account is required.')
   })
-  const body = new FormData()
-  body.append('fileId', 'unique()')
-  body.append('file', input.file)
-  const response = await fetch(fileEndpoint(), {
-    method: 'POST',
-    headers: { 'X-Appwrite-Project': storage.project },
-    credentials: 'include',
-    body,
-  })
-  if (!response.ok)
-    throw new Error(
-      'Your PDF could not be uploaded. Check your connection and school file permissions, then try again.',
-    )
-  const result: { $id: string } = await response.json()
-  if (!result.$id) throw new Error('The file service did not return a file reference.')
+  const fileId = await uploadFile(input.file, input.kind === 'document' ? 'document' : 'research')
   try {
     await runTransaction(db, async (tx) => {
       const role = await tx.get(roleRef)
@@ -329,7 +304,7 @@ export async function upload(input: UploadInput) {
         tx.set(doc(collection(db, paths.documents)), {
           name: input.title,
           description: input.description,
-          file_link: result.$id,
+          file_link: fileId,
           createdAt: Date.now(),
         })
       } else {
@@ -338,7 +313,7 @@ export async function upload(input: UploadInput) {
           members: input.authors,
           strand: input.strand,
           type: input.type.toUpperCase(),
-          file_link: result.$id,
+          file_link: fileId,
           createdAt: Date.now(),
           downloads: 0,
           unfinished: false,
@@ -346,12 +321,7 @@ export async function upload(input: UploadInput) {
       }
     })
   } catch (error) {
-    // Roll back an unattached upload when possible; never delete an existing school file.
-    await fetch(fileEndpoint(result.$id), {
-      method: 'DELETE',
-      headers: { 'X-Appwrite-Project': storage.project },
-      credentials: 'include',
-    }).catch(() => undefined)
+    await deleteFile(fileId).catch(() => undefined)
     throw error
   }
 }

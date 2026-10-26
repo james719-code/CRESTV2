@@ -52,6 +52,7 @@ import { useWorkspace } from './data/useWorkspace'
 import { AuthPage } from './components/auth-page'
 import { CrestLogo } from './components/crest-logo'
 import { DisplaySettings } from './components/display-settings'
+import { NotificationSettings } from './components/notification-settings'
 import { PageGuidance } from './components/page-guidance'
 import { isWorkspaceRoute, parseRoute, type Route } from './routing'
 import {
@@ -484,6 +485,7 @@ function App() {
             </div>
             <div className="topbar-actions">
               <DisplaySettings />
+              {!isDemo && <NotificationSettings />}
               <button
                 className="global-search"
                 aria-label="Search your workspace"
