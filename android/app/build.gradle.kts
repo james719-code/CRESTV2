@@ -16,6 +16,10 @@ val localProperties = Properties().apply {
     }
 }
 
+val releaseVersion = Properties().apply {
+    rootProject.file("version.properties").inputStream().use(::load)
+}
+
 fun resolveConfigValue(name: String, fallback: String): String {
     val fromLocal = localProperties.getProperty(name)
     val fromGradle = providers.gradleProperty(name).orNull
@@ -37,8 +41,8 @@ android {
         applicationId = "com.bdbshs.crest"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = releaseVersion.getProperty("versionCode").toInt()
+        versionName = releaseVersion.getProperty("versionName")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

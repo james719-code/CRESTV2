@@ -27,6 +27,18 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check release tag matches app version
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_version="$(sed -n 's/^versionName=//p' version.properties | tr -d '\r')"
+          tag_version="${GITHUB_REF_NAME#android-v}"
+          tag_version="${tag_version#v}"
+          if [ "$tag_version" != "$app_version" ]; then
+            echo "::error::Release tag ${GITHUB_REF_NAME} does not match app version ${app_version}."
+            exit 1
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
