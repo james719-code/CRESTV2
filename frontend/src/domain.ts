@@ -9,6 +9,49 @@ export interface Student {
   strand: string
   groupId: string
   accepted: boolean
+  declined?: boolean
+}
+
+export type StudentAccountStatus = 'pending' | 'approved' | 'declined'
+export type StudentDecision = 'approve' | 'decline'
+
+export const studentAccountStatus = (
+  student: Pick<Student, 'accepted' | 'declined'>,
+): StudentAccountStatus =>
+  student.accepted ? 'approved' : student.declined ? 'declined' : 'pending'
+
+export const studentAccountLabels: Record<StudentAccountStatus, string> = {
+  pending: 'Pending approval',
+  approved: 'Approved',
+  declined: 'Declined',
+}
+
+export function studentDecisionUpdate(
+  student: Pick<Student, 'accepted' | 'declined'>,
+  decision: StudentDecision,
+  expected: StudentAccountStatus,
+) {
+  if (studentAccountStatus(student) !== expected)
+    throw new Error('This account has changed. Check its current status and try again.')
+  if (
+    (decision === 'approve' && expected === 'approved') ||
+    (decision === 'decline' && expected === 'declined')
+  )
+    throw new Error('This account already has that status.')
+  return { accepted: decision === 'approve', declined: decision === 'decline' }
+}
+
+export function reviewStudentWorkspace(
+  workspace: Workspace,
+  id: string,
+  decision: StudentDecision,
+  expected: StudentAccountStatus,
+): Workspace {
+  const next = structuredClone(workspace)
+  const student = next.students.find((item) => item.id === id)
+  if (!student) throw new Error('This student account no longer exists.')
+  Object.assign(student, studentDecisionUpdate(student, decision, expected))
+  return next
 }
 
 export interface Teacher {
