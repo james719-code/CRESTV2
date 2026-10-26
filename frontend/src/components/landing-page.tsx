@@ -7,6 +7,7 @@ import {
   ClipboardText,
   Clock,
   DeviceMobile,
+  DownloadSimple,
   FileText,
   GraduationCap,
   Heart,
@@ -17,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CrestLogo } from './crest-logo'
 import { DisplaySettings } from './display-settings'
+import { AppDownload } from './app-download'
+import { androidDownloadUrl } from '@/data/app-release'
 import './landing-page.css'
 
 interface LandingPageProps {
@@ -60,8 +63,8 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
             </span>
           </a>
           <nav aria-label="Website navigation">
+            <button onClick={() => scrollToSection('download-app')}>Download app</button>
             <button onClick={() => scrollToSection('for-teachers')}>For teachers</button>
-            <button onClick={() => scrollToSection('how-it-works')}>How it works</button>
             <button onClick={() => scrollToSection('the-project')}>The project</button>
           </nav>
           <div className="landing-header-actions">
@@ -81,28 +84,42 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
               MADE FOR YOUR SCHOOL COMMUNITY
             </Badge>
             <h1>
-              Good research grows
+              Your school’s research.
               <br />
-              with <span>good guidance.</span>
+              <span>Always within reach.</span>
             </h1>
             <p>
-              Bring your students’ research into focus. Follow each group’s progress, give
-              thoughtful feedback, and build a library your school can learn from.
+              Download CREST for Android to find research, read papers, and work with your group.
+              Teachers can follow progress and guide the next step right here on the web.
             </p>
             <div className="landing-hero-actions">
-              <Button size="lg" onClick={enter}>
+              <Button size="lg" asChild>
+                <a href={androidDownloadUrl}>
+                  <DownloadSimple size={18} />
+                  Download for Android
+                </a>
+              </Button>
+              <Button size="lg" variant="outline" onClick={enter}>
                 {enterLabel}
                 <ArrowRight size={18} />
               </Button>
-              {isDemo && (
-                <Button variant="outline" size="lg" onClick={onWorkspace}>
-                  Explore the teacher demo
-                  <ArrowUpRight size={18} />
-                </Button>
-              )}
             </div>
+            <p className="landing-download-note">
+              Android 7.0 or later · Free APK download from GitHub
+            </p>
+            {isDemo && (
+              <button className="landing-hero-demo" onClick={onWorkspace}>
+                Explore the teacher demo <ArrowUpRight size={16} />
+              </button>
+            )}
             <div className="landing-school">
-              <GraduationCap size={22} />
+              <img
+                className="school-logo"
+                src="/bdbshs-school-logo.jpg"
+                width={64}
+                height={64}
+                alt="Bonifacio D. Borebor Sr. High School seal"
+              />
               <span>
                 Made for students and teachers at
                 <br />
@@ -254,6 +271,7 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
             </span>
           </div>
         </div>
+        <AppDownload />
         <section id="for-teachers" className="landing-section landing-container">
           <div className="landing-section-heading">
             <span className="landing-eyebrow">A LITTLE CLARITY FOR YOUR CLASSROOM</span>
@@ -448,7 +466,13 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
               </h2>
             </div>
             <div>
-              <Button size="lg" onClick={enter}>
+              <Button size="lg" asChild>
+                <a href={androidDownloadUrl}>
+                  <DownloadSimple size={18} />
+                  Download for Android
+                </a>
+              </Button>
+              <Button size="lg" variant="outline" onClick={enter}>
                 {enterLabel}
                 <ArrowRight size={18} />
               </Button>
@@ -475,7 +499,17 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
           <br />
           Maintained for <strong>3+ years</strong>
         </p>
-        <span>Bonifacio D. Borebor Sr. High School</span>
+        <div className="landing-footer-school">
+          <img
+            className="school-logo"
+            src="/bdbshs-school-logo.jpg"
+            width={44}
+            height={44}
+            alt="Bonifacio D. Borebor Sr. High School seal"
+            loading="lazy"
+          />
+          <span>Bonifacio D. Borebor Sr. High School</span>
+        </div>
       </footer>
     </div>
   )

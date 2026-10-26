@@ -121,6 +121,212 @@
   gap: 12px;
   margin-top: 28px;
 }
+.landing-hero-copy > .landing-download-note {
+  font-size: 0.75rem;
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.landing-hero-demo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 0.8125rem;
+  padding-block: 12px;
+}
+.school-logo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  padding: 3px;
+}
+.landing-download {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: 72px;
+  padding-block: 80px;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 24px;
+}
+.landing-download h2 {
+  font-size: clamp(1.875rem, 3vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -1.2px;
+  margin-top: 14px;
+}
+.landing-download-copy > p {
+  max-width: 460px;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.9;
+  margin-top: 20px;
+}
+.landing-app-features {
+  display: grid;
+  gap: 18px;
+  margin-block: 28px;
+  padding: 0;
+  list-style: none;
+}
+.landing-app-features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.landing-app-features svg {
+  flex-shrink: 0;
+  color: var(--crest-color-secondary);
+}
+.landing-download-copy > .landing-platform-note {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  font-size: 0.8125rem;
+}
+.landing-download-panel {
+  min-width: 0;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--muted);
+}
+.landing-app-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.landing-app-identity h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.landing-app-identity span,
+.landing-release-info > span,
+.landing-apk-details,
+.landing-release-link {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+.landing-release-info {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 94px;
+  padding-block: 22px;
+}
+.landing-release-info strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.landing-release-info > .landing-release-skeleton {
+  width: 145px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--border);
+}
+.landing-download-panel > [data-slot='button'] {
+  width: 100%;
+}
+.landing-apk-details,
+.landing-release-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.landing-apk-details {
+  margin-top: 14px;
+}
+.landing-release-link {
+  width: fit-content;
+  margin: 8px auto 0;
+  min-height: 40px;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.landing-install-guide {
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+  padding-top: 20px;
+}
+.landing-install-guide h4 {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.landing-install-guide ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 19px;
+  margin-top: 12px;
+  list-style: decimal;
+}
+.landing-install-guide li,
+.landing-install-guide p {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.8;
+}
+.landing-install-guide p {
+  margin-top: 14px;
+}
+.landing-footer-school {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 280px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.8;
+}
+.landing-final > div > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.landing-final .landing-demo-link {
+  flex-basis: 100%;
+}
+.landing-page [data-slot='button']:active {
+  transform: scale(0.98);
+}
+@media (max-width: 900px) {
+  .landing-download {
+    gap: 35px;
+    grid-template-columns: 1fr;
+    padding-block: 55px;
+  }
+  .landing-download-panel {
+    max-width: 520px;
+    width: 100%;
+  }
+  .landing-footer-school {
+    max-width: none;
+  }
+}
+@media (max-width: 600px) {
+  .landing-download-panel {
+    padding: 24px 20px;
+  }
+  .landing-app-identity > .crest-logo {
+    width: 60px;
+    height: 60px;
+  }
+  .landing-app-identity h3 {
+    font-size: 1.125rem;
+  }
+  .landing-final .landing-demo-link {
+    flex-basis: auto;
+  }
+}
 .landing-school {
   display: flex;
   gap: 11px;

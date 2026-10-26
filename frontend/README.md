@@ -15,6 +15,13 @@ Open the local URL shown by Vite to see the public landing page. `#home` opens t
 
 ## Teacher workflows
 
+The landing page also provides a direct Android APK download and shows the school
+seal supplied by the maintainer (`public/bdbshs-school-logo.jpg`). Download metadata
+comes from the latest published GitHub Release; an unreleased development version
+is never used as the label for an older APK. The permanent download works even
+when release metadata cannot be fetched. See [the release process](../docs/RELEASE.md)
+for versioning, signing, tags, and the stable asset name.
+
 - Overview: student and group counts, submission progress, review queue, and recent research.
 - Research groups: search, strand and status filters, members, PDF viewing, and feedback history.
 - Students: search all profiles, filter approved/pending/declined accounts, approve or decline registrations, revoke or restore access, and follow group research progress.
