@@ -16,6 +16,7 @@ export function CrestLogo({
       height={size}
       className={cn('crest-logo', className)}
       alt={decorative ? '' : 'CREST logo'}
+      style={{ display: 'inline-block' }}
     />
   )
 }
