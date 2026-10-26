@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
@@ -41,15 +43,15 @@ fun MainScreen(
     currentRoute: String?,
     isOnline: Boolean,
     onNavigationClick: (() -> Unit)? = null,
+    mainViewModel: MainViewModel = hiltViewModel(),
     content: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit
 ) {
-    val mainViewModel: MainViewModel = hiltViewModel()
-    val uiState by mainViewModel.uiState.collectAsState()
+    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     
     // Bottom sheet state for profile menu
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showProfileSheet by remember { mutableStateOf(false) }
     
     // Scroll behavior for collapsing top bar
@@ -105,6 +107,7 @@ fun MainScreen(
     // Profile bottom sheet
     if (showProfileSheet) {
         ModalBottomSheet(
+            modifier = Modifier.statusBarsPadding(),
             onDismissRequest = { showProfileSheet = false },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -166,11 +169,7 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            AnimatedVisibility(
-                visible = bottomNavItems.isNotEmpty(),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-            ) {
+            if (bottomNavItems.isNotEmpty()) {
                 if (isOnline) {
                     CrestBottomNavBar(
                         items = bottomNavItems,
@@ -212,10 +211,10 @@ fun MainScreenWithPager(
     homeContent: @Composable (PaddingValues, UserType?, () -> Unit) -> Unit,
     researchesContent: @Composable (PaddingValues, UserType?) -> Unit,
     documentsContent: @Composable (PaddingValues, UserType?) -> Unit,
-    groupsContent: (@Composable (PaddingValues, UserType?) -> Unit)? = null
+    groupsContent: (@Composable (PaddingValues, UserType?) -> Unit)? = null,
+    mainViewModel: MainViewModel = hiltViewModel()
 ) {
-    val mainViewModel: MainViewModel = hiltViewModel()
-    val uiState by mainViewModel.uiState.collectAsState()
+    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
     MainScreenWithPagerContent(
         navigationActions = navigationActions,
@@ -252,7 +251,7 @@ fun MainScreenWithPagerContent(
     val useRail = isOnline && LocalConfiguration.current.screenWidthDp >= 600
 
     // Bottom sheet state for profile menu
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showProfileSheet by remember { mutableStateOf(false) }
 
     // Scroll behavior for collapsing top bar
@@ -339,6 +338,7 @@ fun MainScreenWithPagerContent(
     // Profile bottom sheet
     if (showProfileSheet) {
         ModalBottomSheet(
+            modifier = Modifier.statusBarsPadding(),
             onDismissRequest = { showProfileSheet = false },
             sheetState = sheetState,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -399,18 +399,14 @@ fun MainScreenWithPagerContent(
             )
         },
         bottomBar = {
-            AnimatedVisibility(
-                visible = bottomNavItems.isNotEmpty() && !useRail,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-            ) {
+            if (bottomNavItems.isNotEmpty() && !useRail) {
                 if (isOnline) {
                     CrestBottomNavBarWithPager(
                         items = bottomNavItems,
                         pagerState = pagerState,
                         onItemClick = { index ->
                             scope.launch {
-                                pagerState.animateScrollToPage(index)
+                                pagerState.scrollToPage(index)
                             }
                         }
                     )
@@ -438,18 +434,18 @@ fun MainScreenWithPagerContent(
                     CrestNavigationRail(
                         items = bottomNavItems,
                         selectedIndex = pagerState.currentPage,
-                        onItemClick = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+                        onItemClick = { index -> scope.launch { pagerState.scrollToPage(index) } },
                         modifier = Modifier.padding(top = paddingValues.calculateTopPadding())
                     )
                 }
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.weight(1f).fillMaxHeight(),
-                    beyondViewportPageCount = 1 // Preload adjacent pages
+                    beyondViewportPageCount = 0
                 ) { page ->
                     when (page) {
                         0 -> homeContent(paddingValues, uiState.userRole) {
-                            if (pageCount > 3) scope.launch { pagerState.animateScrollToPage(3) }
+                            if (pageCount > 3) scope.launch { pagerState.scrollToPage(3) }
                         }
                         1 -> researchesContent(paddingValues, uiState.userRole)
                         2 -> documentsContent(paddingValues, uiState.userRole)

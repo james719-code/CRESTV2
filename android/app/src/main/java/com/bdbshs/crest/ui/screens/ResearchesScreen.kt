@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -44,22 +46,26 @@ fun ResearchesScreen(
     viewModel: ResearchesViewModel = hiltViewModel(),
     @SuppressLint("ModifierParameter") modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val papers by viewModel.filteredAndSortedResearches.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val papers by viewModel.filteredAndSortedResearches.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val listState = rememberLazyListState()
 
     LaunchedEffect(userRole) { viewModel.setUserRole(userRole) }
     LaunchedEffect(favoritesOnly) { viewModel.setFavoritesOnly(favoritesOnly) }
-    LaunchedEffect(listState, papers.size) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { lastIndex ->
-                if (lastIndex != null && papers.isNotEmpty() && lastIndex >= papers.size - 1) {
-                    viewModel.loadMore()
-                }
+    LaunchedEffect(isOnline) { viewModel.setOnlineStatus(isOnline) }
+    LaunchedEffect(listState, papers.size, isOnline) {
+        snapshotFlow {
+            val layout = listState.layoutInfo
+            val lastIndex = layout.visibleItemsInfo.lastOrNull()?.index ?: -1
+            layout.totalItemsCount > 0 && lastIndex >= layout.totalItemsCount - 3
+        }.collect { nearEnd ->
+            if (nearEnd && isOnline && papers.isNotEmpty()) {
+                viewModel.loadMore()
             }
+        }
     }
 
     uiState.selectedResearchForAction?.takeIf { uiState.isActionDialogVisible }?.let { selected ->

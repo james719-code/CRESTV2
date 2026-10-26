@@ -127,11 +127,12 @@ class ResearchDetailViewModel @Inject constructor(
     private fun incrementDownloadCount() {
         // Only run if we haven't already done it for this screen instance
         if (hasIncrementedCount || researchId == null) return
+        val type = _uiState.value.researchItem?.type ?: return
         hasIncrementedCount = true // Set flag to true immediately
 
         viewModelScope.launch {
             try {
-                researchRepository.incrementDownloadCount(researchId)
+                researchRepository.incrementDownloadCount(researchId, type.name.lowercase())
             } catch (e: Exception) {
                 Log.w("ResearchDetailVM", "Failed to increment download count", e)
             }

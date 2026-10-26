@@ -3,16 +3,15 @@ package com.bdbshs.crest.navigation
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -59,12 +58,17 @@ sealed class AppDestination(val route: String) {
 // --- NAVIGATION ACTIONS ---
 class NavigationActions(private val navController: NavController) {
     fun navigateTo(dest: AppDestination) {
+        val isMainTab = dest in listOf(AppDestination.Home, AppDestination.Researches, AppDestination.Documents, AppDestination.Groups)
         navController.navigate(dest.route) {
-            // Pop up to the start destination of the graph to avoid a deep back stack
-            // and ensure single instance of the destination
-            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            if (isMainTab) {
+                // A tab chosen from a secondary page must open that tab, rather than
+                // restore an unrelated page inside the previous Home pager.
+                popUpTo(navController.graph.id) { inclusive = true }
+            } else {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            }
             launchSingleTop = true
-            restoreState = true
+            restoreState = !isMainTab
         }
     }
     fun navigateToHome() = navController.navigate(AppDestination.Home.route) {
@@ -115,7 +119,7 @@ fun CrestApp() {
     val auth          = FirebaseClient.auth
 
     val mainVm  : MainViewModel = hiltViewModel()
-    val uiState by mainVm.uiState.collectAsState()
+    val uiState by mainVm.uiState.collectAsStateWithLifecycle()
 
     val startRoute = remember(uiState.isLoading) {
         if (uiState.isLoading) null else {
@@ -129,9 +133,7 @@ fun CrestApp() {
     }
 
     if (uiState.isLoading || startRoute == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        SplashScreen()
         return
     }
 
@@ -163,7 +165,14 @@ private fun CrestNavHost(
     isOnline: Boolean,
     mainViewModel: MainViewModel
 ) {
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None }
+    ) {
 
         // --- AUTH FLOW ROUTES ---
         composable(AppDestination.Login.route) {
@@ -232,14 +241,16 @@ private fun CrestNavHost(
             MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = 0
+                initialPage = 0,
+                mainViewModel = mainViewModel
             )
         }
         composable(AppDestination.Researches.route) {
             MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = if (isOnline) 1 else 0
+                initialPage = if (isOnline) 1 else 0,
+                mainViewModel = mainViewModel
             )
         }
         composable(AppDestination.Accounts.route) {
@@ -247,6 +258,7 @@ private fun CrestNavHost(
                 navigationActions = navigationActions, 
                 currentRoute = AppDestination.Accounts.route, 
                 isOnline = isOnline,
+                mainViewModel = mainViewModel,
                 onNavigationClick = navigationActions::navigateBack
             ) { padding, _ ->
                 AccountsScreen(modifier = Modifier.padding(padding))
@@ -256,14 +268,16 @@ private fun CrestNavHost(
             MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = 3
+                initialPage = 3,
+                mainViewModel = mainViewModel
             )
         }
         composable(AppDestination.Documents.route) {
             MainPagerRouteContent(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
-                initialPage = 2
+                initialPage = 2,
+                mainViewModel = mainViewModel
             )
         }
         composable(AppDestination.Favorites.route) {
@@ -271,6 +285,7 @@ private fun CrestNavHost(
                 navigationActions = navigationActions,
                 currentRoute = AppDestination.Favorites.route,
                 isOnline = isOnline,
+                mainViewModel = mainViewModel,
                 onNavigationClick = navigationActions::navigateBack
             ) { padding, userRole ->
                 ResearchesScreen(
@@ -283,7 +298,7 @@ private fun CrestNavHost(
             }
         }
         composable(AppDestination.AboutUs.route) {
-            MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.AboutUs.route, isOnline = isOnline) { padding, _ ->
+            MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.AboutUs.route, isOnline = isOnline, mainViewModel = mainViewModel) { padding, _ ->
                 AboutUsScreen(modifier = Modifier.padding(padding))
             }
         }
@@ -294,12 +309,14 @@ private fun CrestNavHost(
 private fun MainPagerRouteContent(
     navigationActions: NavigationActions,
     isOnline: Boolean,
-    initialPage: Int
+    initialPage: Int,
+    mainViewModel: MainViewModel
 ) {
     MainScreenWithPager(
         navigationActions = navigationActions,
         isOnline = isOnline,
         initialPage = initialPage,
+        mainViewModel = mainViewModel,
         homeContent = { padding, userRole, onOpenGroups ->
             HomeScreen(
                 modifier = Modifier.padding(padding),

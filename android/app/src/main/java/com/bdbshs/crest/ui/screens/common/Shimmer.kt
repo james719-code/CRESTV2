@@ -24,18 +24,10 @@ fun ShimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush
             MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f),
         )
 
-        val transition = rememberInfiniteTransition(label = "shimmer")
-        val translateAnimation = transition.animateFloat(
-            initialValue = 0f,
-            targetValue = targetValue,
-            animationSpec = infiniteRepeatable(
-                animation = tween(800), repeatMode = RepeatMode.Reverse
-            ), label = "shimmer-animation"
-        )
         Brush.linearGradient(
             colors = shimmerColors,
             start = Offset.Zero,
-            end = Offset(x = translateAnimation.value, y = translateAnimation.value)
+            end = Offset(x = targetValue, y = targetValue)
         )
     } else {
         Brush.linearGradient(

@@ -13,12 +13,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -85,14 +88,18 @@ class ResearchesViewModel @Inject constructor(
 
     private var lastQualitativeDoc: DocumentSnapshot? = null
     private var lastQuantitativeDoc: DocumentSnapshot? = null
+    private var initialLoadJob: Job? = null
+    private var loadMoreJob: Job? = null
 
     private val _searchQuery = MutableStateFlow("")
     private val _uiState = MutableStateFlow(ResearchesUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val allResearches: StateFlow<List<ResearchItem>> = _uiState.map {
-        it.qualitativeResearches + it.quantitativeResearches
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val allResearches: StateFlow<List<ResearchItem>> = _uiState
+        .map { it.qualitativeResearches to it.quantitativeResearches }
+        .distinctUntilChanged()
+        .map { (qualitative, quantitative) -> qualitative + quantitative }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(FlowPreview::class)
     val filteredAndSortedResearches: StateFlow<List<ResearchItem>> = combine(
@@ -106,7 +113,7 @@ class ResearchesViewModel @Inject constructor(
                 showFavoritesOnly = it.showFavoritesOnly
             )
         }.distinctUntilChanged(),
-        _searchQuery.debounce(300L)
+        _searchQuery.debounce { query -> if (query.isBlank()) 0L else 300L }
     ) { researches, filters, query ->
         getFilteredResearches(
             researches = researches,
@@ -126,20 +133,25 @@ class ResearchesViewModel @Inject constructor(
     }
 
     private fun loadInitialData() {
-        _uiState.update { it.copy(isLoading = true, error = null, hasMoreQualitative = true, hasMoreQuantitative = true) }
+        initialLoadJob?.cancel()
+        loadMoreJob?.cancel()
+        _uiState.update { it.copy(isLoading = true, isLoadingMore = false, error = null, hasMoreQualitative = true, hasMoreQuantitative = true) }
         lastQualitativeDoc = null
         lastQuantitativeDoc = null
         
-        viewModelScope.launch {
+        initialLoadJob = viewModelScope.launch {
             try {
-                val qualSnap = researchRepository.fetchQualitativeResearches(limit = 15L)
-                val quantSnap = researchRepository.fetchQuantitativeResearches(limit = 15L)
+                val (qualSnap, quantSnap) = coroutineScope {
+                    val qualitative = async { researchRepository.fetchQualitativeResearches(limit = 15L) }
+                    val quantitative = async { researchRepository.fetchQuantitativeResearches(limit = 15L) }
+                    qualitative.await() to quantitative.await()
+                }
                 
                 lastQualitativeDoc = qualSnap.documents.lastOrNull()
                 lastQuantitativeDoc = quantSnap.documents.lastOrNull()
                 
-                val qualList = qualSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUALITATIVE) }
-                val quantList = quantSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUANTITATIVE) }
+                val qualList = qualSnap.documents.mapNotNull { mapDocumentToResearchItem(it, ResearchType.QUALITATIVE) }
+                val quantList = quantSnap.documents.mapNotNull { mapDocumentToResearchItem(it, ResearchType.QUANTITATIVE) }
                 
                 _uiState.update { 
                     it.copy(
@@ -151,6 +163,8 @@ class ResearchesViewModel @Inject constructor(
                         hasMoreQuantitative = quantSnap.documents.size >= 15
                     ) 
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
@@ -168,41 +182,50 @@ class ResearchesViewModel @Inject constructor(
         if (state.isLoading || state.isLoadingMore || (!state.hasMoreQualitative && !state.hasMoreQuantitative)) return
         
         // Disable loadMore when searching for now to simplify logic, as doing a compound server-side search is complex
-        if (state.searchQuery.isNotBlank() || state.showFavoritesOnly) return 
+        if (state.searchQuery.isNotBlank() || state.showFavoritesOnly || !state.isOnline) return
 
         _uiState.update { it.copy(isLoadingMore = true) }
         
-        viewModelScope.launch {
+        loadMoreJob = viewModelScope.launch {
             try {
                 var newQual = emptyList<ResearchItem>()
                 var newQuant = emptyList<ResearchItem>()
                 var moreQual = state.hasMoreQualitative
                 var moreQuant = state.hasMoreQuantitative
 
-                if (state.hasMoreQualitative) {
-                    val qualSnap = researchRepository.fetchQualitativeResearches(limit = 10L, startAfter = lastQualitativeDoc)
+                val (qualSnap, quantSnap) = coroutineScope {
+                    val qualitative = async {
+                        if (state.hasMoreQualitative) researchRepository.fetchQualitativeResearches(limit = 10L, startAfter = lastQualitativeDoc) else null
+                    }
+                    val quantitative = async {
+                        if (state.hasMoreQuantitative) researchRepository.fetchQuantitativeResearches(limit = 10L, startAfter = lastQuantitativeDoc) else null
+                    }
+                    qualitative.await() to quantitative.await()
+                }
+                if (qualSnap != null) {
                     lastQualitativeDoc = qualSnap.documents.lastOrNull() ?: lastQualitativeDoc
-                    newQual = qualSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUALITATIVE) }
+                    newQual = qualSnap.documents.mapNotNull { mapDocumentToResearchItem(it, ResearchType.QUALITATIVE) }
                     moreQual = qualSnap.documents.size >= 10
                 }
 
-                if (state.hasMoreQuantitative) {
-                    val quantSnap = researchRepository.fetchQuantitativeResearches(limit = 10L, startAfter = lastQuantitativeDoc)
+                if (quantSnap != null) {
                     lastQuantitativeDoc = quantSnap.documents.lastOrNull() ?: lastQuantitativeDoc
-                    newQuant = quantSnap.documents.mapNotNull { mapDocumentToResearchItem(it as QueryDocumentSnapshot, ResearchType.QUANTITATIVE) }
+                    newQuant = quantSnap.documents.mapNotNull { mapDocumentToResearchItem(it, ResearchType.QUANTITATIVE) }
                     moreQuant = quantSnap.documents.size >= 10
                 }
                 
                 _uiState.update { 
                     it.copy(
-                        qualitativeResearches = it.qualitativeResearches + newQual,
-                        quantitativeResearches = it.quantitativeResearches + newQuant,
+                        qualitativeResearches = (it.qualitativeResearches + newQual).distinctBy { paper -> paper.id },
+                        quantitativeResearches = (it.quantitativeResearches + newQuant).distinctBy { paper -> paper.id },
                         isLoadingMore = false,
                         hasMoreQualitative = moreQual,
                         hasMoreQuantitative = moreQuant
                     )
                 }
 
+            } catch (e: CancellationException) {
+                throw e
             } catch(e: Exception) {
                 _uiState.update { it.copy(isLoadingMore = false, error = "Failed to load more: ${e.message}") }
             }
@@ -332,6 +355,10 @@ class ResearchesViewModel @Inject constructor(
         _uiState.update { it.copy(currentUserRole = role) }
     }
 
+    fun setOnlineStatus(isOnline: Boolean) {
+        _uiState.update { it.copy(isOnline = isOnline) }
+    }
+
     fun onDeleteConfirmed() {
         val research = _uiState.value.selectedResearchForAction ?: return
         _uiState.update { it.copy(isDeleting = true) }
@@ -350,7 +377,7 @@ class ResearchesViewModel @Inject constructor(
         }
     }
 
-    private fun mapDocumentToResearchItem(doc: QueryDocumentSnapshot, type: ResearchType): ResearchItem? {
+    private fun mapDocumentToResearchItem(doc: DocumentSnapshot, type: ResearchType): ResearchItem? {
         return try {
             val members = (doc.get("members") as? List<*>)
                 ?.mapNotNull { it as? String }

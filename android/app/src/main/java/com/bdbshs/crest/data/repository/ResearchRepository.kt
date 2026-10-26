@@ -92,14 +92,13 @@ class ResearchRepository @Inject constructor(
         storage.delete(fileId) // Retention-only request; no physical removal.
     }
 
-    suspend fun incrementDownloadCount(researchId: String) {
-        val qualitativeRef = firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES).document(researchId)
-        val refToUpdate = if (qualitativeRef.get().await().exists()) {
-            qualitativeRef
-        } else {
-            firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES).document(researchId)
+    suspend fun incrementDownloadCount(researchId: String, typeLowercase: String) {
+        val path = when (typeLowercase) {
+            "qualitative" -> FirestorePaths.QUALITATIVE_RESEARCHES
+            "quantitative" -> FirestorePaths.QUANTITATIVE_RESEARCHES
+            else -> throw IllegalArgumentException("Unknown research type.")
         }
-
-        refToUpdate.update("downloads", FieldValue.increment(1L)).await()
+        firestore.collection(path).document(researchId)
+            .update("downloads", FieldValue.increment(1L)).await()
     }
 }
