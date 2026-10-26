@@ -2,6 +2,10 @@
 
 Releases are built from version tags and published by GitHub Actions.
 
+Android and web CI run independently according to the changed files. Documentation
+changes build neither app. See [CI/CD routing and credentials](CI_CD.md) for the
+trigger table, Netlify setup, and required-check configuration.
+
 ## Prerequisites
 
 Configure these GitHub repository secrets:
@@ -39,11 +43,14 @@ gradlew.bat assembleRelease
 Use semantic version tags:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag android-v1.1.0
+git push origin android-v1.1.0
 ```
 
 The workflow builds a signed release APK and attaches it to a GitHub release.
+Legacy `v*` Android tags remain supported. `web-v*` tags do not trigger Android
+Release. Creating an Android release tag deliberately builds Android regardless
+of the files changed in the tagged commit.
 
 ## Release Notes
 

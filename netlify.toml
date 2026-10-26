@@ -1,0 +1,36 @@
+# Static website only. All server code lives in Supabase Edge Functions.
+[build]
+base = "frontend"
+command = "npm ci && npm run build"
+publish = "dist"
+# Runs from frontend/ before dependencies are installed. 0 skips, 1 builds.
+ignore = "node ./../scripts/ci/netlify-ignore.mjs --run"
+
+[build.environment]
+NODE_VERSION = "22"
+VITE_STORAGE_PROVIDER = "supabase"
+VITE_SUPABASE_URL = "https://mkmirlnypehadajrtxvg.supabase.co"
+# Firebase app identifiers are public client configuration, not server credentials.
+VITE_FIREBASE_API_KEY = "AIzaSyCk-zFjZ7MU6SR6XbCZMY3dPUv_WKRwcfc"
+VITE_FIREBASE_AUTH_DOMAIN = "crest-4fb99.firebaseapp.com"
+VITE_FIREBASE_PROJECT_ID = "crest-4fb99"
+VITE_FIREBASE_APP_ID = "1:247751332436:web:26a54ddd61413ee90bd3c1"
+VITE_FIREBASE_MESSAGING_SENDER_ID = "247751332436"
+VITE_FCM_ENABLED = "false"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+[[headers]]
+for = "/firebase-messaging-sw.js"
+[headers.values]
+Cache-Control = "no-cache"
+Service-Worker-Allowed = "/"
+
+[[headers]]
+for = "/*"
+[headers.values]
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"

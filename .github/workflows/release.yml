@@ -3,6 +3,8 @@ name: Android Release
 on:
   push:
     tags:
+      - "android-v*"
+      # Existing Android release tags remain supported.
       - "v*"
 
 concurrency:
@@ -22,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -80,3 +84,7 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Remove decoded signing inputs
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/release_key.jks" app/google-services.json
