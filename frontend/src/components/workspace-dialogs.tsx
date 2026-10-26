@@ -40,6 +40,8 @@ import {
   groupStatus,
   initials,
   studentGroup,
+  studentAccountLabels,
+  studentAccountStatus,
   type ResearchGroup,
   type ResearchType,
   type Student,
@@ -49,6 +51,7 @@ import {
 import { StatusBadge, StrandBadge } from './workspace'
 import { useDisplayPreferences } from '../display-context'
 import { useReturnFocus } from './use-return-focus'
+import { StudentAccountActions, type ReviewStudent } from './student-account-actions'
 
 export interface FileRequest {
   id: string
@@ -314,11 +317,13 @@ export function StudentDetails({
   workspace,
   onClose,
   onGroup,
+  onReviewStudent,
 }: {
   student: Student | null
   workspace: Workspace
   onClose: () => void
   onGroup: (id: string) => void
+  onReviewStudent: ReviewStudent
 }) {
   const group = student && studentGroup(student, workspace.groups)
   const restoreFocus = useReturnFocus()
@@ -331,9 +336,9 @@ export function StudentDetails({
     >
       <DialogContent className="standard-dialog" onCloseAutoFocus={restoreFocus}>
         <DialogHeader>
-          <DialogTitle>Student progress</DialogTitle>
+          <DialogTitle>Student management</DialogTitle>
           <DialogDescription>
-            Research progress is tracked through the student’s group.
+            Manage account access and check the student’s research group.
           </DialogDescription>
         </DialogHeader>
         {student && (
@@ -347,8 +352,9 @@ export function StudentDetails({
             </div>
             <div className="student-detail-row">
               <span>Account status</span>
-              <strong>{student.accepted ? 'Approved' : 'Pending approval'}</strong>
+              <strong>{studentAccountLabels[studentAccountStatus(student)]}</strong>
             </div>
+            <StudentAccountActions student={student} onReview={onReviewStudent} />
             <div className="student-detail-row">
               <span>Research group</span>
               <strong>{group?.name || 'No group yet'}</strong>
@@ -378,7 +384,7 @@ export function StudentDetails({
               </>
             ) : (
               <p className="notice-box">
-                This student can create or join a research group in the CREST app.
+                Approved students can create or join a research group in the CREST app.
               </p>
             )}
           </>

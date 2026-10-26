@@ -29,7 +29,7 @@ const guidance: Record<Page, { title: string; steps: string[]; action: string; n
     steps: [
       'Search for the student’s name.',
       'Check their group and research status.',
-      'Open their record to see the next step.',
+      'Open their record to approve, decline, or restore access.',
     ],
     action: 'Open research groups',
     next: 'groups',
@@ -69,9 +69,9 @@ const guidance: Record<Page, { title: string; steps: string[]; action: string; n
     steps: [
       'Check the name and role on each registration.',
       'Confirm it belongs to your school community.',
-      'Choose Approve account when the details are correct.',
+      'Approve correct accounts, or decline a student registration.',
     ],
-    action: 'View approved students',
+    action: 'Manage students',
     next: 'students',
   },
 }

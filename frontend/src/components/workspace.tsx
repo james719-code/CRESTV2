@@ -33,6 +33,8 @@ import {
   groupStatus,
   initials,
   statusLabels,
+  studentAccountLabels,
+  studentAccountStatus,
   type GroupStatus,
   type Student,
   type Workspace,
@@ -465,14 +467,12 @@ export function StudentTable({
   const [query, setQuery] = useState('')
   const [strand, setStrand] = useState('all')
   const [status, setStatus] = useState('all')
+  const [accountStatus, setAccountStatus] = useState('all')
   const [page, setPage] = useState(1)
   const { ref, cards } = useCardLayout()
   const lookup = useMemo(() => indexWorkspace(workspace), [workspace])
   const search = useDeferredValue(query.trim().toLowerCase())
-  const students = useMemo(
-    () => workspace.students.filter((student) => student.accepted),
-    [workspace.students],
-  )
+  const students = workspace.students
   const strands = useMemo(
     () => [...new Set(students.map((student) => student.strand).filter(Boolean))].sort(),
     [students],
@@ -484,13 +484,14 @@ export function StudentTable({
           const group = lookup.studentGroups.get(student.id)
           return (
             `${student.name} ${group?.name || ''}`.toLowerCase().includes(search) &&
+            (accountStatus === 'all' || studentAccountStatus(student) === accountStatus) &&
             (strand === 'all' || strand === student.strand) &&
             (status === 'all' ||
               (status === 'ungrouped' ? !group : group && groupStatus(group) === status))
           )
         })
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [students, lookup, search, strand, status],
+    [students, lookup, search, strand, status, accountStatus],
   )
   const pagination = pageWindow(matches, page)
   const rows = pagination.rows
@@ -502,8 +503,8 @@ export function StudentTable({
     <Card className="table-card" ref={ref}>
       <div className="table-card-heading">
         <div>
-          <h2>Your students</h2>
-          <p>Follow each student through their group’s research submission.</p>
+          <h2>Student management</h2>
+          <p>Manage student access and follow their group’s research submission.</p>
         </div>
         <span className="count-label">{students.length} students</span>
       </div>
@@ -513,6 +514,19 @@ export function StudentTable({
           onChange={(value) => filter(setQuery, value)}
           placeholder="Search students or groups…"
         />
+        <LabeledFilter
+          label="Account status"
+          ariaLabel="Filter students by account status"
+          value={accountStatus}
+          onChange={(value) => filter(setAccountStatus, value)}
+        >
+          <SelectItem value="all">All accounts</SelectItem>
+          {Object.entries(studentAccountLabels).map(([key, label]) => (
+            <SelectItem value={key} key={key}>
+              {label}
+            </SelectItem>
+          ))}
+        </LabeledFilter>
         <LabeledFilter
           label="Strand"
           ariaLabel="Filter students by strand"
@@ -550,6 +564,7 @@ export function StudentTable({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Student</TableHead>
+                    <TableHead>Account status</TableHead>
                     <TableHead>Strand</TableHead>
                     <TableHead>Research group</TableHead>
                     <TableHead>Research status</TableHead>
@@ -574,6 +589,11 @@ export function StudentTable({
                           </div>
                         </TableCell>
                         <TableCell>
+                          <Badge variant="outline">
+                            {studentAccountLabels[studentAccountStatus(student)]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <StrandBadge strand={student.strand} />
                         </TableCell>
                         <TableCell>
@@ -593,7 +613,7 @@ export function StudentTable({
                             onClick={() => onOpen(student)}
                             aria-label={`View ${student.name}`}
                           >
-                            View student
+                            Manage student
                             <ArrowRight size={15} />
                           </Button>
                         </TableCell>
@@ -612,7 +632,9 @@ export function StudentTable({
                     <header className={`student-card-heading tone-${student.strand.toLowerCase()}`}>
                       <span className="student-avatar">{initials(student.name)}</span>
                       <div>
-                        <span className="card-eyebrow">Student profile</span>
+                        <span className="card-eyebrow">
+                          {studentAccountLabels[studentAccountStatus(student)]}
+                        </span>
                         <h3>{student.name || 'Unnamed student'}</h3>
                       </div>
                       <StrandBadge strand={student.strand} />
@@ -640,7 +662,7 @@ export function StudentTable({
                       onClick={() => onOpen(student)}
                       aria-label={`View student ${student.name}`}
                     >
-                      View student
+                      Manage student
                       <ArrowRight size={18} />
                     </Button>
                   </li>
@@ -654,8 +676,8 @@ export function StudentTable({
           title="No students to show"
           description={
             students.length
-              ? 'Try another name, strand, or progress filter.'
-              : 'Approved student accounts will appear here.'
+              ? 'Try another name, strand, account status, or progress filter.'
+              : 'Student registrations will appear here.'
           }
           action={
             students.length ? (
@@ -665,6 +687,7 @@ export function StudentTable({
                   setQuery('')
                   setStrand('all')
                   setStatus('all')
+                  setAccountStatus('all')
                 }}
               >
                 Clear filters

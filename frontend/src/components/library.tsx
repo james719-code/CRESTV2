@@ -13,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { displayDate, initials, type Workspace } from '../domain'
+import { displayDate, initials, studentAccountStatus, type Workspace } from '../domain'
+import { StudentAccountActions, type ReviewStudent } from './student-account-actions'
 import { EmptyState, LabeledFilter, SearchInput, StrandBadge } from './workspace'
 import type { FileRequest } from './workspace-dialogs'
 import { ResearchArt } from './research-art'
@@ -242,9 +243,11 @@ export function DocumentLibrary({
 export function Accounts({
   workspace,
   onApprove,
+  onReviewStudent,
 }: {
   workspace: Workspace
   onApprove: (id: string, role: 'student' | 'teacher') => Promise<void>
+  onReviewStudent: ReviewStudent
 }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -252,7 +255,7 @@ export function Accounts({
   const pending = useMemo(
     () => [
       ...workspace.students
-        .filter((student) => !student.accepted)
+        .filter((student) => studentAccountStatus(student) === 'pending')
         .map((student) => ({ ...student, role: 'student' as const, detail: student.strand })),
       ...workspace.teachers
         .filter((teacher) => !teacher.access)
@@ -315,15 +318,19 @@ export function Accounts({
                     <dt>{account.role === 'teacher' ? 'Email address' : 'Strand'}</dt>
                     <dd>{account.detail || 'Not recorded'}</dd>
                   </dl>
-                  <Button
-                    variant="outline"
-                    disabled={!!busy}
-                    onClick={() => approve(account.id, account.role)}
-                    aria-label={`Approve ${account.role} account for ${account.name}`}
-                  >
-                    <Check size={16} />
-                    {busy === `${account.role}-${account.id}` ? 'Approving…' : 'Approve account'}
-                  </Button>
+                  {account.role === 'student' ? (
+                    <StudentAccountActions student={account} onReview={onReviewStudent} />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      disabled={!!busy}
+                      onClick={() => approve(account.id, account.role)}
+                      aria-label={`Approve ${account.role} account for ${account.name}`}
+                    >
+                      <Check size={16} />
+                      {busy === `${account.role}-${account.id}` ? 'Approving…' : 'Approve account'}
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -349,17 +356,21 @@ export function Accounts({
                     <TableCell className="capitalize">{account.role}</TableCell>
                     <TableCell>{account.detail || 'Not recorded'}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        disabled={!!busy}
-                        onClick={() => approve(account.id, account.role)}
-                        aria-label={`Approve ${account.role} account for ${account.name}`}
-                      >
-                        <Check size={16} />
-                        {busy === `${account.role}-${account.id}`
-                          ? 'Approving…'
-                          : 'Approve account'}
-                      </Button>
+                      {account.role === 'student' ? (
+                        <StudentAccountActions student={account} onReview={onReviewStudent} />
+                      ) : (
+                        <Button
+                          variant="outline"
+                          disabled={!!busy}
+                          onClick={() => approve(account.id, account.role)}
+                          aria-label={`Approve ${account.role} account for ${account.name}`}
+                        >
+                          <Check size={16} />
+                          {busy === `${account.role}-${account.id}`
+                            ? 'Approving…'
+                            : 'Approve account'}
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -368,7 +379,7 @@ export function Accounts({
           )
         ) : (
           <EmptyState
-            title="Everyone is welcomed in"
+            title="No registrations awaiting review"
             description="New student and teacher registrations will appear here for approval."
           />
         )}

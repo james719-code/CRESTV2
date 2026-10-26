@@ -1614,6 +1614,22 @@
   gap: 15px;
   padding: 15px 0;
 }
+
+.student-account-actions .button-row {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.account-decision-confirmation {
+  min-width: 12rem;
+  max-width: 32rem;
+  white-space: normal;
+}
+
+.account-decision-confirmation p {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
 .large-avatar {
   width: 54px;
   height: 54px;

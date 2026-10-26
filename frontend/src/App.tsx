@@ -60,6 +60,8 @@ import {
   initials,
   statusLabels,
   studentGroup,
+  studentAccountLabels,
+  studentAccountStatus,
   toCsv,
   type Page,
   type Student,
@@ -120,9 +122,9 @@ const descriptions: Record<Page, { title: string; description: string; eyebrow: 
     eyebrow: 'RESEARCH GROUPS',
   },
   students: {
-    title: 'Student progress',
-    description: 'See each student, their research group, and their submission progress.',
-    eyebrow: 'STUDENT PROGRESS',
+    title: 'Student management',
+    description: 'Approve or decline students, manage access, and follow research progress.',
+    eyebrow: 'STUDENT MANAGEMENT',
   },
   reviews: {
     title: 'Submission reviews',
@@ -165,7 +167,7 @@ function App() {
   const [authError, setAuthError] = useState('')
   const pending = workspace.groups.filter((group) => groupStatus(group) === 'pending')
   const pendingAccounts =
-    workspace.students.filter((student) => !student.accepted).length +
+    workspace.students.filter((student) => studentAccountStatus(student) === 'pending').length +
     workspace.teachers.filter((item) => !item.access).length
   const currentNav = navigation.find((item) => item.page === page)!
 
@@ -285,7 +287,7 @@ function App() {
       rows.push([
         student.name,
         student.strand,
-        student.accepted ? 'Approved' : 'Pending approval',
+        studentAccountLabels[studentAccountStatus(student)],
         group?.name || 'No group',
         group?.title || '',
         group ? statusLabels[groupStatus(group)] : 'Not started',
@@ -649,7 +651,11 @@ function App() {
                 {page === 'research' && <ResearchLibrary workspace={workspace} onFile={setFile} />}
                 {page === 'documents' && <DocumentLibrary workspace={workspace} onFile={setFile} />}
                 {page === 'accounts' && (
-                  <Accounts workspace={workspace} onApprove={service.approveAccount} />
+                  <Accounts
+                    workspace={workspace}
+                    onApprove={service.approveAccount}
+                    onReviewStudent={service.reviewStudent}
+                  />
                 )}
               </Suspense>
               <footer className="page-footer">
@@ -681,10 +687,13 @@ function App() {
           )}
           {selectedStudent && (
             <StudentDetails
-              student={selectedStudent}
+              student={
+                workspace.students.find((student) => student.id === selectedStudent.id) || null
+              }
               workspace={workspace}
               onClose={() => setSelectedStudent(null)}
               onGroup={setSelectedGroup}
+              onReviewStudent={service.reviewStudent}
             />
           )}
           {uploadKind && (

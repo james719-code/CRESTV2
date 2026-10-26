@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react'
 import { createDemoWorkspace } from './demo'
 import { readDemoFile, saveDemoFile } from './demoFiles'
 import type { SessionState } from './firebase'
-import { reviewWorkspace, type Teacher, type UploadInput, type Workspace } from '../domain'
+import {
+  reviewStudentWorkspace,
+  reviewWorkspace,
+  type StudentAccountStatus,
+  type StudentDecision,
+  type Teacher,
+  type UploadInput,
+  type Workspace,
+} from '../domain'
 
 const storageKey = 'crest-teacher-demo-v1'
 const settings = [
@@ -99,16 +107,23 @@ export function useWorkspace() {
   }
 
   async function approveAccount(id: string, role: 'student' | 'teacher') {
+    if (role === 'student') return reviewStudent(id, 'approve', 'pending')
     if (!isDemo) return (await import('./firebase')).approveAccount(id, role)
     const next = structuredClone(workspace)
-    if (role === 'student') {
-      const account = next.students.find((item) => item.id === id)
-      if (account) account.accepted = true
-    } else {
-      const account = next.teachers.find((item) => item.id === id)
-      if (account) account.access = true
-    }
+    const account = next.teachers.find((item) => item.id === id)
+    if (!account) throw new Error('This account no longer exists.')
+    if (account.access) throw new Error('This account has already been approved.')
+    account.access = true
     commitDemo(next)
+  }
+
+  async function reviewStudent(
+    id: string,
+    decision: StudentDecision,
+    expected: StudentAccountStatus,
+  ) {
+    if (!isDemo) return (await import('./firebase')).reviewStudent(id, decision, expected)
+    commitDemo(reviewStudentWorkspace(workspace, id, decision, expected))
   }
 
   async function upload(input: UploadInput) {
@@ -164,6 +179,7 @@ export function useWorkspace() {
     logout: async () => (await import('./firebase')).logout(),
     review,
     approveAccount,
+    reviewStudent,
     upload,
     readFile,
   }
