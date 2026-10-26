@@ -61,12 +61,6 @@ fun ModernSearchBar(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     
-    val animatedElevation by animateFloatAsState(
-        targetValue = if (isFocused) 8f else 2f,
-        animationSpec = tween(200),
-        label = "elevation"
-    )
-
     Column(modifier = modifier) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -133,11 +127,7 @@ fun ModernSearchBar(
                 }
                 
                 // Clear button
-                AnimatedVisibility(
-                    visible = query.isNotEmpty(),
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
-                ) {
+                if (query.isNotEmpty()) {
                     IconButton(
                         onClick = { onQueryChange("") },
                         modifier = Modifier.size(48.dp)
@@ -188,11 +178,7 @@ fun ModernSearchBar(
         }
         
         // Recent searches dropdown
-        AnimatedVisibility(
-            visible = showRecentSearches && recentSearches.isNotEmpty(),
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
+        if (showRecentSearches && recentSearches.isNotEmpty()) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()

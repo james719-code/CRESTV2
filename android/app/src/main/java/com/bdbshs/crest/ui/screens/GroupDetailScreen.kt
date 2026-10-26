@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
@@ -61,7 +63,7 @@ fun GroupDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: GroupDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOnline by rememberNetworkState()
     val pdfPath = uiState.pdfFilePath
     if (uiState.isShowingPdf && pdfPath != null) {
@@ -251,8 +253,9 @@ private fun ReviewSection(
                 if (isUpdating && !isPdfLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 } else {
-                    TextButton(onClick = onDeny, enabled = comment.isNotBlank() && !isUpdating) {
-                        Text("Deny", color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = onDeny, enabled = comment.isNotBlank() && !isUpdating,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                        Text("Deny")
                     }
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = onApprove, enabled = !isUpdating) {

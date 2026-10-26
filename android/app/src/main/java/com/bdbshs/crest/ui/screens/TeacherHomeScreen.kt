@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -7,6 +9,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -57,7 +61,7 @@ fun TeacherHomeScreen(
     onNavigateToGroups: () -> Unit,
     viewModel: TeacherHomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
@@ -311,6 +315,7 @@ private fun UploadDocumentDialog(
         modifier = Modifier.padding(16.dp),
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -321,6 +326,8 @@ private fun UploadDocumentDialog(
         ) {
             Column(
                 modifier = Modifier
+                    .heightIn(max = 600.dp)
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp)
                     .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -392,7 +399,7 @@ private fun UploadDocumentDialog(
                                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             )
                             .clickable(enabled = !uiState.isUploadingDocument) { 
-                                filePickerLauncher.launch("*/*") 
+                                filePickerLauncher.launch("application/pdf")
                             }
                             .padding(16.dp)
                     ) {
@@ -422,7 +429,7 @@ private fun UploadDocumentDialog(
                             
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = uiState.uploadSelectedFileName ?: "Select a file",
+                                    text = uiState.uploadSelectedFileName ?: "Select a PDF",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = if (uiState.uploadSelectedFileName != null) FontWeight.Bold else FontWeight.Normal,
                                     color = if (uiState.uploadSelectedFileName != null) 
@@ -434,7 +441,7 @@ private fun UploadDocumentDialog(
                                     text = if (uiState.uploadSelectedFileName != null) 
                                         "Tap to change file" 
                                     else 
-                                        "Available formats: .pdf, .docx, .png, etc.",
+                                        "PDF files only · up to 20 MB",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -443,7 +450,7 @@ private fun UploadDocumentDialog(
                             if (uiState.uploadSelectedFileName != null && !uiState.isUploadingDocument) {
                                 IconButton(
                                     onClick = onFileCleared,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(48.dp)
                                 ) {
                                     Icon(Icons.Default.Close, "Clear file", tint = MaterialTheme.colorScheme.error)
                                 }

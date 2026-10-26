@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,7 +27,7 @@ fun GroupUploadScreen(
     onNavigateBack: () -> Unit,
     viewModel: GroupUploadViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 

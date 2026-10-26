@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,8 +37,8 @@ fun AccountsScreen(
     viewModel: AccountsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val accountsToShow by viewModel.filteredAndSortedAccounts.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val accountsToShow by viewModel.filteredAndSortedAccounts.collectAsStateWithLifecycle()
     val pullRefreshState = rememberPullRefreshState(uiState.isRefreshing, viewModel::onRefresh)
 
     // --- DIALOGS ---
@@ -194,6 +196,7 @@ private fun AccountsFilterDialog(
         onDismissRequest = onDismiss,
         title = { Text("Filter & Sort Accounts") },
         text = {
+            com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column {
                 // Status Section
                 Text("Status", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -251,7 +254,7 @@ private fun AccountsFilterDialog(
 }
 
 @Composable
-private fun AccountActionDialog(
+internal fun AccountActionDialog(
     account: AccountItem,
     isUpdating: Boolean,
     onDismiss: () -> Unit,
@@ -271,6 +274,7 @@ private fun AccountActionDialog(
         },
         title = { Text(account.name) },
         text = {
+            com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val details = when (account) {
                     is AccountItem.Student -> "Student • ${account.strand}"
@@ -278,6 +282,12 @@ private fun AccountActionDialog(
                 }
                 Text("Role: $details")
                 StatusIndicator(isApproved = !isPending)
+                if (isPending) {
+                    TextButton(onClick = onDeny, enabled = !isUpdating,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                        Text("Deny registration")
+                    }
+                }
             }
         },
         confirmButton = {
@@ -298,8 +308,8 @@ private fun AccountActionDialog(
         },
         dismissButton = {
             if (isPending) {
-                TextButton(onClick = onDeny, enabled = !isUpdating) {
-                    Text("Deny", color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = onDismiss, enabled = !isUpdating) {
+                    Text("Cancel")
                 }
             }
         }

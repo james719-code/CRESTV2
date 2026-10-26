@@ -276,6 +276,7 @@ private fun FilterBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        CrestDialogSystemBars()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -450,6 +451,7 @@ private fun ActionDialog(
         onDismissRequest = onDismiss,
         title = { Text("Manage Research") },
         text = {
+            com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column {
                 Text(
                     text = researchItem.title,

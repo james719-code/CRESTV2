@@ -42,6 +42,11 @@ class LoginScreenTest {
         assertTrue(clicked)
     }
 
+    @Test fun signInIsVisibleWithoutScrolling() {
+        show()
+        composeTestRule.onNodeWithText("Continue with Google").assertIsDisplayed()
+    }
+
     @Test fun signInIsDisabledWhileLoading() {
         show(loading = true)
         composeTestRule.onNodeWithText("Signing in…").performScrollTo().assertIsNotEnabled()

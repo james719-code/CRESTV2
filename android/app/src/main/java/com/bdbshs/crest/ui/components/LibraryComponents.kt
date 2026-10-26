@@ -48,7 +48,9 @@ fun FeedbackPanel(
                 color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer)
             Text(message, style = MaterialTheme.typography.bodyMedium,
                 color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer)
-            TextButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 0.dp)) { Text(actionLabel) }
+            TextButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 0.dp),
+                colors = ButtonDefaults.textButtonColors(contentColor = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer)
+            ) { Text(actionLabel) }
         }
     }
 }

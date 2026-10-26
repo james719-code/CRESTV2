@@ -244,11 +244,7 @@ fun UploadProgressOverlay(
     message: String = "Uploading...",
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(),
-        exit = fadeOut()
-    ) {
+    if (isVisible) {
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -318,17 +314,6 @@ fun UploadSuccessState(
     onDone: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "successAnim")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -338,8 +323,7 @@ fun UploadSuccessState(
     ) {
         Box(
             modifier = Modifier
-                .size(120.dp)
-                .scale(scale),
+                .size(120.dp),
             contentAlignment = Alignment.Center
         ) {
             Box(

@@ -36,7 +36,7 @@ fun NotificationOptIn(uid: String?, notifications: PushNotifications) {
     if (!dismissed) AlertDialog(
         onDismissRequest = { dismissed = true },
         title = { Text("School notifications") },
-        text = { Text("Receive account approvals and research review updates on this device?") },
+        text = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Text("Receive account approvals and research review updates on this device?") },
         confirmButton = { TextButton(onClick = {
             if (Build.VERSION.SDK_INT >= 33 && !notifications.permissionGranted()) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
             else enable()

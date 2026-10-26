@@ -1,10 +1,5 @@
 package com.bdbshs.crest.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -89,6 +84,7 @@ fun SignUpDetails(
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             // Show top bar only if a role is selected, allowing user to go back
@@ -104,19 +100,8 @@ fun SignUpDetails(
             }
         }
     ) { paddingValues ->
-        // Use AnimatedContent for smooth transitions between role selection and forms
-        AnimatedContent(
-            targetState = uiState.selectedRole,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            transitionSpec = {
-                // Defines the animation for content changes
-                fadeIn(animationSpec = tween(300)) togetherWith
-                        fadeOut(animationSpec = tween(300))
-            },
-            label = "role_form_animation"
-        ) { targetRole ->
+        Box(Modifier.fillMaxSize().padding(paddingValues)) {
+            val targetRole = uiState.selectedRole
             when (targetRole) {
                 null -> {
                     // Display role selection screen if no role is selected

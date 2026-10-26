@@ -10,13 +10,20 @@ import com.bdbshs.crest.ui.viewmodels.*
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
-class CollectionStateUiTest {
+@RunWith(Parameterized::class)
+class CollectionStateUiTest(private val dark: Boolean) {
+    companion object {
+        @JvmStatic @Parameterized.Parameters(name = "dark={0}")
+        fun themes() = listOf(arrayOf(false), arrayOf(true))
+    }
     @get:Rule val compose = createComposeRule()
 
     @Test fun documentsErrorRemainsVisibleAndRetryRecoversContent() {
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 var failed by remember { mutableStateOf(true) }
                 val docs = if (failed) emptyList() else listOf(DocumentItem("d", "Proposal template", "A school research template", createdAt = 1000))
                 DocumentsContent(
@@ -34,7 +41,7 @@ class CollectionStateUiTest {
     @Test fun pendingAccountsEmptyStateLeadsToApprovedAccounts() {
         val approved = AccountItem.Student("a", "Approved Student", 123456789012, "STEM", accepted = true)
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 var status by remember { mutableStateOf(AccountStatus.Pending) }
                 AccountsContent(
                     AccountsUiState(isLoading = false, allAccounts = listOf(approved), selectedStatus = status),
@@ -52,7 +59,7 @@ class CollectionStateUiTest {
     @Test fun groupCardShowsThePaperAndSubmissionState() {
         var opened = 0
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 GroupRecordCard(
                     GroupItem("g", "Science Group", "STEM", listOf("a", "b"), true, false, "Water quality study", "quantitative"),
                     { opened++ }
@@ -69,7 +76,7 @@ class CollectionStateUiTest {
     @Test fun readerFailureKeepsThePaperInformationAndWorkingRetry() {
         var retried = 0
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 ResearchOverview(ResearchItem("p", "Research title", listOf("Andrea"), "STEM"),
                     false, { retried++ }, readError = "Connect to download this paper.")
             }
@@ -83,7 +90,7 @@ class CollectionStateUiTest {
     @Test fun missingGoogleAccountExplainsRecovery() {
         var settingsOpened = 0
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 LoginScreenContent(false, {}, "No Google account is available on this device.", { settingsOpened++ })
             }
         }
@@ -93,7 +100,7 @@ class CollectionStateUiTest {
 
     @Test fun submissionExplainsRequiredInputAndDisablesIncompleteSubmit() {
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 GroupUploadContent(GroupUploadUiState(), {}, {}, {}, {}, {})
             }
         }
@@ -104,7 +111,7 @@ class CollectionStateUiTest {
     @Test fun storageEmptyStateExplainsOfflineAvailability() {
         var refreshed = 0
         compose.setContent {
-            CRESTTheme {
+            CRESTTheme(darkTheme = dark) {
                 StorageContent(StorageUiState(isLoading = false), { refreshed++ }, {}, {}, {})
             }
         }

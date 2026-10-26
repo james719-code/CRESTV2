@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
@@ -83,7 +85,7 @@ fun ResearchDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: ResearchDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val researchItem = uiState.researchItem
     val isOnline by rememberNetworkState()
     

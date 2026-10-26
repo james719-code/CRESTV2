@@ -15,7 +15,7 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,8 +43,8 @@ fun GroupsScreen(
     viewModel: GroupsViewModel = hiltViewModel(),
     onNavigateToDetails: (String) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val groupsToShow by viewModel.filteredAndSortedGroups.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val groupsToShow by viewModel.filteredAndSortedGroups.collectAsStateWithLifecycle()
     val pullRefreshState = rememberPullRefreshState(uiState.isRefreshing, viewModel::onRefresh)
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isSheetOpen by remember { mutableStateOf(false) }
@@ -106,6 +106,7 @@ private fun FilterSortBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -281,6 +282,7 @@ private fun GroupActionDialog(
         icon = { Icon(Icons.Default.FolderShared, null) },
         title = { Text(group.group_name) },
         text = {
+            com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     text = "Reviewing Submission:",

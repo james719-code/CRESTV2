@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.navigation.AppDestination
+import com.bdbshs.crest.data.ThemeMode
 import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.*
 import com.bdbshs.crest.ui.theme.CRESTTheme
@@ -31,11 +32,12 @@ class UiReviewActivity : ComponentActivity() {
         val firstMode = intent.getStringExtra("mode") ?: "data"
         val dark = intent.getBooleanExtra("dark", false)
         val fontScale = intent.getFloatExtra("fontScale", 1f)
+        val auditMode = intent.getBooleanExtra("audit", false)
         setContent {
             CRESTTheme(darkTheme = dark) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                    ReviewApp(firstPage, firstMode)
+                    ReviewApp(firstPage, firstMode, auditMode)
                 }
             }
         }
@@ -79,7 +81,7 @@ private val reviewAccounts: List<AccountItem> = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewApp(firstPage: String, firstMode: String) {
+private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) {
     var page by remember { mutableStateOf(firstPage) }
     var mode by remember { mutableStateOf(firstMode) }
     var role by remember { mutableStateOf(if (firstPage == "student") UserType.STUDENT else UserType.TEACHER) }
@@ -88,7 +90,7 @@ private fun ReviewApp(firstPage: String, firstMode: String) {
     var pending by remember { mutableStateOf(false) }
     var accepted by remember { mutableStateOf(false) }
     var accountStatus by remember { mutableStateOf(AccountStatus.Pending) }
-    var favoriteIds by remember { mutableStateOf(setOf<String>()) }
+    var favoriteIds by remember { mutableStateOf(if (firstPage == "favorites" && firstMode == "data") setOf("paper-1") else emptySet<String>()) }
     var favoritesOnly by remember { mutableStateOf(false) }
     var strandFilter by remember { mutableStateOf(emptySet<String>()) }
     var selectedPaper by remember { mutableStateOf(reviewPapers.first()) }
@@ -117,7 +119,10 @@ private fun ReviewApp(firstPage: String, firstMode: String) {
     val groups = if (mode == "empty" || loading || error != null) emptyList() else reviewGroups
     val accounts = if (mode == "empty" || loading || error != null) emptyList() else reviewAccounts
     val route = when (page) {
-        "research", "favorites" -> AppDestination.Researches.route
+        "research" -> AppDestination.Researches.route
+        "favorites" -> AppDestination.Favorites.route
+        "accounts" -> AppDestination.Accounts.route
+        "about" -> AppDestination.AboutUs.route
         "documents" -> AppDestination.Documents.route
         "groups" -> AppDestination.Groups.route
         else -> AppDestination.Home.route
@@ -125,7 +130,9 @@ private fun ReviewApp(firstPage: String, firstMode: String) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
+            if (!auditMode || page !in listOf("login", "pending", "signup", "profile")) {
             Column {
+                if (!auditMode) {
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
                     Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,21 +156,33 @@ private fun ReviewApp(firstPage: String, firstMode: String) {
                         }
                     }
                 }
-                if (page !in listOf("login", "pending", "paper")) {
+                }
+                if (page !in listOf("login", "pending", "signup", "profile")) {
                     CrestTopAppBar(
-                        title = when (route) {
-                            AppDestination.Researches.route -> "Research"
-                            AppDestination.Documents.route -> "Documents"
-                            AppDestination.Groups.route -> "Groups"
+                        title = when (page) {
+                            "research" -> "Research"
+                            "favorites" -> "Favorites"
+                            "documents" -> "Documents"
+                            "groups" -> "Groups"
+                            "accounts" -> "Accounts"
+                            "paper" -> "Research Details"
+                            "group" -> "Group Details"
+                            "storage" -> "Storage Management"
+                            "upload" -> "Submit research"
+                            "teacherUpload" -> "Add research paper"
+                            "signupStudent", "signupTeacher" -> "Complete Your Profile"
+                            "about" -> "About"
                             else -> "Home"
                         },
-                        userRole = role
+                        userRole = role,
+                        onNavigationClick = if (page in listOf("paper", "group", "storage", "upload", "teacherUpload", "signupStudent", "signupTeacher")) ({ page = "teacher" }) else null
                     )
                 }
             }
+            }
         },
         bottomBar = {
-            if (page !in listOf("login", "pending", "paper")) {
+            if (page in listOf("teacher", "student", "research", "favorites", "documents", "groups", "accounts", "about")) {
                 CrestBottomNavBar(getBottomNavItems(role), route, {
                     page = when (it) {
                         AppDestination.Home -> if (role == UserType.STUDENT) "student" else "teacher"
@@ -244,6 +263,13 @@ private fun ReviewApp(firstPage: String, firstMode: String) {
             )
             "paper" -> ResearchOverview(selectedPaper, loading, { notice("Read PDF") }, bodyModifier)
             "login" -> Box(bodyModifier) { LoginScreenContent(loading, { notice("Google sign-in requires an account") }) }
+            "profile" -> Box(bodyModifier) {
+                ProfileBottomSheet("Ms. Reyes", "teacher@example.test", UserType.TEACHER, userPhotoUrl = null,
+                    isOnline = true, currentTheme = if (androidx.compose.material3.MaterialTheme.colorScheme.background.red < .2f) ThemeMode.DARK else ThemeMode.LIGHT,
+                    onAccountsClick = { page = "accounts" }, onFavoritesClick = { page = "favorites" },
+                    onAboutClick = { page = "about" }, onStorageClick = { page = "storage" },
+                    onThemeChange = { notice("Theme selected") }, onSignOutClick = { page = "login" }, onDismiss = {})
+            }
             "group" -> GroupDetailsContent(
                 GroupDetailUiState(isLoading = loading, group = if (mode == "data") selectedGroup else null,
                     memberNames = listOf("Andrea Santos", "Miguel Reyes", "Sofia Cruz"), error = error),

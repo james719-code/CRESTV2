@@ -31,6 +31,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import coil.compose.AsyncImage
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.UserType
@@ -151,6 +155,7 @@ fun ProfileBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    CrestDialogSystemBars()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -476,7 +481,10 @@ private fun ThemeOption(
 
     Surface(
         onClick = onClick,
-        modifier = modifier.height(48.dp),
+        modifier = modifier.heightIn(min = 48.dp).semantics {
+            this.selected = selected
+            role = Role.RadioButton
+        },
         shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
         tonalElevation = if (selected) 4.dp else 0.dp

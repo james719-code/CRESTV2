@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -40,7 +42,7 @@ fun StorageManagementScreen(
     modifier: Modifier = Modifier,
     viewModel: StorageManagementViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Show snackbar when message is available
@@ -66,7 +68,7 @@ fun StorageManagementScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Storage Management") },
+                title = { Text("Storage", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -90,11 +92,7 @@ fun StorageManagementScreen(
         },
         bottomBar = {
             // Show action bar when items are selected
-            AnimatedVisibility(
-                visible = uiState.selectedCount > 0,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+            if (uiState.selectedCount > 0) {
                 SelectionActionBar(
                     selectedCount = uiState.selectedCount,
                     selectedSize = uiState.selectedSize,
@@ -144,7 +142,7 @@ internal fun StorageContent(
             }
         } else if (state.error == null) {
             item { StorageSummaryCard(state.pdfCacheSize, state.totalAppCacheSize, onClearPdf, onClearAll) }
-            item { Text("Saved research PDFs · ${state.cachedResearches.size} files", style = MaterialTheme.typography.titleMedium) }
+            item { Text("Saved research PDFs · ${state.cachedResearches.size} ${if (state.cachedResearches.size == 1) "file" else "files"}", style = MaterialTheme.typography.titleMedium) }
             if (state.cachedResearches.isEmpty()) {
                 item {
                     com.bdbshs.crest.ui.components.EmptyCollectionPanel(
@@ -296,11 +294,6 @@ private fun CachedResearchCard(
     item: CachedResearchItem,
     onToggleSelect: () -> Unit
 ) {
-    val cardColor by animateFloatAsState(
-        targetValue = if (item.isSelected) 1f else 0f,
-        label = "selection"
-    )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -312,80 +305,41 @@ private fun CachedResearchCard(
                 MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
-            modifier = Modifier.padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Selection Checkbox
-            Checkbox(
-                checked = item.isSelected,
-                onCheckedChange = { onToggleSelect() }
-            )
-
-            // PDF Icon
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.errorContainer),
-                contentAlignment = Alignment.Center
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(
                     Icons.Default.PictureAsPdf,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(28.dp)
                 )
+                Text(item.formattedSize, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Checkbox(checked = item.isSelected, onCheckedChange = { onToggleSelect() })
             }
-
-            // Info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (item.strand.isNotEmpty()) {
-                        Text(
-                            text = item.strand,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "•",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Text(
-                        text = formatDate(item.lastModified),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Size
             Text(
-                text = item.formattedSize,
-                style = MaterialTheme.typography.labelLarge,
+                text = item.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = listOfNotNull(item.strand.takeIf { it.isNotBlank() }, formatDate(item.lastModified)).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
 @Composable
-private fun SelectionActionBar(
+internal fun SelectionActionBar(
     selectedCount: Int,
     selectedSize: Long,
     isDeleting: Boolean,
@@ -399,6 +353,7 @@ private fun SelectionActionBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -421,7 +376,8 @@ private fun SelectionActionBar(
                 onClick = onDeleteClick,
                 enabled = !isDeleting,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
                 )
             ) {
                 if (isDeleting) {
@@ -477,7 +433,7 @@ private fun ConfirmationDialog(
             )
         },
         title = { Text(title) },
-        text = { Text(message) },
+        text = { CrestDialogSystemBars(); Text(message) },
         confirmButton = {
             Button(
                 onClick = onConfirm,

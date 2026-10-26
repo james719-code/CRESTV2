@@ -48,56 +48,52 @@ fun ModernResearchCard(
     ) {
         Column(
             Modifier.combinedClickable(onClickLabel = "Read paper", onClick = onClick, onLongClick = onLongClick)
-                .padding(start = 20.dp, top = 14.dp, end = 8.dp, bottom = if (showActions) 8.dp else 22.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = if (showActions) 8.dp else 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                PaperCover(research.strand, Modifier.padding(top = 8.dp), size = 60.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        FlowRow(
-                            Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (research.strand.isNotBlank()) MetadataBadge(research.strand, MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-                            MetadataBadge(if (research.type == ResearchType.QUALITATIVE) "Qualitative" else "Quantitative")
-                            if (research.unfinished) MetadataBadge("In progress", MaterialTheme.crestColors.warning, MaterialTheme.crestColors.onWarning)
-                        }
-                        onFavoriteClick?.let {
-                            IconButton(onClick = it, enabled = !isFavoriteUpdating, modifier = Modifier.size(40.dp)) {
-                                if (isFavoriteUpdating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                                else Icon(
-                                    if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                    if (isFavorite) "Remove from favorites" else "Add to favorites",
-                                    tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        onManageClick?.let { IconButton(onClick = it, Modifier.size(40.dp)) { Icon(Icons.Outlined.MoreVert, "Manage research") } }
-                        if (onFavoriteClick == null && onManageClick == null) Spacer(Modifier.width(10.dp))
-                    }
-                    Column(Modifier.padding(end = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            research.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = if (large) 8 else 3,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PaperCover(research.strand, size = 36.dp)
+                Spacer(Modifier.width(12.dp))
+                FlowRow(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (research.strand.isNotBlank()) MetadataBadge(research.strand, MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                    MetadataBadge(if (research.type == ResearchType.QUALITATIVE) "Qualitative" else "Quantitative")
+                    if (research.unfinished) MetadataBadge("In progress", MaterialTheme.crestColors.warning, MaterialTheme.crestColors.onWarning)
+                }
+                onFavoriteClick?.let {
+                    IconButton(onClick = it, enabled = !isFavoriteUpdating, modifier = Modifier.size(48.dp)) {
+                        if (isFavoriteUpdating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        else Icon(
+                            if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            research.members.joinToString(", ").ifBlank { "Author names not provided" },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = if (large) 4 else 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            date?.let { InformationLine(Icons.Outlined.CalendarToday, it) }
-                            InformationLine(Icons.Outlined.Download,
-                                "${research.downloads} ${if (research.downloads == 1) "download" else "downloads"}")
-                        }
                     }
                 }
+                onManageClick?.let {
+                    IconButton(onClick = it, Modifier.size(48.dp)) { Icon(Icons.Outlined.MoreVert, "Manage research") }
+                }
+            }
+            Text(
+                research.title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = if (large) 8 else 3,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                research.members.joinToString(", ").ifBlank { "Author names not provided" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (large) 4 else 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                date?.let { InformationLine(Icons.Outlined.CalendarToday, it) }
+                InformationLine(Icons.Outlined.Download,
+                    "${research.downloads} ${if (research.downloads == 1) "download" else "downloads"}")
             }
             if (showActions) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

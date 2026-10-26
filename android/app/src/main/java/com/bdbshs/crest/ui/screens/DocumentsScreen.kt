@@ -136,6 +136,7 @@ private fun DocumentFilterSortBottomSheet(
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -248,6 +249,7 @@ private fun DocumentEditDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Document") },
         text = {
+            com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = editedName,

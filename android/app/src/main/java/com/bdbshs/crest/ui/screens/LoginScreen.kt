@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.util.Log
 import android.content.Intent
 import android.content.ActivityNotFoundException
@@ -69,7 +71,7 @@ fun LoginScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val uiState by loginViewModel.uiState.collectAsState()
+    val uiState by loginViewModel.uiState.collectAsStateWithLifecycle()
     val credentialManager = remember { CredentialManager.create(context) }
     var isRequestingCredential by remember { mutableStateOf(false) }
     var credentialIssue by remember { mutableStateOf<String?>(null) }
@@ -156,12 +158,13 @@ internal fun LoginScreenContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Column(verticalArrangement = Arrangement.spacedBy(28.dp)) {
+            LoginActions(isLoading, onGoogleLoginClick, credentialIssue, onAddAccount)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 LoginFeature(Icons.Outlined.Search, "Find research", "Browse papers from your school by title, author, or strand.")
                 LoginFeature(Icons.Outlined.Groups, "Work with your group", "Create a group and submit your research for review.")
                 LoginFeature(Icons.Outlined.RateReview, "Get feedback", "Teachers review, comment, and approve submissions.")
             }
-            LoginActions(isLoading, onGoogleLoginClick, credentialIssue, onAddAccount)
             Text(
                 "Bonifacio D. Borebor Sr. High School",
                 style = MaterialTheme.typography.bodySmall,
@@ -181,11 +184,11 @@ private fun LoginBrandHeader() {
             .background(heroContainer())
     ) {
         Column(
-            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 24.dp).padding(top = 20.dp, bottom = 28.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 20.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            CrestMark(96.dp)
+            CrestMark(72.dp)
             Spacer(Modifier.height(8.dp))
             Text(
                 "CREST",
@@ -199,8 +202,6 @@ private fun LoginBrandHeader() {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() }
             )
-            Spacer(Modifier.height(16.dp))
-            CrestIllustration(Modifier.width(120.dp).height(66.dp))
         }
     }
 }

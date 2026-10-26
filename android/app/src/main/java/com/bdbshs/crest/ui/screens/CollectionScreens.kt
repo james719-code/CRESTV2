@@ -64,7 +64,7 @@ internal fun DocumentRecordCard(document: DocumentItem, canManage: Boolean, onDo
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconBadge(
-                    Icons.Outlined.Description, size = 52.dp,
+                    Icons.Outlined.Description, size = 36.dp,
                     container = MaterialTheme.colorScheme.tertiaryContainer, content = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -1,14 +1,22 @@
 package com.bdbshs.crest.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.ViewTreeObserver
+import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
 import com.bdbshs.crest.branding.CrestDarkColorScheme
 import com.bdbshs.crest.branding.CrestDarkExtendedColors
@@ -28,12 +36,18 @@ fun CRESTTheme(
 ) {
     val view = LocalView.current
     if (!view.isInEditMode) {
+        val activity = remember(view) { view.context.findActivity() }
         SideEffect {
-            (view.context as? Activity)?.window?.let { window ->
-                WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = !darkTheme
-                    isAppearanceLightNavigationBars = !darkTheme
-                }
+            activity?.applySystemBarAppearance(darkTheme)
+        }
+        DisposableEffect(activity, darkTheme) {
+            val observer = activity?.window?.decorView?.viewTreeObserver
+            val listener = ViewTreeObserver.OnWindowFocusChangeListener { focused ->
+                if (focused) activity?.applySystemBarAppearance(darkTheme)
+            }
+            observer?.addOnWindowFocusChangeListener(listener)
+            onDispose {
+                if (observer?.isAlive == true) observer.removeOnWindowFocusChangeListener(listener)
             }
         }
     }
@@ -51,5 +65,32 @@ fun CRESTTheme(
             shapes = CrestShapes,
             content = content
         )
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+private fun Activity.applySystemBarAppearance(darkTheme: Boolean) {
+    window.applySystemBarAppearance(darkTheme)
+}
+
+private fun Window.applySystemBarAppearance(darkTheme: Boolean) {
+    WindowCompat.getInsetsController(this, decorView).apply {
+        isAppearanceLightStatusBars = !darkTheme
+        isAppearanceLightNavigationBars = !darkTheme
+    }
+}
+
+/** Material dialogs own a separate window and otherwise follow the device theme. */
+@Composable
+fun CrestDialogSystemBars() {
+    val view = LocalView.current
+    val darkTheme = MaterialTheme.colorScheme.background.luminance() < .5f
+    SideEffect {
+        (view.parent as? DialogWindowProvider)?.window?.applySystemBarAppearance(darkTheme)
     }
 }

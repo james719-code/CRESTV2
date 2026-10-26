@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -88,7 +90,7 @@ fun StudentHomeScreen(
     onNavigateToUpload: () -> Unit,
     onNavigateToResearchDetails: (String) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     var showCreateGroupDialog by remember { mutableStateOf(false) }
@@ -522,7 +524,8 @@ private fun GroupInfoCard(
     onUnsubmitRequest: () -> Unit,
     onDownloadAndLeave: () -> Unit
 ) {
-    AnimatedContent(targetState = uiState.groupDetails, label = "GroupCardAnimation") { groupDetails ->
+    key(uiState.studentDetails?.groupId) {
+        val groupDetails = uiState.groupDetails
         if (groupDetails != null && uiState.studentDetails != null) {
             GroupDetailsCard(
                 groupId = uiState.studentDetails.groupId,
@@ -661,7 +664,7 @@ private fun GroupDetailsCard(
 private fun UnsubmitConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Warning, contentDescription = null) },
+        icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.Default.Warning, contentDescription = null) },
         title = { Text("Unsubmit Research?") },
         text = { Text("This will withdraw your submission for review. You can upload it again later. Your teacher's comments will be kept.") },
         confirmButton = {
@@ -713,7 +716,7 @@ private fun GroupEmptyStateCard(onCreateGroupClick: () -> Unit, onJoinGroupClick
 private fun CreateGroupDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
     var groupName by remember { mutableStateOf("") }
     val isNameValid = groupName.isNotBlank()
-    AlertDialog(onDismissRequest = onDismiss, icon = { Icon(Icons.Default.GroupAdd, null) }, title = { Text("Create a New Group") },
+    AlertDialog(onDismissRequest = onDismiss, icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.Default.GroupAdd, null) }, title = { Text("Create a New Group") },
         text = { OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") }, singleLine = true, keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)) },
         confirmButton = { Button(onClick = { onCreate(groupName.trim()) }, enabled = isNameValid) { Text("Create") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
@@ -724,7 +727,7 @@ private fun CreateGroupDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit)
 private fun JoinGroupDialog(onDismiss: () -> Unit, onJoin: (String) -> Unit) {
     var groupId by remember { mutableStateOf("") }
     val isIdValid = groupId.trim().length > 5
-    AlertDialog(onDismissRequest = onDismiss, icon = { Icon(Icons.AutoMirrored.Filled.Login, "Join Group") }, title = { Text("Join an Existing Group") },
+    AlertDialog(onDismissRequest = onDismiss, icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.AutoMirrored.Filled.Login, "Join Group") }, title = { Text("Join an Existing Group") },
         text = { OutlinedTextField(value = groupId, onValueChange = { groupId = it }, label = { Text("Group ID") }, placeholder = { Text("Enter the ID from your group leader") }, singleLine = true, keyboardOptions = KeyboardOptions.Default, modifier = Modifier.fillMaxWidth()) },
         confirmButton = { Button(onClick = { onJoin(groupId.trim()) }, enabled = isIdValid) { Text("Join") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
