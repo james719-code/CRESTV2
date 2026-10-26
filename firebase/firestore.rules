@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function self(uid) { return signedIn() && request.auth.uid == uid; }
+    function teacher() {
+      return signedIn() && exists(/databases/$(database)/documents/users/user_details/teachers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/user_details/teachers/$(request.auth.uid)).data.access == true;
+    }
+    function student() {
+      return signedIn() && exists(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid)).data.accepted == true;
+    }
+    function approved() { return teacher() || student(); }
+    function myStudent() { return get(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid)).data; }
+    function groupId(data) { return data.get('groupId', data.get('group_id', '')); }
+    function member(data) { return signedIn() && request.auth.uid in data.group_member; }
+    function text(value, max) { return value is string && value.size() <= max; }
+    function peer(uid) {
+      let id = groupId(myStudent());
+      return id != '' && exists(/databases/$(database)/documents/groups/$(id))
+        && member(get(/databases/$(database)/documents/groups/$(id)).data)
+        && uid in get(/databases/$(database)/documents/groups/$(id)).data.group_member;
+    }
+    function validMembershipChange(uid) {
+      let oldId = groupId(resource.data);
+      let newId = groupId(request.resource.data);
+      return request.resource.data.groupId == request.resource.data.group_id
+        && (oldId == '' || !existsAfter(/databases/$(database)/documents/groups/$(oldId))
+          || !(uid in getAfter(/databases/$(database)/documents/groups/$(oldId)).data.group_member))
+        && (newId == '' || (existsAfter(/databases/$(database)/documents/groups/$(newId))
+          && uid in getAfter(/databases/$(database)/documents/groups/$(newId)).data.group_member
+          && request.resource.data.strand == getAfter(/databases/$(database)/documents/groups/$(newId)).data.strand));
+    }
+
+    match /users/user_details/students/{uid} {
+      allow get: if self(uid) || teacher() || (student() && peer(uid));
+      allow list: if teacher() || (student() && peer(uid));
+      allow create: if self(uid)
+        && request.resource.data.keys().hasOnly(['name', 'lrn', 'strand', 'gender', 'group_id', 'groupId', 'accepted', 'research_accepted', 'uid'])
+        && request.resource.data.uid == uid && request.resource.data.accepted == false
+        && request.resource.data.research_accepted == false && request.resource.data.group_id == ''
+        && request.resource.data.get('groupId', '') == ''
+        && text(request.resource.data.name, 200) && request.resource.data.name.size() > 0
+        && request.resource.data.lrn is int && text(request.resource.data.strand, 100)
+        && text(request.resource.data.gender, 50);
+      allow update: if (teacher() && request.resource.data.uid == resource.data.uid)
+        || (self(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'gender'])
+          && text(request.resource.data.name, 200) && text(request.resource.data.gender, 50))
+        || (self(uid) && student()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['groupId', 'group_id'])
+          && validMembershipChange(uid));
+      allow delete: if teacher();
+    }
+    match /users/user_details/teachers/{uid} {
+      allow get: if self(uid) || teacher();
+      allow list: if teacher();
+      allow create: if self(uid)
+        && request.resource.data.keys().hasOnly(['name', 'email', 'access', 'upload_count', 'uid'])
+        && request.resource.data.uid == uid && request.resource.data.access == false
+        && request.resource.data.upload_count == 0 && request.resource.data.email == request.auth.token.email
+        && text(request.resource.data.name, 200) && request.resource.data.name.size() > 0;
+      allow update: if teacher() && request.resource.data.uid == resource.data.uid;
+      allow delete: if teacher() && !self(uid);
+    }
+    match /groups/{id} {
+      // Joining uses a known group code; browsing every group is teacher-only.
+      allow get: if approved();
+      allow list: if teacher();
+      allow create: if student() && groupId(myStudent()) == ''
+        && request.resource.data.keys().hasOnly(['group_name', 'strand', 'group_member', 'file_link', 'uploaded', 'research_type', 'accepted_research', 'comments', 'research_title'])
+        && text(request.resource.data.group_name, 200) && request.resource.data.group_name.size() > 0
+        && request.resource.data.strand == myStudent().strand
+        && request.resource.data.group_member == [request.auth.uid]
+        && request.resource.data.file_link == '' && request.resource.data.uploaded == false
+        && request.resource.data.accepted_research == false && request.resource.data.comments == []
+        && request.resource.data.research_type == ''
+        && groupId(getAfter(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid)).data) == id;
+      allow update: if teacher() || (student() && (
+        // A student can add/remove only themselves, atomically with their profile.
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['group_member'])
+          && request.resource.data.group_member is list && request.resource.data.group_member.size() <= 20
+          && request.resource.data.group_member.size() == request.resource.data.group_member.toSet().size()
+          && ((member(resource.data)
+              && request.resource.data.group_member.toSet() == resource.data.group_member.toSet().difference([request.auth.uid].toSet())
+              && groupId(getAfter(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid)).data) == '')
+            || (!member(resource.data) && groupId(myStudent()) == '' && resource.data.accepted_research == false
+              && resource.data.uploaded == false && resource.data.strand == myStudent().strand
+              && request.resource.data.group_member.toSet() == resource.data.group_member.toSet().union([request.auth.uid].toSet())
+              && groupId(getAfter(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid)).data) == id)))
+        || (member(resource.data) && resource.data.accepted_research == false
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['file_link', 'research_title', 'research_type', 'uploaded'])
+          && request.resource.data.uploaded is bool && text(request.resource.data.file_link, 128)
+          && text(request.resource.data.get('research_title', ''), 1000)
+          && request.resource.data.research_type in ['', 'qualitative', 'quantitative', 'QUALITATIVE', 'QUANTITATIVE']
+          && (request.resource.data.uploaded == false || request.resource.data.file_link.matches('sb_[0-9a-f-]{36}')))
+      ));
+      allow delete: if teacher() || (student() && resource.data.group_member == [request.auth.uid]
+        && resource.data.accepted_research == false
+        && groupId(getAfter(/databases/$(database)/documents/users/user_details/students/$(request.auth.uid)).data) == '');
+    }
+    match /researches/research_details/{kind}/{id} {
+      allow read: if approved() && kind in ['qualitative', 'quantitative'];
+      allow create, delete: if teacher() && kind in ['qualitative', 'quantitative'];
+      allow update: if kind in ['qualitative', 'quantitative'] && (teacher() || (student()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads'])
+        && request.resource.data.downloads == resource.data.get('downloads', 0) + 1));
+    }
+    match /documents/{id} {
+      allow read: if approved();
+      allow write: if teacher();
+    }
+    match /user_favorites/{uid}/items/{id} {
+      allow read, delete: if self(uid) && approved();
+      allow create, update: if self(uid) && approved()
+        && request.resource.data.keys().hasOnly(['researchId', 'type', 'updatedAt'])
+        && request.resource.data.researchId == id
+        && request.resource.data.type in ['QUALITATIVE', 'QUANTITATIVE']
+        && request.resource.data.updatedAt is int;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

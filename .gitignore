@@ -53,6 +53,18 @@ google-services.json
 /android/crest_jks.txt
 /android/firebase_base64.txt
 
+# --- Local backend migration credentials and school-data exports ---
+/.secrets/
+/.env.backend-migration.local
+/state/backend-migration/
+/appwrite-downloads/
+/supabase/.temp/
+/supabase/.branches/
+/supabase/functions/.env
+/supabase/functions/.env.local
+/supabase/functions/.env.*.local
+/.netlify/
+
 # --- Generated local docs ---
 /CREST_User_Guide.html
 /CREST_User_Guide.pdf
@@ -64,3 +76,4 @@ google-services.json
 /artifacts/home-ui/
 /artifacts/login-ui/
 /artifacts/ui-audit/
+/artifacts/android-review/

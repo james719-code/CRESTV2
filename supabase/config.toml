@@ -1,0 +1,9 @@
+project_id = "crest"
+
+# Firebase tokens are verified inside each function against Google's public keys.
+# The Supabase gateway must not try to verify them as Supabase-issued JWTs.
+[functions.crest-storage]
+verify_jwt = false
+
+[functions.crest-notifications]
+verify_jwt = false

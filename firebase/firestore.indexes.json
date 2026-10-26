@@ -1,0 +1,38 @@
+{
+  "indexes": [
+    {"collectionGroup": "groups", "queryScope": "COLLECTION", "fields": [{"fieldPath": "uploaded", "order": "ASCENDING"},{"fieldPath": "accepted_research", "order": "ASCENDING"}]}
+  ],
+  "fieldOverrides": [
+    {"collectionGroup": "students", "fieldPath": "*", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"}]},
+    {"collectionGroup": "teachers", "fieldPath": "*", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"}]},
+    {"collectionGroup": "groups", "fieldPath": "*", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"}]},
+    {"collectionGroup": "qualitative", "fieldPath": "*", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"}]},
+    {"collectionGroup": "quantitative", "fieldPath": "*", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"}]},
+    {"collectionGroup": "documents", "fieldPath": "*", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"}]},
+    {"collectionGroup": "qualitative", "fieldPath": "createdAt", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"},{"queryScope": "COLLECTION", "order": "DESCENDING"}]},
+    {"collectionGroup": "quantitative", "fieldPath": "createdAt", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"},{"queryScope": "COLLECTION", "order": "DESCENDING"}]},
+    {"collectionGroup": "documents", "fieldPath": "createdAt", "indexes": [{"queryScope": "COLLECTION", "order": "ASCENDING"},{"queryScope": "COLLECTION", "order": "DESCENDING"}]},
+    {"collectionGroup": "documents", "fieldPath": "description", "indexes": []},
+    {"collectionGroup": "groups", "fieldPath": "comments", "indexes": []},
+    {"collectionGroup": "groups", "fieldPath": "group_member", "indexes": []},
+    {"collectionGroup": "groups", "fieldPath": "research_title", "indexes": []},
+    {"collectionGroup": "items", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "qualitative", "fieldPath": "members", "indexes": []},
+    {"collectionGroup": "qualitative", "fieldPath": "title", "indexes": []},
+    {"collectionGroup": "qualitative", "fieldPath": "downloads", "indexes": []},
+    {"collectionGroup": "qualitative", "fieldPath": "views", "indexes": []},
+    {"collectionGroup": "quantitative", "fieldPath": "members", "indexes": []},
+    {"collectionGroup": "quantitative", "fieldPath": "title", "indexes": []},
+    {"collectionGroup": "quantitative", "fieldPath": "downloads", "indexes": []},
+    {"collectionGroup": "quantitative", "fieldPath": "views", "indexes": []},
+    {"collectionGroup": "students", "fieldPath": "lrn", "indexes": []},
+    {"collectionGroup": "students", "fieldPath": "gender", "indexes": []},
+    {"collectionGroup": "students", "fieldPath": "uid", "indexes": []},
+    {"collectionGroup": "students", "fieldPath": "group_id", "indexes": []},
+    {"collectionGroup": "students", "fieldPath": "research_accepted", "indexes": []},
+    {"collectionGroup": "teachers", "fieldPath": "uid", "indexes": []},
+    {"collectionGroup": "teachers", "fieldPath": "upload_count", "indexes": []},
+    {"collectionGroup": "users", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "researches", "fieldPath": "*", "indexes": []}
+  ]
+}
