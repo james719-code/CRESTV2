@@ -34,7 +34,7 @@ The app is built as a production-style Android project: Kotlin, Jetpack Compose,
 
 ```text
 android/           Android Gradle project, app, and macrobenchmarks
-frontend/          Reserved for the web frontend
+frontend/          React + TypeScript teacher website, built with shadcn/ui
 branding/          Shared identity, Inter fonts, design tokens, and platform guidance
 docs/              Shared architecture and release documentation
 ```

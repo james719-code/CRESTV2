@@ -19,7 +19,7 @@ Share identity, language, color meanings, type hierarchy, and component intent. 
 
 ## Web installation
 
-The repository's `frontend/` is currently a placeholder. These instructions are ready for its future build tooling; no web runtime has been introduced.
+The repository's `frontend/` is a React teacher workspace built with Vite, TypeScript, Tailwind CSS, and shadcn/ui. Its CSS imports the generated web tokens directly, including the bundled Inter font. The shadcn semantic variables map to CREST roles in light and dark themes. Display preferences select a theme explicitly or follow the device, and provide optional larger text, stronger contrast, reduced motion, and guidance. The Inter license is distributed in `frontend/public/licenses/`.
 
 1. Copy or import the generated CSS into the web project and copy `assets/fonts/InterVariable.woff2` and its license alongside the app's local font assets.
 2. Preserve the CSS's relative font path or update it to the final asset URL. The path in this kit is designed for `branding/generated/web/crest-tokens.css`.

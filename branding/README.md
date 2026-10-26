@@ -1,6 +1,6 @@
 # CREST branding
 
-CREST's shared identity for Android and the future web application.
+CREST's shared identity for Android and the teacher website.
 
 **Direction:** a clear, welcoming school research library. Keep the CREST name and recognizable blue identity; introduce ink navy, restrained teal, and Inter typography. Suggested tagline: **School research, shared.**
 

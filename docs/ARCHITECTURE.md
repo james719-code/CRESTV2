@@ -2,7 +2,21 @@
 
 CREST uses a single-activity Android architecture with Jetpack Compose, MVVM, repositories, and Hilt dependency injection.
 
-The Android Gradle project lives in `android/`, the future web frontend is reserved under `frontend/`, and shared documentation lives in `docs/`. Paths below are relative to the repository root.
+The Android Gradle project lives in `android/`, the React teacher website lives in `frontend/`, and shared documentation lives in `docs/`. Paths below are relative to the repository root.
+
+## Teacher website
+
+The website adapts the Android teacher workspace for desktop and smaller screens. React and TypeScript provide the application, Vite builds it, and shadcn/ui (Radix primitives and Tailwind CSS) provides its controls, tables, tabs, sheets, dialogs, and notifications. Shared generated CREST tokens and the bundled Inter font provide its identity.
+
+`frontend/src/domain.ts` defines the normalized records and submission workflow. `data/useWorkspace.ts` provides either a clearly labeled browser-local demo or the school connection. With complete web configuration, `data/firebase.ts` verifies the signed-in user's approved teacher profile before subscribing to the existing Firestore collections. Teacher access remains observed throughout the session. The live connection never falls back to fictional records after an error.
+
+Reviews use Firestore transactions to recheck teacher access and submission state. Approving a submission creates its library paper and updates the group together, preventing duplicate approvals. Requesting changes appends a comment and clears `uploaded`; the website retains the previous title and file for context, using fields Android already understands. Student progress is derived from group submission flags and feedback, rather than invented chapter percentages or activity dates.
+
+Appwrite stores PDF files through the existing client permissions. The website accepts PDFs up to 5 MB, validates the PDF header, and attempts to remove a newly uploaded file if saving its metadata fails. Existing files are preserved. Demo uploads stay in IndexedDB; demo metadata stays in localStorage. Live school records are not persisted in that demo storage.
+
+Firebase security rules and Appwrite permissions remain the server authority. The website's teacher gate is additional UI protection. See `frontend/README.md` for configuration and validation requirements.
+
+`DisplayProvider` supplies browser-local reading and appearance preferences across the public site, sign-in, workspace, dialogs, and notifications. `preferences.ts` validates persisted choices and applies the initial theme before React renders. Light/dark use the shared generated brand colors; optional stronger contrast supplies additional text and outline values. Easy reading uses rem-based larger text, roomy controls, card layouts, and contextual guidance, independently of theme. Narrow content areas adapt from tables to cards. The mobile navigation locks background interaction and manages keyboard focus while open. These settings never change account roles or the research workflow.
 
 ## Layers
 
