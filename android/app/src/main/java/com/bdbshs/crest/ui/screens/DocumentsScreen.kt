@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
@@ -33,8 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.bdbshs.crest.data.AppwriteClient
-import com.bdbshs.crest.data.StorageConfig
 import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.common.EmptyState
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
@@ -52,10 +52,11 @@ fun DocumentsScreen(
     viewModel: DocumentsViewModel = hiltViewModel(),
     onGoHome: (() -> Unit)? = null
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val documentsToShow by viewModel.filteredAndSortedDocuments.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val documentsToShow by viewModel.filteredAndSortedDocuments.collectAsStateWithLifecycle()
     val pullRefreshState = rememberPullRefreshState(uiState.isRefreshing, viewModel::onRefresh)
     val context = LocalContext.current // Context captured at Composable scope
+    val downloadScope = rememberCoroutineScope()
 
     LaunchedEffect(userRole) {
         viewModel.setUserRole(userRole)
@@ -96,9 +97,10 @@ fun DocumentsScreen(
         onFilter = { isFilterSheetOpen = true },
         onRefresh = viewModel::onRefresh,
         onDownload = { document ->
+          downloadScope.launch {
             try {
                 val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                val request = DownloadManager.Request(AppwriteClient.getDownloadUrl(StorageConfig.BUCKET_ID, document.file_link).toUri())
+                val request = DownloadManager.Request(viewModel.downloadUrl(document.file_link).toUri())
                     .setTitle(document.name)
                     .setDescription("Downloading ${document.name}")
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
@@ -110,6 +112,7 @@ fun DocumentsScreen(
             } catch (_: Exception) {
                 Toast.makeText(context, "Could not start the download. Try again.", Toast.LENGTH_LONG).show()
             }
+          }
         },
         onManage = viewModel::onDocumentLongPress,
         onGoHome = onGoHome,

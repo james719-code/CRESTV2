@@ -1,14 +1,12 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.StorageConfig
 import com.bdbshs.crest.data.countWithCacheFallback
 import com.bdbshs.crest.data.timestampMillis
 import com.bdbshs.crest.data.nonNegativeInt
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import io.appwrite.services.Storage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
@@ -55,8 +53,7 @@ data class StudentHomeData(
 
 @Singleton
 class StudentRepository @Inject constructor(
-    private val firestore: FirebaseFirestore,
-    private val storage: Storage
+    private val firestore: FirebaseFirestore
 ) {
 
     suspend fun fetchHomeData(uid: String): StudentHomeData = coroutineScope {
@@ -204,16 +201,13 @@ class StudentRepository @Inject constructor(
     }
 
     suspend fun unsubmitResearch(groupId: String, fileId: String?) {
-        if (!fileId.isNullOrBlank()) {
-            storage.deleteFile(StorageConfig.BUCKET_ID, fileId)
-        }
-
         val updates = mapOf(
             "uploaded" to false,
             "file_link" to "",
             "research_type" to ""
         )
         firestore.collection(FirestorePaths.GROUPS).document(groupId).update(updates).await()
+        // Keep the object for migration/retention even after unsubmission.
     }
 
     suspend fun createGroup(uid: String, studentStrand: String, groupName: String) {

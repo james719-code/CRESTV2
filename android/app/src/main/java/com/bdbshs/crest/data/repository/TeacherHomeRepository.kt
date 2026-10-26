@@ -3,15 +3,12 @@ package com.bdbshs.crest.data.repository
 import android.content.Context
 import android.net.Uri
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.CrestStorage
 import com.bdbshs.crest.data.countWithCacheFallback
 import com.bdbshs.crest.data.timestampMillis
 import com.bdbshs.crest.data.nonNegativeInt
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import io.appwrite.ID
-import io.appwrite.models.InputFile
-import io.appwrite.services.Storage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
@@ -49,7 +46,7 @@ data class TeacherDocumentUploadInput(
 @Singleton
 class TeacherHomeRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val storage: Storage
+    private val storage: CrestStorage
 ) {
 
     suspend fun fetchDashboardData(uid: String): TeacherDashboardData = coroutineScope {
@@ -141,8 +138,7 @@ class TeacherHomeRepository @Inject constructor(
             ?: throw IllegalStateException("Failed to prepare file for upload.")
 
         val uploadedFileId = try {
-            val inputFile = InputFile.fromFile(file = tempFile)
-            storage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
+            storage.upload(tempFile, "document")
         } finally {
             tempFile.delete()
         }
@@ -159,7 +155,7 @@ class TeacherHomeRepository @Inject constructor(
 
     private fun createTempFileFromUri(context: Context, uri: Uri): File? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             val tempFile = File.createTempFile("upload_doc_", "", context.cacheDir)
             val outputStream = FileOutputStream(tempFile)
             inputStream?.use { input ->

@@ -1,6 +1,7 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
+import com.bdbshs.crest.data.EdgeApi
 import com.bdbshs.crest.data.nonNegativeInt
 import com.bdbshs.crest.data.nonNegativeLong
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,7 +36,8 @@ sealed class AccountRecord {
 
 @Singleton
 class AccountRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val edge: EdgeApi
 ) {
 
     suspend fun fetchAllAccounts(): List<AccountRecord> = coroutineScope {
@@ -77,6 +79,7 @@ class AccountRepository @Inject constructor(
             .document(uid)
             .update(fieldToUpdate, true)
             .await()
+        edge.notifyEvent("account-approved", uid, role.name.lowercase())
     }
 
     suspend fun denyAccount(uid: String, role: UserRole) {

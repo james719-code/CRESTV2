@@ -24,6 +24,8 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.bdbshs.crest.data.ThemeMode
 import com.bdbshs.crest.data.UserPrefs.userDataFlow
 import com.bdbshs.crest.navigation.CrestApp
+import com.bdbshs.crest.notifications.NotificationOptIn
+import com.bdbshs.crest.notifications.PushNotifications
 import com.bdbshs.crest.ui.screens.SplashScreen
 import com.bdbshs.crest.ui.theme.CRESTTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -43,6 +45,12 @@ private const val SPLASH_FADE_DURATION_MS = 500
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @javax.inject.Inject lateinit var pushNotifications: PushNotifications
+
+    override fun onResume() {
+        super.onResume()
+        pushNotifications.refresh()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen before super.onCreate()
@@ -66,6 +74,7 @@ class MainActivity : ComponentActivity() {
 
             CRESTTheme(darkTheme = isDarkTheme) {
                 CrestAppWithSplash()
+                NotificationOptIn(userData?.uid, pushNotifications)
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.bdbshs.crest.data.repository
 
+import com.bdbshs.crest.notifications.PushNotifications
+
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
@@ -10,7 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthRepository @Inject constructor(
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val pushNotifications: PushNotifications
 ) {
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
@@ -21,7 +24,8 @@ class AuthRepository @Inject constructor(
         return auth.signInWithCredential(credential).await()
     }
 
-    fun signOut() {
+    suspend fun signOut() {
+        pushNotifications.disable()
         auth.signOut()
     }
 

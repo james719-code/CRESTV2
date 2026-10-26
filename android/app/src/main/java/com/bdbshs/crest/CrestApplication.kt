@@ -3,6 +3,7 @@ package com.bdbshs.crest
 import android.app.Application
 import android.util.Log
 import com.bdbshs.crest.data.AppwriteClient
+import com.bdbshs.crest.notifications.PushNotifications
 import dagger.hilt.android.HiltAndroidApp
 
 /**
@@ -11,6 +12,7 @@ import dagger.hilt.android.HiltAndroidApp
  */
 @HiltAndroidApp
 class CrestApplication : Application() {
+    @javax.inject.Inject lateinit var pushNotifications: PushNotifications
 
     companion object {
         private const val TAG = "CrestApplication"
@@ -24,6 +26,7 @@ class CrestApplication : Application() {
 
         // Initialize services
         initializeServices()
+        pushNotifications.start()
     }
 
     /**

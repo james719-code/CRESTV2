@@ -3,11 +3,9 @@ package com.bdbshs.crest.data.repository
 import android.content.Context
 import android.net.Uri
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.CrestStorage
+import com.bdbshs.crest.data.EdgeApi
 import com.google.firebase.firestore.FirebaseFirestore
-import io.appwrite.ID
-import io.appwrite.models.InputFile
-import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.FileOutputStream
@@ -32,7 +30,8 @@ data class GroupResearchUploadInput(
 @Singleton
 class UploadRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val storage: Storage
+    private val storage: CrestStorage,
+    private val edge: EdgeApi
 ) {
 
     suspend fun uploadResearch(context: Context, input: ResearchUploadInput) {
@@ -40,8 +39,7 @@ class UploadRepository @Inject constructor(
             ?: throw IllegalStateException("Failed to read the selected file.")
 
         val uploadedFileId = try {
-            val inputFile = InputFile.fromFile(file = tempFile)
-            storage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
+            storage.upload(tempFile, "research")
         } finally {
             tempFile.delete()
         }
@@ -66,8 +64,7 @@ class UploadRepository @Inject constructor(
             ?: throw IllegalStateException("Failed to prepare file for upload.")
 
         val uploadedFileId = try {
-            val inputFile = InputFile.fromFile(file = tempFile)
-            storage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
+            storage.upload(tempFile, "group", input.groupId)
         } finally {
             tempFile.delete()
         }
@@ -80,6 +77,7 @@ class UploadRepository @Inject constructor(
         )
 
         firestore.collection(FirestorePaths.GROUPS).document(input.groupId).update(groupUpdates).await()
+        edge.notifyEvent("group-submitted", input.groupId)
     }
 
     suspend fun getStudentGroupId(uid: String): String? {
@@ -89,7 +87,7 @@ class UploadRepository @Inject constructor(
 
     private fun createTempFileFromUri(context: Context, uri: Uri): File? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             val tempFile = File.createTempFile("upload_", ".pdf", context.cacheDir)
             val fileOutputStream = FileOutputStream(tempFile)
             inputStream?.use { input ->

@@ -2,16 +2,13 @@ package com.bdbshs.crest.data.repository
 
 import android.content.Context
 import android.net.Uri
-import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.CrestStorage
 import com.bdbshs.crest.data.FirestorePaths
 import com.bdbshs.crest.data.timestampMillis
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
-import io.appwrite.ID
-import io.appwrite.models.InputFile
-import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.io.FileOutputStream
@@ -37,7 +34,7 @@ data class DocumentUpdateInput(
 @Singleton
 class DocumentRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val storage: Storage
+    private val storage: CrestStorage
 ) {
 
     fun observeDocuments(
@@ -77,15 +74,12 @@ class DocumentRepository @Inject constructor(
                 ?: throw IllegalStateException("Failed to prepare new file for upload.")
 
             updatedFileLink = try {
-                val inputFile = InputFile.fromFile(file = tempFile)
-                storage.createFile(StorageConfig.BUCKET_ID, ID.unique(), inputFile).id
+                storage.upload(tempFile, "document")
             } finally {
                 tempFile.delete()
             }
 
-            if (input.currentFileLink.isNotBlank()) {
-                storage.deleteFile(StorageConfig.BUCKET_ID, input.currentFileLink)
-            }
+            // Retain the previous object during migration.
         }
 
         val updates = mapOf(
@@ -106,13 +100,13 @@ class DocumentRepository @Inject constructor(
             .await()
 
         if (fileLink.isNotBlank()) {
-            storage.deleteFile(StorageConfig.BUCKET_ID, fileLink)
+            storage.delete(fileLink) // Retention-only request; no physical removal.
         }
     }
 
     private fun createTempFileFromUri(context: Context, uri: Uri): File? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             val tempFile = File.createTempFile("upload_doc_", "", context.cacheDir)
             val outputStream = FileOutputStream(tempFile)
             inputStream?.use { input ->

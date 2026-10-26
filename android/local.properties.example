@@ -1,0 +1,10 @@
+# Copy selected values to android/local.properties when ready. Public values only.
+# Existing Firebase client file: android/app/google-services.json
+STORAGE_PROVIDER=supabase
+SUPABASE_URL=https://mkmirlnypehadajrtxvg.supabase.co
+FCM_ENABLED=false
+
+# Optional legacy provider. Keep originals available for old Android installations.
+APPWRITE_ENDPOINT=
+APPWRITE_PROJECT_ID=
+APPWRITE_BUCKET_ID=

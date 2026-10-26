@@ -1,7 +1,7 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.CrestStorage
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -9,7 +9,6 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
-import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class ResearchRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val storage: Storage
+    private val storage: CrestStorage
 ) {
 
     fun observeQualitative(
@@ -90,7 +89,7 @@ class ResearchRepository @Inject constructor(
     }
 
     suspend fun deleteResearchFile(fileId: String) {
-        storage.deleteFile(StorageConfig.BUCKET_ID, fileId)
+        storage.delete(fileId) // Retention-only request; no physical removal.
     }
 
     suspend fun incrementDownloadCount(researchId: String) {

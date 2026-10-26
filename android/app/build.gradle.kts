@@ -26,6 +26,9 @@ fun resolveConfigValue(name: String, fallback: String): String {
     }
 }
 
+fun quotedConfig(name: String, fallback: String = ""): String =
+    "\"" + resolveConfigValue(name, fallback).replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
 android {
     namespace = "com.bdbshs.crest"
     compileSdk = 35
@@ -38,6 +41,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "STORAGE_PROVIDER", quotedConfig("STORAGE_PROVIDER", "supabase"))
+        buildConfigField("String", "SUPABASE_URL", quotedConfig("SUPABASE_URL", "https://mkmirlnypehadajrtxvg.supabase.co"))
+        buildConfigField("boolean", "FCM_ENABLED", (resolveConfigValue("FCM_ENABLED", "false") == "true").toString())
 
         buildConfigField(
             "String",
@@ -115,6 +122,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -125,6 +133,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.messaging)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)

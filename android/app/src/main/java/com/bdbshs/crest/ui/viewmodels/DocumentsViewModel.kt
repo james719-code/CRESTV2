@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bdbshs.crest.data.repository.DocumentRecord
+import com.bdbshs.crest.data.CrestStorage
 import com.bdbshs.crest.data.repository.DocumentRepository
 import com.bdbshs.crest.data.repository.DocumentUpdateInput
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +26,7 @@ data class DocumentItem(
     val id: String = "",
     val name: String = "",
     val description: String = "",
-    val file_link: String = "", // Appwrite File ID
+    val file_link: String = "", // Stable storage reference (legacy ID or sb_UUID).
     val createdAt: Long = 0L // Timestamp for sorting
 )
 
@@ -62,13 +63,16 @@ data class DocumentsUiState(
 @HiltViewModel
 class DocumentsViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val documentRepository: DocumentRepository
+    private val documentRepository: DocumentRepository,
+    private val storage: CrestStorage
 ) : ViewModel() {
 
     private var documentsListener: ListenerRegistration? = null
 
     private val _uiState = MutableStateFlow(DocumentsUiState(userRole = null)) // Initialize userRole as null
     val uiState = _uiState.asStateFlow()
+
+    suspend fun downloadUrl(fileId: String): String = storage.downloadUrl(fileId)
 
     private val _searchQuery = MutableStateFlow("")
 

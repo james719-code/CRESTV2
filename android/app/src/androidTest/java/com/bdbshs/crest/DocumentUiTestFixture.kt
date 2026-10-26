@@ -14,5 +14,5 @@ fun documentsViewModelForUiTest(context: Context): DocumentsViewModel {
         firstArg<(List<DocumentRecord>?, FirebaseFirestoreException?) -> Unit>()(emptyList(), null)
         mockk(relaxed = true)
     }
-    return DocumentsViewModel(context, repository)
+    return DocumentsViewModel(context, repository, mockk(relaxed = true))
 }

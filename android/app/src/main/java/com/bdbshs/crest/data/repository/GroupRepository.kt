@@ -1,7 +1,7 @@
 package com.bdbshs.crest.data.repository
 
 import com.bdbshs.crest.data.FirestorePaths
-import com.bdbshs.crest.data.StorageConfig
+import com.bdbshs.crest.data.EdgeApi
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -9,7 +9,6 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
-import io.appwrite.services.Storage
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class GroupRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
-    private val storage: Storage
+    private val edge: EdgeApi
 ) {
 
     fun observeGroups(
@@ -75,18 +74,16 @@ class GroupRepository @Inject constructor(
         batch.update(groupRef, mapOf("accepted_research" to true, "uploaded" to false))
 
         batch.commit().await()
+        edge.notifyEvent("group-reviewed", groupId)
     }
 
     suspend fun approveSubmission(groupId: String) {
         val updates = mapOf("accepted_research" to true, "uploaded" to false)
         firestore.collection(FirestorePaths.GROUPS).document(groupId).update(updates).await()
+        edge.notifyEvent("group-reviewed", groupId)
     }
 
     suspend fun denySubmission(groupId: String, fileLink: String?, comment: String) {
-        if (!fileLink.isNullOrBlank()) {
-            storage.deleteFile(StorageConfig.BUCKET_ID, fileLink)
-        }
-
         val updates = mapOf(
             "accepted_research" to false,
             "uploaded" to false,
@@ -96,5 +93,7 @@ class GroupRepository @Inject constructor(
             "comments" to FieldValue.arrayUnion(comment)
         )
         firestore.collection(FirestorePaths.GROUPS).document(groupId).update(updates).await()
+        // Preserve the previous PDF in storage during migration.
+        edge.notifyEvent("group-reviewed", groupId)
     }
 }
