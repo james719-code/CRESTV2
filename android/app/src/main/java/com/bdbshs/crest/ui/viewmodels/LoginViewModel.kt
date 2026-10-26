@@ -20,9 +20,10 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestoreException
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -54,8 +55,8 @@ class LoginViewModel @Inject constructor(
     private val _uiState    = MutableStateFlow(LoginUiState())
     val uiState             = _uiState.asStateFlow()
 
-    private val _loginResult = MutableSharedFlow<LoginResult>()
-    val loginResult         = _loginResult.asSharedFlow()
+    private val _loginResult = Channel<LoginResult>(Channel.BUFFERED)
+    val loginResult = _loginResult.receiveAsFlow()
 
     init {
         checkForActiveSession()
@@ -86,7 +87,8 @@ class LoginViewModel @Inject constructor(
                                 else LoginResult.NavigateToPendingApproval
                             else -> LoginResult.NavigateToSignUpDetails
                         }
-                        _loginResult.emit(result)
+                        if (authRepository.getCurrentUserUid() != user.uid) return@launch
+                        _loginResult.send(result)
                         _uiState.update { it.copy(isLoading = false) }
                         return@launch
                     }
@@ -108,6 +110,8 @@ class LoginViewModel @Inject constructor(
                 val credential = GoogleAuthProvider.getCredential(idToken, null)
                 val authRes = authRepository.signInWithCredential(credential)
                 checkUserStatus(requireNotNull(authRes.user))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -119,49 +123,52 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    private fun checkUserStatus(user: FirebaseUser) {
-        viewModelScope.launch {
-            try {
-                val userStatus = userRepository.getUserStatus(user.uid)
-                if (userStatus != null) {
-                    val role = when (userStatus.role) {
-                        UserRole.STUDENT -> UserType.STUDENT
-                        UserRole.TEACHER -> UserType.TEACHER
-                    }
-
-                    savePrefs(
-                        uid = user.uid,
-                        role = role.name,
-                        accepted = role == UserType.STUDENT && userStatus.hasPermission,
-                        access = role == UserType.TEACHER && userStatus.hasPermission
-                    )
-
-                    val dest = if (userStatus.hasPermission) {
-                        LoginResult.NavigateToHome
-                    } else {
-                        LoginResult.NavigateToPendingApproval
-                    }
-
-                    _loginResult.emit(dest)
-                    _uiState.update { it.copy(isLoading = false) }
-                    return@launch
+    private suspend fun checkUserStatus(user: FirebaseUser) {
+        try {
+            val userStatus = userRepository.getUserStatus(user.uid)
+            if (authRepository.getCurrentUserUid() != user.uid) return
+            if (userStatus != null) {
+                val role = when (userStatus.role) {
+                    UserRole.STUDENT -> UserType.STUDENT
+                    UserRole.TEACHER -> UserType.TEACHER
                 }
 
-                // new user
-                clearPrefs()
-                _loginResult.emit(LoginResult.NavigateToSignUpDetails)
-                _uiState.update { it.copy(isLoading = false) }
+                savePrefs(
+                    uid = user.uid,
+                    role = role.name,
+                    accepted = role == UserType.STUDENT && userStatus.hasPermission,
+                    access = role == UserType.TEACHER && userStatus.hasPermission
+                )
 
-            } catch (e: Exception) {
-                val msg = if (e is FirebaseFirestoreException &&
-                    e.code == FirebaseFirestoreException.Code.UNAVAILABLE
-                ) {
-                    "You are offline. Please connect to continue."
+                val dest = if (userStatus.hasPermission) {
+                    LoginResult.NavigateToHome
                 } else {
-                    "An error occurred: ${e.message}"
+                    LoginResult.NavigateToPendingApproval
                 }
-                _uiState.update { it.copy(isLoading = false, error = msg) }
+
+                if (authRepository.getCurrentUserUid() != user.uid) return
+                _loginResult.send(dest)
+                _uiState.update { it.copy(isLoading = false) }
+                return
             }
+
+            // new user
+            clearPrefs()
+            if (authRepository.getCurrentUserUid() != user.uid) return
+            _loginResult.send(LoginResult.NavigateToSignUpDetails)
+            _uiState.update { it.copy(isLoading = false) }
+
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val msg = if (e is FirebaseFirestoreException &&
+                e.code == FirebaseFirestoreException.Code.UNAVAILABLE
+            ) {
+                "You are offline. Please connect to continue."
+            } else {
+                "An error occurred: ${e.message}"
+            }
+            _uiState.update { it.copy(isLoading = false, error = msg) }
         }
     }
 

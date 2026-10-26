@@ -121,8 +121,9 @@ fun CrestApp() {
     val mainVm  : MainViewModel = hiltViewModel()
     val uiState by mainVm.uiState.collectAsStateWithLifecycle()
 
-    val startRoute = remember(uiState.isLoading) {
-        if (uiState.isLoading) null else {
+    SessionNavigationHost(
+        isLoading = uiState.isLoading,
+        initialDestination = {
             when {
                 auth.currentUser == null -> AppDestination.Login.route
                 !uiState.isAllowedOffline -> AppDestination.PendingApproval.route
@@ -130,28 +131,21 @@ fun CrestApp() {
                 else -> AppDestination.Home.route
             }
         }
-    }
-
-    if (uiState.isLoading || startRoute == null) {
-        SplashScreen()
-        return
-    }
-
-    // This DisposableEffect is for handling logout *during* app runtime
-    DisposableEffect(auth) {
-        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-            if (firebaseAuth.currentUser == null) {
-                navController.navigate(AppDestination.Login.route) {
-                    popUpTo(navController.graph.id) { inclusive = true }
-                    launchSingleTop = true
+    ) { startRoute ->
+        DisposableEffect(auth) {
+            val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+                if (firebaseAuth.currentUser == null) {
+                    navController.navigate(AppDestination.Login.route) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 }
             }
+            auth.addAuthStateListener(listener)
+            onDispose { auth.removeAuthStateListener(listener) }
         }
-        auth.addAuthStateListener(listener)
-        onDispose { auth.removeAuthStateListener(listener) }
+        CrestNavHost(navController, actions, startRoute, isOnline, mainVm)
     }
-
-    CrestNavHost(navController, actions, startRoute, isOnline, mainVm)
 }
 
 

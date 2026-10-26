@@ -25,6 +25,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.FirebaseAuth
 import javax.inject.Inject
@@ -37,7 +40,7 @@ data class MainUiState(
     val userEmail: String? = null,
     val userPhotoUrl: String? = null,
     val isAllowedOffline: Boolean = false, // True if user is accepted/has access, based on latest known data
-    val isLoading: Boolean = true, // Represents the *initial* loading state of the app
+    val isLoading: Boolean = true, // Preparing the current session or completing sign-out.
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val error: String? = null
 )
@@ -53,16 +56,33 @@ class MainViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     private var userDocListener: ListenerRegistration? = null
+    private var userSyncJob: Job? = null
+    private var statusWriteJob: Job? = null
+    private var signOutJob: Job? = null
+    private var sessionVersion = 0L
+
+    private fun invalidateSession() {
+        sessionVersion++
+        userSyncJob?.cancel()
+        statusWriteJob?.cancel()
+        userDocListener?.remove()
+        userDocListener = null
+    }
+
+    private fun isCurrentSession(uid: String, version: Long): Boolean =
+        version == sessionVersion && authRepository.getCurrentUserUid() == uid
 
     private val authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+        invalidateSession()
         val firebaseUser = firebaseAuth.currentUser
         if (firebaseUser != null) {
             Log.d(TAG, "Auth state change: User logged in (${firebaseUser.uid}). Refreshing data...")
-            loadAndSyncUserData(firebaseUser)
+            _uiState.update {
+                MainUiState(currentUid = firebaseUser.uid, themeMode = it.themeMode)
+            }
+            loadAndSyncUserData(firebaseUser, sessionVersion)
         } else {
             Log.d(TAG, "Auth state change: No user logged in. Clearing listener and state.")
-            userDocListener?.remove()
-            userDocListener = null
             _uiState.update { MainUiState(isLoading = false, themeMode = it.themeMode) }
         }
     }
@@ -77,10 +97,11 @@ class MainViewModel @Inject constructor(
     /**
      * Loads user data from local cache and starts background sync with Firestore.
      */
-    private fun loadAndSyncUserData(firebaseUser: FirebaseUser) {
-        viewModelScope.launch {
+    private fun loadAndSyncUserData(firebaseUser: FirebaseUser, version: Long) {
+        userSyncJob = viewModelScope.launch {
             // --- Step 1: Immediately load from local cache (UserPrefs) ---
             val cachedUserData = ctx.userDataFlow.first()
+            if (!isCurrentSession(firebaseUser.uid, version)) return@launch
             
             // Only use cache if it belongs to the current user
             val useCache = cachedUserData.uid == firebaseUser.uid
@@ -117,7 +138,7 @@ class MainViewModel @Inject constructor(
 
             // --- Step 2: Refresh from Firestore ---
             if (isOnline()) {
-                refreshFromFirestore(firebaseUser.uid)
+                refreshFromFirestore(firebaseUser.uid, version)
             } else {
                 Log.d(TAG, "Offline: Relying on cached data for ${firebaseUser.uid}")
                 if (cachedRole == null) {
@@ -132,66 +153,69 @@ class MainViewModel @Inject constructor(
      * This function is treated as a background sync and does NOT set `isLoading = true`
      * to avoid interrupting the user with a loading screen after the initial load.
      */
-    private fun refreshFromFirestore(uid: String) {
-        userDocListener?.remove() // Ensure no old listeners are active
+    private suspend fun refreshFromFirestore(uid: String, version: Long) {
+        try {
+            // Determine user role and document path from Firestore
+            val roleLocation = userRepository.detectUserRoleLocation(uid)
+                ?: throw IllegalStateException("User document not found for UID: $uid in Firestore collections. Profile incomplete.")
+            if (!isCurrentSession(uid, version)) return
 
-        viewModelScope.launch {
-            try {
-                // Determine user role and document path from Firestore
-                val roleLocation = userRepository.detectUserRoleLocation(uid)
-                    ?: throw IllegalStateException("User document not found for UID: $uid in Firestore collections. Profile incomplete.")
-
-                // Set up a real-time listener. This will provide live updates when online
-                // and cached data when offline (if previously synced).
-                userDocListener = userRepository.observeUserStatus(uid, roleLocation) { hasPermission, error ->
-                        if (error != null) {
-                            Log.e(TAG, "Firestore listener error for $uid: ${error.message}", error)
-                            val errorMessage = if (error.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
-                                "You are offline. Displaying cached user status."
-                            } else {
-                                "Error fetching user status: ${error.message}"
-                            }
-                            _uiState.update { it.copy(error = errorMessage) } // Show non-blocking error
-                            return@observeUserStatus
-                        }
-
-                        val isAllowed = hasPermission ?: false
-                        val role = roleLocation.role.toUiUserType()
-
-                        Log.d(TAG, "Live status update for $uid: Role=$role, Permission=$hasPermission")
-
-                        // Update the UI state with the fresh data
-                        _uiState.update { currentState ->
-                            currentState.copy(
-                                userRole = role,
-                                isAllowedOffline = isAllowed,
-                                isLoading = false,
-                                error = null // Clear any previous error on successful update
-                            )
-                        }
-
-                        // Persist the latest status to UserPrefs to keep the cache fresh for next launch
-                        viewModelScope.launch {
-                            ctx.saveUserData(
-                                UserPrefs.UserData(
-                                    uid = uid,
-                                    role = role.name,
-                                    accepted = role == UserType.STUDENT && isAllowed,
-                                    access = role == UserType.TEACHER && isAllowed,
-                                    theme = _uiState.value.themeMode
-                                )
-                            )
-                            Log.d(TAG, "Updated UserPrefs cache with fresh data from Firestore.")
-                        }
+            // Set up a real-time listener. This will provide live updates when online
+            // and cached data when offline (if previously synced).
+            userDocListener = userRepository.observeUserStatus(uid, roleLocation) { hasPermission, error ->
+                if (!isCurrentSession(uid, version)) return@observeUserStatus
+                if (error != null) {
+                    Log.e(TAG, "Firestore listener error for $uid: ${error.message}", error)
+                    val errorMessage = if (error.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
+                        "You are offline. Displaying cached user status."
+                    } else {
+                        "Error fetching user status: ${error.message}"
                     }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initiate Firestore refresh for $uid: ${e.message}", e)
-                _uiState.update {
-                    it.copy(
+                    _uiState.update { it.copy(isLoading = false, error = errorMessage) }
+                    return@observeUserStatus
+                }
+
+                val isAllowed = hasPermission ?: false
+                val role = roleLocation.role.toUiUserType()
+
+                Log.d(TAG, "Live status update for $uid: Role=$role, Permission=$hasPermission")
+
+                // Update the UI state with the fresh data
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        userRole = role,
+                        isAllowedOffline = isAllowed,
                         isLoading = false,
-                        error = "Could not verify user status. Please check your connection."
+                        error = null // Clear any previous error on successful update
                     )
                 }
+
+                // Persist the latest status to UserPrefs to keep the cache fresh for next launch
+                statusWriteJob?.cancel()
+                statusWriteJob = viewModelScope.launch {
+                    if (!isCurrentSession(uid, version)) return@launch
+                    ctx.saveUserData(
+                        UserPrefs.UserData(
+                            uid = uid,
+                            role = role.name,
+                            accepted = role == UserType.STUDENT && isAllowed,
+                            access = role == UserType.TEACHER && isAllowed,
+                            theme = _uiState.value.themeMode
+                        )
+                    )
+                    Log.d(TAG, "Updated UserPrefs cache with fresh data from Firestore.")
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (!isCurrentSession(uid, version)) return
+            Log.e(TAG, "Failed to initiate Firestore refresh for $uid: ${e.message}", e)
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    error = "Could not verify user status. Please check your connection."
+                )
             }
         }
     }
@@ -208,38 +232,26 @@ class MainViewModel @Inject constructor(
 
     /**
      * Handles user sign-out process.
-     * Signs out from Firebase, clears local user preferences, and updates UI state.
+     * Finishes old session work and clears preferences before publishing Firebase logout.
      */
     fun onSignOut() {
-        viewModelScope.launch {
+        if (signOutJob?.isActive == true) return
+        val oldSync = userSyncJob
+        val oldStatusWrite = statusWriteJob
+        invalidateSession()
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        signOutJob = viewModelScope.launch {
             try {
-                // 1. Remove the active Firestore listener
-                userDocListener?.remove()
-                userDocListener = null // Clear reference
-
-                // 2. Sign out from Firebase Authentication
+                // Finish old writes before allowing another account to sign in.
+                oldSync?.cancelAndJoin()
+                oldStatusWrite?.cancelAndJoin()
+                ctx.clear()
                 authRepository.signOut()
                 Log.d(TAG, "Firebase user signed out.")
-
-                // 3. Clear local persisted user data in DataStore
-                ctx.clear() // This will now clear all user-specific data from DataStore
-                Log.d(TAG, "Local user data cleared from preferences.")
-
-                // 4. Update the UI state to reflect the logged-out status
-                _uiState.update {
-                    it.copy(
-                        currentUid = null,
-                        userRole = null,
-                        userName = null,
-                        userEmail = null,
-                        userPhotoUrl = null,
-                        isAllowedOffline = false,
-                        isLoading = false, // Stop any ongoing loading
-                        error = null // Clear any previous errors
-                    )
-                }
-                Log.d(TAG, "UI state updated to logged out.")
-
+                // The auth listener owns the signed-out state. Do not reset it
+                // after another account has already started signing in.
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // Log and update UI state with error if sign-out fails
                 Log.e(TAG, "Error during sign out: ${e.message}", e)
@@ -266,7 +278,7 @@ class MainViewModel @Inject constructor(
 
     override fun onCleared() {
         authRepository.removeAuthStateListener(authStateListener)
-        userDocListener?.remove() // Ensure the listener is removed to prevent memory leaks
+        invalidateSession()
         super.onCleared()
         Log.d(TAG, "MainViewModel cleared. Firestore and Auth listeners removed.")
     }
