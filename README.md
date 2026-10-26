@@ -75,7 +75,10 @@ The Android app uses the shared identity in [branding/README.md](branding/README
 | Dependency injection | Hilt |
 | Auth | Firebase Authentication with Google Sign-In |
 | Database | Cloud Firestore |
-| File storage | Appwrite Storage |
+| File storage | Private Supabase Storage; verified Appwrite file mappings |
+| Server | Deployed Supabase Edge Functions with Firebase authentication |
+| Notifications | Firebase Cloud Messaging prepared, disabled by default |
+| Website hosting | Netlify static hosting prepared |
 | Local storage | DataStore Preferences, local file cache |
 | Testing | JUnit 4, MockK, Turbine, Espresso, Compose UI tests |
 | Performance | Android Macrobenchmark |
@@ -92,6 +95,16 @@ The Android app uses the shared identity in [branding/README.md](branding/README
 | Compile SDK | 35 for app, 36 for benchmark |
 
 ## Getting Started
+
+Firebase authentication, Firestore rules/indexes, and private Supabase storage
+are connected and deployed. The 12 existing PDFs have verified Supabase copies.
+Android and Netlify build settings select the Supabase provider. Notifications
+remain disabled. See [backend setup and deployment status](docs/BACKEND_SETUP.md).
+Choose and authorize the website hostname before publishing the teacher site.
+
+GitHub CI builds Android and web independently; documentation-only changes build
+neither. See [CI/CD routing and credentials](docs/CI_CD.md) for setup and release
+triggers.
 
 1. Clone the repository.
 
@@ -114,6 +127,8 @@ Create or update `android/local.properties` (relative to the repository root):
 APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
 APPWRITE_PROJECT_ID=your_project_id
 APPWRITE_BUCKET_ID=your_bucket_id
+STORAGE_PROVIDER=appwrite
+FCM_ENABLED=false
 ```
 
 5. Sync Gradle and run the app.

@@ -17,11 +17,11 @@ Open the local URL shown by Vite to see the public landing page. `#home` opens t
 
 - Overview: student and group counts, submission progress, review queue, and recent research.
 - Research groups: search, strand and status filters, members, PDF viewing, and feedback history.
-- Students: individual records linked to their group's submission state, including students without a group.
+- Students: search all profiles, filter approved/pending/declined accounts, approve or decline registrations, revoke or restore access, and follow group research progress.
 - Submission reviews: request changes with required feedback, or confirm approval to add the paper to the library.
 - Research library: search papers and authors, filter by research type, read PDFs, and add teacher research.
 - Documents: search and share PDF templates, rubrics, and guides.
-- Account approvals: approve pending student and teacher registrations.
+- Account approvals: approve pending student and teacher registrations, or decline student registrations with confirmation. Declined students remain available under Students.
 - Global search: find groups, students, papers, or documents; Ctrl/Cmd+K opens it.
 - Export progress: download a CSV of students, groups, titles, and submission states. Spreadsheet formulas in user-provided names/titles are escaped.
 
@@ -29,13 +29,18 @@ Progress means submission state: preparing, pending review, changes requested, o
 
 ## Connect the school app
 
+Supabase storage and its Firebase-authenticated Edge Function are deployed to
+the CREST project. Netlify build settings select this live connection; messaging
+remains disabled. Follow [the backend setup guide](../docs/BACKEND_SETUP.md) for
+current status and the website-hostname step before publishing.
+
 Copy `.env.example` to `.env.local` and fill in the public web client settings. Restart Vite after changing them. All four Firebase settings are required; partial configuration displays a setup state instead of silently switching to demo mode.
 
-1. Register a Firebase web application in the same Firebase project used by Android. Copy its API key, auth domain, project ID, and app ID into the corresponding `VITE_FIREBASE_*` settings.
+1. Use the registered `CREST Teacher Web` Firebase app in `crest-4fb99`. Its public settings are in `netlify.toml`; local development reads `.env.local`.
 2. Enable the Google sign-in provider and add the development/production website hostnames to Firebase Authentication's authorized domains.
 3. Sign in with an existing approved teacher. The record must be `users/user_details/teachers/{uid}` with `access: true`. The website does not create teacher access or allow students into the teacher workspace.
-4. Match the Android Appwrite endpoint, project, and bucket using `VITE_APPWRITE_*`. Register the website hostname as an Appwrite web platform and verify the existing file permissions permit the intended operations. The current Android integration uses an Appwrite client without a separate Appwrite login; this website follows those existing client permissions. Firebase authentication does not automatically establish an Appwrite session. Projects requiring authenticated Appwrite access need their existing trusted session integration before uploads/read access will work. Do not add public write permissions to work around this.
-5. Verify Firestore rules enforce approved-teacher access on the server for collection reads and mutations. The browser's role gate and transaction checks supplement these rules. No production rules or bucket permissions are changed by this implementation.
+4. Set `VITE_STORAGE_PROVIDER=supabase` and `VITE_SUPABASE_URL=https://mkmirlnypehadajrtxvg.supabase.co`. Existing Appwrite IDs resolve through the private migration registry; no Appwrite session is needed.
+5. The deployed rules in `firebase/firestore.rules` enforce approved teacher access. Run the emulator security suite before changing them.
 
 `VITE_*` settings are public browser configuration. Never add service account credentials or Appwrite server keys. Actual environment files are ignored by Git.
 
@@ -50,9 +55,21 @@ Copy `.env.example` to `.env.local` and fill in the public web client settings. 
 | Quantitative papers | `researches/research_details/quantitative` |
 | School documents | `documents` |
 
-Reads subscribe to live Firestore updates after teacher verification. Losing teacher access closes the workspace. Account approval writes `accepted: true` for students or `access: true` for teachers. A review transaction rechecks access and current submission state before writing. Approval adds the research and updates `accepted_research`/`uploaded` atomically. Requesting changes appends to `comments`, sets `uploaded: false`, and preserves the previous manuscript and title. This differs from Android's current denial action, which clears/deletes the previous submission; the resulting status and feedback remain compatible with Android's student workflow.
+Reads subscribe to live Firestore updates after teacher verification. Losing teacher access closes the workspace. Account approval writes `accepted: true, declined: false` for students or `access: true` for teachers. Declining a student or revoking their access writes `accepted: false, declined: true`; profiles, membership, and research remain intact. Legacy profiles without `declined` retain their existing pending/approved states. Student decisions recheck current teacher access and the expected account state in a transaction, so a stale decision cannot overwrite another teacher's different decision. Android continues to use `accepted` for access; it does not yet display a separate declined label. A review transaction rechecks access and current submission state before writing. Approval adds the research and updates `accepted_research`/`uploaded` atomically. Requesting changes appends to `comments`, sets `uploaded: false`, and preserves the previous manuscript and title. Android's denial action clears submission metadata while retaining the stored object during migration; submission status and feedback remain compatible.
 
-PDF uploads are limited to 5 MB and must start with a PDF signature. The adapter intentionally uses a single Appwrite upload; larger chunked uploads are not implemented. PDFs open in an embedded browser viewer with a download fallback. The website's live sign-in, storage permissions, and cross-device synchronization require verification against the configured school project; no production credentials are bundled.
+The existing upload form limits PDFs to 5 MB and validates the PDF signature. The
+legacy provider uses a single Appwrite upload. The active Supabase provider
+uses a signed direct upload authorized by an Edge Function. Files are retained
+when metadata saving fails; physical cleanup is excluded during migration. PDFs
+open in an embedded browser viewer with a download fallback. Live gateway sign-in,
+role checks, private downloads, and student/teacher uploads passed smoke tests.
+Server credentials are stored only in Supabase secrets and ignored local files.
+
+### PDF bandwidth and browser storage
+
+The active Supabase provider saves validated, viewed PDFs in IndexedDB for **30 days from download**, keyed by Firebase project, Supabase backend, user, and immutable file ID. Opening a cached copy does not extend its expiry. Each open first rechecks current Firebase approval and file permissions through the storage gateway; cached bytes then replace the PDF download. Signed URLs are never persisted or extended. Expired entries are removed on cache use, and the least recently viewed copies are evicted at a **100 MiB total browser cache limit**. New uploads have new IDs and therefore cannot reuse an older PDF.
+
+Signing out or losing teacher approval clears local copies. Failed authorization removes that file's cached copy; offline access is deliberately unavailable. Concurrent opens share one in-flight request. Storage denial, browser eviction, or quota errors fall back to a normal authorized download. The cache reduces repeat PDF bandwidth; authorization calls and their Firestore reads still occur. Browsers can remove cached copies before 30 days, and signing out ends their retention early. Demo uploads use their existing separate storage.
 
 ## UI and branding
 
@@ -100,7 +117,7 @@ npm run logo:check
 node ../branding/scripts/generate.mjs --check
 ```
 
-The Node test suite covers status precedence, legacy membership lookup, atomic demo approval, duplicate review protection, required feedback, incomplete submissions, research types, CSV escaping, demo record consistency, display preference validation, theme resolution, reading presets, JSON persistence, and stronger-contrast text/control color pairs. `tests/fixtures/teacher-workspace-sample.pdf` is a harmless local PDF for testing upload and viewing.
+The Node test suite also covers the PDF cache's fixed expiry, account/backend isolation, LRU storage limit, repeat-download suppression, corrupt files, unavailable storage, access denial, sign-out, and account-switch races. Student tests cover decline/restore, record preservation, pending counts, legacy profiles, and stale decisions. The Firestore emulator suite exercises the actual student-management transactions and rejects self-approval/decline changes. `tests/fixtures/teacher-workspace-sample.pdf` is a harmless local PDF for testing upload and viewing.
 
 To serve the built output locally:
 

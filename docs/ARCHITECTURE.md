@@ -12,9 +12,19 @@ The website adapts the Android teacher workspace for desktop and smaller screens
 
 Reviews use Firestore transactions to recheck teacher access and submission state. Approving a submission creates its library paper and updates the group together, preventing duplicate approvals. Requesting changes appends a comment and clears `uploaded`; the website retains the previous title and file for context, using fields Android already understands. Student progress is derived from group submission flags and feedback, rather than invented chapter percentages or activity dates.
 
-Appwrite stores PDF files through the existing client permissions. The website accepts PDFs up to 5 MB, validates the PDF header, and attempts to remove a newly uploaded file if saving its metadata fails. Existing files are preserved. Demo uploads stay in IndexedDB; demo metadata stays in localStorage. Live school records are not persisted in that demo storage.
+File access goes through the storage adapter. CREST builds select Supabase; the
+explicit Appwrite provider retains legacy access, and the active Supabase
+provider calls Firebase-authenticated Supabase Edge Functions for signed file
+operations. Appwrite copies preserve old IDs through a private Supabase mapping.
+Files remain retained when metadata changes or saving fails. The existing website
+form accepts PDFs up to 5 MB and validates the header. Demo uploads stay in
+IndexedDB; demo metadata stays in localStorage. Live school records are not
+persisted in demo storage. See [backend setup](BACKEND_SETUP.md).
 
-Firebase security rules and Appwrite permissions remain the server authority. The website's teacher gate is additional UI protection. See `frontend/README.md` for configuration and validation requirements.
+Firebase security rules protect Firestore records. The deployed Supabase Edge
+Functions verify Firebase sessions and current school roles for file access and
+FCM sending; Appwrite permissions still govern legacy access. The website's role
+gate adds UI protection. Netlify serves static web files only.
 
 `DisplayProvider` supplies browser-local reading and appearance preferences across the public site, sign-in, workspace, dialogs, and notifications. `preferences.ts` validates persisted choices and applies the initial theme before React renders. Light/dark use the shared generated brand colors; optional stronger contrast supplies additional text and outline values. Easy reading uses rem-based larger text, roomy controls, card layouts, and contextual guidance, independently of theme. Narrow content areas adapt from tables to cards. The mobile navigation locks background interaction and manages keyboard focus while open. These settings never change account roles or the research workflow.
 
@@ -58,7 +68,11 @@ Screens should observe immutable state and send user events to ViewModels. ViewM
 | --- | --- |
 | Firebase Authentication | Google Sign-In and authenticated user identity |
 | Cloud Firestore | User roles, research metadata, groups, favorites, approval status |
-| Appwrite Storage | PDF and document file storage |
+| Supabase Storage | Private PDF storage and verified Appwrite mappings |
+| Supabase Edge Functions | Deployed file authorization; messaging endpoint disabled |
+| Firebase Cloud Messaging | Prepared Android/web school updates, disabled by default |
+| Netlify | Prepared static teacher website hosting |
+| Appwrite Storage | Migration source and explicit legacy provider |
 | DataStore | Local user/session preferences |
 | File cache | Local cached PDF/document files |
 
