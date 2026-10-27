@@ -16,6 +16,41 @@ val localProperties = Properties().apply {
     }
 }
 
+val keystoreProperties = Properties().apply {
+    val propertiesFile = rootProject.file("keystore.properties")
+    if (propertiesFile.exists()) {
+        propertiesFile.reader(Charsets.UTF_8).use(::load)
+    }
+}
+
+fun releaseSigningValue(environmentName: String, propertyName: String): String? =
+    System.getenv(environmentName)?.takeIf { it.isNotBlank() }
+        ?: keystoreProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
+
+val releaseSigningValues = mapOf(
+    "storeFile" to releaseSigningValue("RELEASE_STORE_FILE", "storeFile"),
+    "storePassword" to releaseSigningValue("RELEASE_STORE_PASSWORD", "storePassword"),
+    "keyAlias" to releaseSigningValue("RELEASE_KEY_ALIAS", "keyAlias"),
+    "keyPassword" to releaseSigningValue("RELEASE_KEY_PASSWORD", "keyPassword")
+)
+val releaseKeystore = releaseSigningValues["storeFile"]?.let { rootProject.file(it) }
+
+val checkReleaseSigningConfiguration by tasks.registering {
+    group = "verification"
+    description = "Check local or CI release signing without displaying credentials."
+    doLast {
+        val missing = releaseSigningValues.filterValues { it.isNullOrBlank() }.keys
+        check(missing.isEmpty()) {
+            "Release signing is incomplete. Fill ${missing.joinToString()} in android/keystore.properties, or set the matching RELEASE_* environment variables."
+        }
+        check(releaseKeystore?.isFile == true) { "The configured release keystore was not found." }
+    }
+}
+
+tasks.matching { it.name in setOf("packageRelease", "packageReleaseBundle", "signReleaseBundle") }.configureEach {
+    dependsOn(checkReleaseSigningConfiguration)
+}
+
 val releaseVersion = Properties().apply {
     rootProject.file("version.properties").inputStream().use(::load)
 }
@@ -69,14 +104,11 @@ android {
 
     signingConfigs {
         create("release") {
-            // These properties are supplied by the GitHub Actions workflow environment
-            val storeFileEnv = System.getenv("RELEASE_STORE_FILE")
-            if (storeFileEnv != null) {
-                storeFile = file(storeFileEnv)
-                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
-            }
+            // CI environment values take priority over the ignored local file.
+            storeFile = releaseKeystore
+            storePassword = releaseSigningValues["storePassword"]
+            keyAlias = releaseSigningValues["keyAlias"]
+            keyPassword = releaseSigningValues["keyPassword"]
         }
     }
 

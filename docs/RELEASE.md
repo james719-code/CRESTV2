@@ -48,6 +48,28 @@ The release workflow runs Gradle from `android/`, decodes Firebase configuration
 
 ## Local Release Check
 
+Local signing can be configured once in `android/keystore.properties`, which is
+ignored by Git. Copy `android/keystore.properties.example` if the local file does
+not exist. For the existing `android/crest_jks` keystore, use:
+
+```properties
+storeFile=crest_jks
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyAlias=crest_jks
+keyPassword=YOUR_KEY_PASSWORD
+```
+
+Enter the real passwords privately in that local file, without surrounding
+quotes. Paths are resolved relative to `android/`; use forward slashes in
+absolute Windows paths. `local.properties` continues to hold SDK and backend
+settings, while the keystore file contains the signing key itself.
+
+The four `RELEASE_*` environment variables still override the corresponding
+local values for CI or an explicitly selected signing key. The GitHub workflow
+continues to use repository secrets rather than the local file.
+Release packaging rejects incomplete signing details instead of creating an
+unsigned APK or bundle. Debug builds do not require release credentials.
+
 Before tagging, run these commands from `android/`:
 
 ```bash
@@ -62,7 +84,8 @@ gradlew.bat testDebugUnitTest
 gradlew.bat assembleRelease
 ```
 
-`assembleRelease` requires the release signing environment variables described in [`README.md`](../README.md). Use an absolute path for `RELEASE_STORE_FILE` so it remains valid after changing directories.
+`assembleRelease` requires complete signing credentials in the local file or the
+release environment variables described in [`README.md`](../README.md).
 
 ## Tagging
 

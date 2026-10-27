@@ -45,6 +45,7 @@ Thumbs.db
 # Never check in your signing keys or local API keys
 *.jks
 *.keystore
+/android/keystore.properties
 google-services.json
 /crest_jks
 /crest_jks.txt

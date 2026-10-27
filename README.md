@@ -175,11 +175,18 @@ Appwrite values are resolved in this order:
 
 ### Release Signing
 
-Release builds read signing values from environment variables:
+For local builds, fill in `android/keystore.properties` using the tracked
+`android/keystore.properties.example` template. This ignored file contains
+`storeFile`, `storePassword`, `keyAlias`, and `keyPassword`. Relative keystore
+paths start from `android/`. Keep the original release keystore for compatible
+updates; do not substitute the development key for a published release.
+
+Release builds also accept these environment variables, which take priority over
+the local file so GitHub Actions continues to work:
 
 | Variable | Description |
 | --- | --- |
-| `RELEASE_STORE_FILE` | Absolute path to the keystore file |
+| `RELEASE_STORE_FILE` | Absolute keystore path, or a path relative to `android/` |
 | `RELEASE_STORE_PASSWORD` | Keystore password |
 | `RELEASE_KEY_ALIAS` | Signing key alias |
 | `RELEASE_KEY_PASSWORD` | Signing key password |
