@@ -4,6 +4,8 @@ export type Page =
   | 'overview'
   | 'groups'
   | 'reviews'
+  | 'milestones'
+  | 'inbox'
   | 'students'
   | 'research'
   | 'documents'
@@ -136,6 +138,31 @@ export interface Workspace {
   groups: ResearchGroup[]
   research: Research[]
   documents: SchoolDocument[]
+  milestones?: Milestone[]
+  notifications?: InboxNotification[]
+}
+
+export type MilestoneStage = 'proposal' | 'chapter' | 'defense' | 'final'
+export interface MilestoneInput {
+  groupId: string
+  title: string
+  stage: MilestoneStage
+  dueDate: string
+}
+export interface Milestone extends MilestoneInput {
+  id: string
+  completedAt: number
+  version: number
+}
+export type NotificationKind = 'submission' | 'approval' | 'revision' | 'account'
+export interface InboxNotification {
+  id: string
+  kind: NotificationKind
+  groupId: string
+  title: string
+  message: string
+  observedAt: number
+  read: boolean
 }
 
 export interface UploadInput {

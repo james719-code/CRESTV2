@@ -1,7 +1,14 @@
 import { researchType, type ResearchGroup, type Workspace } from '../domain.ts'
 
 export type WorkspaceSource =
-  'students' | 'teachers' | 'groups' | 'qualitative' | 'quantitative' | 'documents'
+  | 'students'
+  | 'teachers'
+  | 'groups'
+  | 'qualitative'
+  | 'quantitative'
+  | 'documents'
+  | 'milestones'
+  | 'notifications'
 export interface WorkspaceRecord {
   id: string
   data: Record<string, unknown>
@@ -40,6 +47,10 @@ export function mapGroup(id: string, data: Record<string, unknown>): ResearchGro
 // Each listener replaces only its own array. Other views keep their cached joins
 // and search results when an unrelated collection changes.
 export class WorkspaceSnapshot {
+  private extraSources: WorkspaceSource[]
+  constructor(extraSources: WorkspaceSource[] = []) {
+    this.extraSources = extraSources
+  }
   private received = new Set<WorkspaceSource>()
   private research: Record<'qualitative' | 'quantitative', Workspace['research']> = {
     qualitative: [],
@@ -55,6 +66,36 @@ export class WorkspaceSnapshot {
 
   update(source: WorkspaceSource, rows: WorkspaceRecord[]): Workspace | null {
     switch (source) {
+      case 'milestones':
+        this.workspace = {
+          ...this.workspace,
+          milestones: rows.map(({ id, data }) => ({
+            id,
+            groupId: string(data.groupId),
+            title: string(data.title),
+            stage: data.stage as 'proposal' | 'chapter' | 'defense' | 'final',
+            dueDate: string(data.dueDate),
+            completedAt: timestamp(data.completedAt),
+            version: typeof data.version === 'number' ? data.version : 1,
+          })),
+        }
+        break
+      case 'notifications':
+        this.workspace = {
+          ...this.workspace,
+          notifications: rows
+            .map(({ id, data }) => ({
+              id,
+              kind: data.kind as 'submission' | 'approval' | 'revision' | 'account',
+              groupId: string(data.groupId),
+              title: string(data.title),
+              message: string(data.message),
+              observedAt: timestamp(data.observedAt),
+              read: data.read === true,
+            }))
+            .sort((a, b) => b.observedAt - a.observedAt || a.id.localeCompare(b.id)),
+        }
+        break
       case 'students':
         this.workspace = {
           ...this.workspace,
@@ -121,6 +162,16 @@ export class WorkspaceSnapshot {
         break
     }
     this.received.add(source)
-    return this.received.size === 6 ? this.workspace : null
+    return [
+      'students',
+      'teachers',
+      'groups',
+      'qualitative',
+      'quantitative',
+      'documents',
+      ...this.extraSources,
+    ].every((key) => this.received.has(key as WorkspaceSource))
+      ? this.workspace
+      : null
   }
 }

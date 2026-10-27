@@ -1,81 +1,131 @@
-# --- Android Studio / IntelliJ ---
-*.iml
-.gradle
-/local.properties
-/android/local.properties
-/.idea/
-/android/.idea/
-/captures
-/android/captures/
+# Shared rules for Android, frontend, backend tools, and teaser rendering.
+# Keep source assets, lockfiles, the Gradle wrapper, and example configs tracked.
 
-# --- Build Outputs ---
-**/build/
-/release/
-/debug/
-/android/release/
-/android/debug/
-
-# --- Kotlin / Java ---
-*.class
-**/out/
-/.kotlin/
-/android/.kotlin/
-
-# --- NDK / Native Code ---
-.externalNativeBuild
-.cxx/
-/obj/
-/libs/
-/android/obj/
-/android/libs/
-
-# --- Logs & Temp ---
-*.log
-build_log.txt
-build_output*.txt
-compile_out.txt
-debug_build*.txt
-/tmp/
-
-# --- OS Specific ---
-.DS_Store
-Thumbs.db
-
-# --- Secrets & Local Config ---
-# Never check in your signing keys or local API keys
+# Local environment and credentials (at any project depth)
+.env
+.env.*
+!.env.example
+!.env.*.example
+.secrets/
+local.properties
+keystore.properties
+key.properties
 *.jks
 *.keystore
-/android/keystore.properties
+*.p12
+*.pfx
 google-services.json
+service-account*.json
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+
+# Existing local signing keys and encoded credentials
 /crest_jks
 /crest_jks.txt
+/crest_new_jks
 /firebase_base64.txt
 /android/crest_jks
 /android/crest_jks.txt
 /android/crest_new_jks
 /android/firebase_base64.txt
 
-# --- Local backend migration credentials and school-data exports ---
-/.secrets/
-/.env.backend-migration.local
-/state/backend-migration/
-/appwrite-downloads/
+# Android / Gradle / Kotlin / native build state
+.gradle/
+.kotlin/
+build/
+.externalNativeBuild/
+.cxx/
+*.class
+*.dex
+*.apk
+*.aab
+*.ap_
+*.hprof
+/captures/
+/android/captures/
+/release/
+/debug/
+/android/release/
+/android/debug/
+/android/app/release/
+/android/app/debug/
+/obj/
+/android/obj/
+
+# JavaScript / TypeScript dependencies and generated output
+node_modules/
+dist/
+dist-ssr/
+out/
+.cache/
+.vite/
+.npm/
+.pnpm-store/
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.prettiercache
+
+# Generated test and coverage reports
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Local Firebase, Supabase, and hosting state
+.firebase/
+.netlify/
 /supabase/.temp/
 /supabase/.branches/
-/supabase/functions/.env
-/supabase/functions/.env.local
-/supabase/functions/.env.*.local
-/.netlify/
 
-# --- Generated local docs ---
+# Private school-data exports and migration backups
+/state/backend-migration/
+/appwrite-downloads/
+
+# Generated captures, review evidence, deployment receipts, and render diagnostics
+# Curated docs/ui-review/ and teaser/public/ assets remain trackable.
+/artifacts/
+
+# Generated local documentation
 /CREST_User_Guide.html
 /CREST_User_Guide.pdf
 /docs/CREST_User_Guide.html
 /docs/CREST_User_Guide.pdf
 
-# --- Local UI review captures (artifacts/ui-audit is tracked) ---
-/artifacts/redesign/
-/artifacts/home-ui/
-/artifacts/login-ui/
-/artifacts/ui-audit/
-/artifacts/android-review/
+# Logs, temporary files, and crash diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+build_log.txt
+build_output*.txt
+compile_out.txt
+debug_build*.txt
+hs_err_pid*
+replay_pid*
+/tmp/
+/temp/
+
+# Local editor state (recommended VS Code extensions can be shared)
+.idea/
+*.iml
+*.ipr
+*.iws
+**/.vscode/*
+!**/.vscode/extensions.json
+.history/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# Operating-system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/

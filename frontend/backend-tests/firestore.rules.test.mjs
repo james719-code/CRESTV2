@@ -2,9 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { before, after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing'
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, query, where, documentId, increment } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, query, where, documentId, increment, serverTimestamp } from 'firebase/firestore'
 import { reviewStudentAccount } from '../src/data/student-accounts.ts'
 import { deleteDeclinedStudent, deleteResearchGroup } from '../src/data/workspace-deletion.ts'
+import { captureInboxRecords, changeMilestoneRecord, saveMilestoneRecord, setInboxRead } from '../src/data/teacher-planning.ts'
 
 let env
 const students = 'users/user_details/students'
@@ -19,6 +20,8 @@ before(async () => {
     const admin = context.firestore()
     await Promise.all([
       setDoc(doc(admin, teachers, 'teacher'), { uid: 'teacher', name: 'Teacher', email: 'teacher@example.test', access: true, upload_count: 0 }),
+      setDoc(doc(admin, teachers, 'planner'), { uid: 'planner', name: 'Planner', access: true }),
+      setDoc(doc(admin, teachers, 'planner-peer'), { uid: 'planner-peer', name: 'Peer', access: true }),
       setDoc(doc(admin, teachers, 'pending-teacher'), { uid: 'pending-teacher', name: 'Pending', email: 'pending-teacher@example.test', access: false, upload_count: 0 }),
       ...['student', 'peer', 'outsider', 'joiner', 'creator'].map(uid => setDoc(doc(admin, students, uid), studentData(uid, ['student', 'peer'].includes(uid) ? { groupId: 'team', group_id: 'team' } : {}))),
       setDoc(doc(admin, students, 'pending'), studentData('pending', { accepted: false })),
@@ -32,6 +35,94 @@ before(async () => {
   })
 })
 after(async () => { await env?.cleanup() })
+
+test('students read only milestones for their own group using a constrained query', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const admin = context.firestore()
+    await setDoc(doc(admin, 'group_milestones/own-deadline'), { groupId: 'team', title: 'Proposal', stage: 'proposal', dueDate: '2026-11-01' })
+    await setDoc(doc(admin, 'group_milestones/other-deadline'), { groupId: 'other', title: 'Other proposal', stage: 'proposal', dueDate: '2026-11-02' })
+  })
+  await assertSucceeds(getDoc(doc(db('student'), 'group_milestones/own-deadline')))
+  await assertSucceeds(getDocs(query(collection(db('student'), 'group_milestones'), where('groupId', '==', 'team'))))
+  await assertFails(getDocs(collection(db('student'), 'group_milestones')))
+  await assertFails(getDoc(doc(db('student'), 'group_milestones/other-deadline')))
+  await assertFails(getDocs(query(collection(db('student'), 'group_milestones'), where('groupId', '==', 'other'))))
+  await assertFails(updateDoc(doc(db('student'), 'group_milestones/own-deadline'), { completedAt: 1 }))
+})
+
+test('student inboxes are private and cannot capture another group’s updates', async () => {
+  const id = 'd'.repeat(64)
+  const event = { kind: 'revision', groupId: 'team', title: 'Feedback', message: 'Clarify sources.', observedAt: serverTimestamp(), read: false }
+  await assertSucceeds(setDoc(doc(db('student'), 'student_inboxes/student/items', id), event))
+  await assertSucceeds(updateDoc(doc(db('student'), 'student_inboxes/student/items', id), { read: true }))
+  await assertFails(updateDoc(doc(db('student'), 'student_inboxes/student/items', id), { message: 'Replaced' }))
+  await assertFails(getDoc(doc(db('peer'), 'student_inboxes/student/items', id)))
+  await assertFails(getDoc(doc(db('teacher'), 'student_inboxes/student/items', id)))
+  await assertFails(setDoc(doc(db('student'), 'student_inboxes/student/items', 'e'.repeat(64)), { ...event, groupId: 'other' }))
+  await assertFails(setDoc(doc(db('peer'), 'student_inboxes/student/items', 'f'.repeat(64)), event))
+})
+
+test('milestone transactions persist plans, complete and reopen them, and reject stale changes', async () => {
+  const input = { groupId: 'team', title: '  Submit proposal  ', stage: 'proposal', dueDate: '2026-11-01' }
+  await saveMilestoneRecord(db('planner'), 'planner', input)
+  const records = await getDocs(collection(db('planner'), 'group_milestones'))
+  const record = records.docs.find((item) => item.data().title === 'Submit proposal')
+  assert.ok(record)
+  const milestone = { ...record.data(), id: record.id }
+  assert.equal(milestone.version, 1)
+  await changeMilestoneRecord(db('planner-peer'), 'planner-peer', milestone, 'complete')
+  const completed = { ...(await getDoc(record.ref)).data(), id: record.id }
+  assert.ok(completed.completedAt > 0)
+  assert.equal(completed.version, 2)
+  await assert.rejects(saveMilestoneRecord(db('planner'), 'planner', { ...input, title: 'Stale title' }, milestone), /has changed/)
+  await assert.rejects(changeMilestoneRecord(db('planner'), 'planner', milestone, 'delete'), /has changed/)
+  await changeMilestoneRecord(db('planner'), 'planner', completed, 'reopen')
+  const reopened = { ...(await getDoc(record.ref)).data(), id: record.id }
+  assert.equal(reopened.completedAt, 0)
+  await saveMilestoneRecord(db('planner'), 'planner', { ...input, title: 'Updated title' }, reopened)
+  const edited = { ...(await getDoc(record.ref)).data(), id: record.id }
+  assert.equal(edited.title, 'Updated title')
+  await changeMilestoneRecord(db('planner'), 'planner', edited, 'delete')
+  assert.equal((await getDoc(record.ref)).exists(), false)
+})
+
+test('students, pending teachers and anonymous clients cannot read or write milestone plans', async () => {
+  const input = { groupId: 'team', title: 'Restricted plan', stage: 'chapter', dueDate: '2026-11-02' }
+  for (const client of [db('student'), db('pending'), db('pending-teacher'), env.unauthenticatedContext().firestore()]) {
+    await assertFails(getDocs(collection(client, 'group_milestones')))
+    await assertFails(setDoc(doc(client, 'group_milestones', 'forged'), input))
+  }
+  await assertFails(saveMilestoneRecord(db('student'), 'planner', input))
+  await assert.rejects(saveMilestoneRecord(db('planner'), 'planner', { ...input, groupId: 'missing-group' }), /no longer exists/)
+  await assert.rejects(saveMilestoneRecord(db('planner'), 'planner', { ...input, dueDate: '2026-02-30' }), /valid deadline/)
+})
+
+test('each teacher inbox is private; reconnect cannot reset read status or rewrite saved content', async () => {
+  const event = { id: 'a'.repeat(64), kind: 'submission', groupId: 'team', title: 'Submission', message: 'Please review.' }
+  await captureInboxRecords(db('planner'), 'planner', [event])
+  const ref = doc(db('planner'), 'teacher_inboxes/planner/items', event.id)
+  assert.equal((await getDoc(ref)).data().read, false)
+  await setInboxRead(db('planner'), 'planner', [event.id], true)
+  await captureInboxRecords(db('planner'), 'planner', [{ ...event, message: 'Replacement' }])
+  assert.equal((await getDoc(ref)).data().read, true)
+  assert.equal((await getDoc(ref)).data().message, event.message)
+  await assertFails(updateDoc(ref, { message: 'Forged content' }))
+  for (const client of [db('planner-peer'), db('student'), env.unauthenticatedContext().firestore()]) {
+    await assertFails(getDoc(doc(client, 'teacher_inboxes/planner/items', event.id)))
+    await assertFails(getDocs(collection(client, 'teacher_inboxes/planner/items')))
+    await assertFails(updateDoc(doc(client, 'teacher_inboxes/planner/items', event.id), { read: false }))
+  }
+  await assertFails(captureInboxRecords(db('planner-peer'), 'planner', [{ ...event, id: 'b'.repeat(64) }]))
+  await captureInboxRecords(db('planner-peer'), 'planner-peer', [event])
+  assert.equal((await getDoc(doc(db('planner-peer'), 'teacher_inboxes/planner-peer/items', event.id))).data().read, false)
+})
+
+test('losing teacher approval blocks both milestone changes and private inbox access', async () => {
+  await env.withSecurityRulesDisabled(context => setDoc(doc(context.firestore(), teachers, 'revoked-planner'), { uid: 'revoked-planner', access: false }))
+  await assert.rejects(captureInboxRecords(db('revoked-planner'), 'revoked-planner', [{ id: 'c'.repeat(64), kind: 'approval', groupId: 'team', title: 'Approved', message: '' }]), /approved teacher/)
+  await assertFails(getDocs(collection(db('revoked-planner'), 'teacher_inboxes/revoked-planner/items')))
+  await assertFails(getDocs(collection(db('revoked-planner'), 'group_milestones')))
+})
 
 test('deleting declined accounts clears all memberships and refuses restored or pending students', async () => {
   const uid = 'delete-declined'

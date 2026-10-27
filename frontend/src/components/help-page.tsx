@@ -35,6 +35,57 @@ interface Section {
 
 const sections: Section[] = [
   {
+    id: 'research-planning',
+    title: 'Deadlines and milestones',
+    icon: ClipboardText,
+    summary: 'Plan proposal, chapter, defense, and final manuscript deadlines for each group.',
+    steps: [
+      <>
+        Choose <strong>Deadlines & milestones</strong>, then <strong>Add milestone</strong>. Select
+        a group, enter a title, choose the stage, and set a deadline.
+      </>,
+      <>
+        Deadlines run through the end of the selected day in Manila time. Unfinished work becomes{' '}
+        <strong>Overdue</strong> the next day.
+      </>,
+      <>
+        Filter by group, stage, or status. Choose <strong>Mark complete</strong> after checking the
+        work; use <strong>Reopen</strong> if more work is needed.
+      </>,
+      <>
+        Each group’s details also show its milestones. The overview highlights the nearest
+        deadlines.
+      </>,
+    ],
+    open: { page: 'milestones', label: 'Open deadlines & milestones' },
+  },
+  {
+    id: 'notification-inbox',
+    title: 'Your notification inbox',
+    icon: Bell,
+    summary:
+      'Keep submissions, research approvals, revision feedback, and pending registrations in one place.',
+    steps: [
+      <>
+        Select the <strong>bell</strong> or <strong>Notification inbox</strong> in the sidebar. Use
+        the read-status and update-type filters to find an update.
+      </>,
+      <>
+        Choose <strong>View group</strong> or <strong>View accounts</strong> to open the related
+        record. Opening an update marks it read.
+      </>,
+      <>
+        Use <strong>Mark unread</strong> to return later, or <strong>Mark all as read</strong> to
+        clear your unread count. Other teachers keep their own read status.
+      </>,
+      <>
+        The inbox captures current school updates when the workspace connects. The time shown is
+        when an update was added to the inbox. Browser push permission is not required.
+      </>,
+    ],
+    open: { page: 'inbox', label: 'Open notification inbox' },
+  },
+  {
     id: 'getting-around',
     title: 'Finding your way around',
     icon: SquaresFour,
@@ -50,8 +101,9 @@ const sections: Section[] = [
         from any page.
       </>,
       <>
-        The <strong>bell</strong> shows how many submissions and accounts need attention, with a
-        shortcut to each.
+        The <strong>bell</strong> opens your notification inbox. Its count shows unread submissions,
+        research approvals, revision feedback, and pending registrations. Read status belongs to
+        your account.
       </>,
       <>
         Your <strong>profile menu</strong> (top right) opens About CREST and lets you sign out.

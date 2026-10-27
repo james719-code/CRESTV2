@@ -1,0 +1,227 @@
+.planning-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  flex-wrap: wrap;
+}
+.planning-heading h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+}
+.planning-heading p {
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  margin: 0;
+  max-width: 45rem;
+}
+.planning-summary {
+  margin-bottom: 1.5rem;
+}
+.planning-summary > .muted {
+  padding: 0 1.5rem 1.5rem;
+}
+.deadline-preview {
+  list-style: none;
+  margin: 0;
+  padding: 0 1.5rem 1rem;
+}
+.deadline-preview li + li {
+  border-top: 1px solid var(--border);
+}
+.deadline-preview button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.85rem 0;
+  text-align: left;
+}
+.deadline-preview strong,
+.deadline-preview small {
+  display: block;
+}
+.deadline-preview small {
+  color: var(--muted-foreground);
+  margin-top: 0.2rem;
+}
+.milestone-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0 1.5rem 1.25rem;
+}
+.deadline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+button.deadline-label {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+button.deadline-label[aria-pressed='true'] {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.deadline-label.overdue {
+  color: var(--destructive);
+  font-weight: 700;
+}
+.deadline-label.today {
+  color: var(--foreground);
+  font-weight: 700;
+}
+.deadline-label.completed {
+  color: var(--primary);
+}
+.milestone-list,
+.inbox-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.milestone-list > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.milestone-main {
+  min-width: 0;
+  flex: 1 1 17rem;
+}
+.milestone-main h3 {
+  font-weight: 650;
+  font-size: 1rem;
+  margin: 0.55rem 0 0.3rem;
+  overflow-wrap: anywhere;
+}
+.milestone-main p {
+  color: var(--muted-foreground);
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+.milestone-actions,
+.planning-dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.planning-dialog-actions {
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.milestone-form {
+  display: grid;
+  gap: 1rem;
+}
+.milestone-editor {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+}
+.milestone-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.milestone-form [data-slot='select-trigger'] {
+  width: 100%;
+}
+.inbox-list > li {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.inbox-list > .is-unread {
+  background: var(--accent);
+  box-shadow: inset 3px 0 var(--primary);
+}
+.inbox-content {
+  flex: 1;
+  min-width: 0;
+}
+.inbox-content h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 0.35rem 0;
+  overflow-wrap: anywhere;
+}
+.inbox-content p {
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0 0 0.5rem;
+}
+.inbox-content small {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+.inbox-kind {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+.inbox-kind strong {
+  color: var(--primary);
+}
+.inbox-icon {
+  color: var(--primary);
+  padding-top: 0.2rem;
+}
+.inbox-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+.inbox-note {
+  padding: 1rem 1.5rem;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+  border-top: 1px solid var(--border);
+}
+.inbox-panel > .notice-box,
+.milestone-panel > .notice-box {
+  margin: 1rem 1.5rem;
+}
+.notification-unread-count {
+  font-size: 0.7rem;
+  min-width: 1.1rem;
+  border-radius: 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0 0.2rem;
+  position: absolute;
+  top: 0;
+  right: -0.2rem;
+}
+@media (max-width: 640px) {
+  .inbox-list > li {
+    flex-wrap: wrap;
+  }
+  .inbox-icon {
+    display: none;
+  }
+  .inbox-content {
+    flex-basis: 100%;
+  }
+  .inbox-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .deadline-preview button {
+    flex-wrap: wrap;
+  }
+}

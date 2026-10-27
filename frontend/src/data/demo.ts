@@ -158,6 +158,12 @@ export function createDemoWorkspace(): Workspace {
         downloads: [12, 8, 5][index],
         unfinished: false,
       })),
+    milestones: [
+      { id: 'm1', groupId: 'g1', title: 'Submit the research proposal', stage: 'proposal', dueDate: '2026-10-25', completedAt: 0, version: 1 },
+      { id: 'm2', groupId: 'g1', title: 'Complete Chapter 1', stage: 'chapter', dueDate: '2026-11-05', completedAt: 0, version: 1 },
+      { id: 'm3', groupId: 'g2', title: 'Prepare for the oral defense', stage: 'defense', dueDate: '2026-11-12', completedAt: 0, version: 1 },
+    ],
+    notifications: [],
     documents: [
       {
         id: 'd1',

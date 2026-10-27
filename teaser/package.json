@@ -1,0 +1,35 @@
+{
+  "name": "crest-v2-teaser",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "assets": "node scripts/prepare-assets.mjs",
+    "capture": "node scripts/capture-emulator.mjs",
+    "soundtrack": "node scripts/mystery-soundtrack.mjs",
+    "render": "node scripts/render.mjs landscape",
+    "render:vertical": "node scripts/render.mjs vertical",
+    "render:all": "node scripts/render.mjs all",
+    "stills": "node scripts/render.mjs stills",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.539",
+    "@remotion/cli": "4.0.539",
+    "@remotion/fonts": "4.0.539",
+    "@remotion/renderer": "4.0.539",
+    "@remotion/transitions": "4.0.539",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.539"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "playwright-core": "^1.56.0",
+    "typescript": "^5.9.0"
+  }
+}

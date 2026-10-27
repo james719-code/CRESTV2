@@ -47,6 +47,7 @@ import { useReturnFocus } from './use-return-focus'
 import { StudentAccountActions, type ReviewStudent } from './student-account-actions'
 
 import type { ReaderTarget } from '../routing'
+import { Milestones, type MilestoneActions } from './milestones'
 
 export function GroupDetails({
   group,
@@ -55,6 +56,8 @@ export function GroupDetails({
   onReview,
   onFile,
   onDelete,
+  onSaveMilestone,
+  onChangeMilestone,
 }: {
   group?: ResearchGroup
   workspace: Workspace
@@ -62,6 +65,8 @@ export function GroupDetails({
   onReview: (id: string, decision: 'approve' | 'changes', feedback?: string) => Promise<void>
   onFile: (file: ReaderTarget) => void
   onDelete: (id: string) => void
+  onSaveMilestone: MilestoneActions['onSave']
+  onChangeMilestone: MilestoneActions['onChange']
 }) {
   const { preferences } = useDisplayPreferences()
   const [feedback, setFeedback] = useState('')
@@ -207,6 +212,12 @@ export function GroupDetails({
               Based on group and submission records.
             </p>
           </section>
+          <Milestones
+            workspace={workspace}
+            groupId={group.id}
+            onSave={onSaveMilestone}
+            onChange={onChangeMilestone}
+          />
           <section className="detail-section">
             <h3>
               <ChatText size={18} />

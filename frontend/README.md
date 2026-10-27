@@ -31,8 +31,22 @@ for versioning, signing, tags, and the stable asset name.
 - Account approvals: approve pending student and teacher registrations, or decline student registrations with confirmation. Declined students remain available under Students.
 - Global search: find groups, students, papers, or documents; Ctrl/Cmd+K opens it.
 - Export progress: download a CSV of students, groups, titles, and submission states. Spreadsheet formulas in user-provided names/titles are escaped.
+- Deadlines & milestones: create, edit, complete, reopen, and delete proposal, chapter, defense, and final manuscript milestones. Filter by group, stage, or status; the overview highlights upcoming and overdue work. Group details show the same plan.
+- Notification inbox: review submissions, research approvals, revision feedback, and pending registrations, with per-teacher read/unread state, type filters, and links to the related records. The bell and sidebar show the unread count.
 
-Progress means submission state: preparing, pending review, changes requested, or approved. The current Android schema has no chapter-level milestones, grades, submission dates, assigned classes, or teacher ownership of groups, so the website does not invent those fields. Counts cover the school records accessible to the approved teacher. Approval progress is the fraction of groups with an accepted manuscript, not a measure of individual learning or time spent.
+Submission progress means preparing, pending review, changes requested, or approved. Teacher-entered milestones are a separate plan and are completed manually; uploading or approving a manuscript does not complete chapters automatically. The shared Android group schema still has no grades, submission dates, assigned classes, or teacher ownership. Counts cover the school records accessible to the approved teacher. Approval progress is the fraction of groups with an accepted manuscript, not a measure of individual learning or time spent.
+
+### Deadlines and inbox storage
+
+Deploy `firebase/firestore.rules` before publishing this website version. The live workspace now waits for `group_milestones` and the signed-in teacher's `teacher_inboxes/{uid}/items` in addition to the six existing collections. No data migration or new composite index is required. The Android app now displays the same milestones and teacher inbox. Its teacher read/unread state synchronizes with the website. Approved students can read only their own group's milestones and use a separate private `student_inboxes/{uid}/items` collection.
+
+Milestones contain `groupId`, `title`, `stage`, an ISO `dueDate`, completion time, and a version counter. Creation/update metadata records the teacher and server time. Approved teachers can manage school plans. Approved students can read only their own group's milestones and cannot alter them; pending and signed-out accounts cannot access them. Transactions reject stale edits, completion actions, and deletion attempts so one teacher cannot accidentally overwrite another teacher's change. Due dates include the entire selected day in Asia/Manila; incomplete milestones become overdue on the following day. The page refreshes date status automatically while open.
+
+The inbox works independently of FCM and browser push permission. When the workspace synchronizes, the website captures current pending submissions, accepted group manuscripts, all retained revision comments, and pending registrations into the current teacher's private inbox. Immutable PDF IDs and feedback identities produce stable event IDs. Transactions create missing items without overwriting existing content or resetting read status, including across tabs and devices. Updates already captured stay available after their source record changes or is deleted; unavailable groups are labeled accordingly. Read/unread changes affect only the current teacher.
+
+This is an inbox of observed school updates, not a server-side audit log: transitions that begin and end while every website session for that teacher is closed may not be captured. The timestamp is explicitly labeled **Added to inbox**, since legacy records do not include an original submission/review time. Capturing every intermediate event and delivery while the website is closed would require a server event producer. Push delivery remains under the existing FCM feature flag.
+
+Demo milestones and inbox history use the existing browser-only demo storage. Previous saved demos remain compatible and can add milestones from the new page.
 
 ## Connect the school app
 

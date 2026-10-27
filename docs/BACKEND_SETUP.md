@@ -2,6 +2,20 @@
 
 Updated: 2026-10-27 (Asia/Manila).
 
+## Research planning rules — 27 October 2026
+
+At the maintainer's request, the tested milestone and private-inbox rules were
+deployed to `crest-4fb99`. Firebase confirmed successful compilation and release
+of `firebase/firestore.rules` to Cloud Firestore. All 27 database permission tests
+passed before deployment. Teachers can manage milestones; approved students can
+read only their own group's plan. Teacher and student inboxes remain private to
+their owners. See [research planning](RESEARCH_PLANNING.md) for the shared data
+format and client behavior.
+
+Only Firestore rules were deployed. Website publishing, app distribution, indexes,
+and the existing disabled FCM push settings were unchanged. The local deployment
+log is `artifacts/planning-rules-deploy.log`.
+
 ## Test-account cleanup — 27 October 2026
 
 At the maintainer's request, test accounts were cleared while preserving the two

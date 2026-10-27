@@ -26,6 +26,8 @@ test('existing teacher deep links remain available behind the session gate', () 
     'overview',
     'groups',
     'reviews',
+    'milestones',
+    'inbox',
     'students',
     'research',
     'documents',

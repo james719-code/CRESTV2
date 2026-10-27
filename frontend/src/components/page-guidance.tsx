@@ -47,6 +47,26 @@ const guidance: Record<
     action: 'View the research library',
     next: 'research',
   },
+  milestones: {
+    title: 'Plan the next research deadline',
+    steps: [
+      'Add a milestone for a group and choose its deadline.',
+      'Filter by stage or status to find overdue work.',
+      'Mark a milestone complete after checking the group’s work.',
+    ],
+    action: 'Open research groups',
+    next: 'groups',
+  },
+  inbox: {
+    title: 'Keep track of school updates',
+    steps: [
+      'Filter to unread updates or choose an update type.',
+      'Open the linked group to read its research or feedback.',
+      'Mark updates as read, or unread to return to them later.',
+    ],
+    action: 'Open submission reviews',
+    next: 'reviews',
+  },
   research: {
     title: 'Find and read a research paper',
     steps: [

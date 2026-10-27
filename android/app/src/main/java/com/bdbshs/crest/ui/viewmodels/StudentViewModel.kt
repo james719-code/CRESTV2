@@ -100,15 +100,20 @@ class StudentHomeViewModel @Inject constructor(
         }
     }
 
-    fun triggerCertificateDownload() {
-        if (_uiState.value.isDownloadingCertificate) return
+    fun triggerCertificateDownload(): Boolean {
+        if (_uiState.value.isDownloadingCertificate || _uiState.value.isLoading) return false
         val group = _uiState.value.groupDetails
         val members = _uiState.value.memberNames
-        if (group == null || members.isEmpty()) {
+        if (group == null || group.group_name.isBlank() || group.research_title.isBlank() || members.none { it.isNotBlank() }) {
             _uiState.update { it.copy(error = "Cannot generate certificate. Group data is incomplete.") }
-            return
+            return false
+        }
+        if (!group.accepted_research) {
+            _uiState.update { it.copy(error = "Your research must be approved before a certificate can be downloaded.") }
+            return false
         }
         _uiState.update { it.copy(isDownloadingCertificate = true, error = null) }
+        return true
     }
 
     // --- FIX: ADDED THIS NEW FUNCTION ---

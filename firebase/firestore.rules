@@ -110,6 +110,60 @@ service cloud.firestore {
       allow read: if approved();
       allow write: if teacher();
     }
+    match /group_milestones/{id} {
+      function validMilestone() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['groupId', 'title', 'stage', 'dueDate', 'completedAt', 'version', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+          && data.keys().hasAll(['groupId', 'title', 'stage', 'dueDate', 'completedAt', 'version', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+          && text(data.groupId, 128) && exists(/databases/$(database)/documents/groups/$(data.groupId))
+          && text(data.title, 200) && data.title.size() > 0
+          && data.stage in ['proposal', 'chapter', 'defense', 'final']
+          && data.dueDate is string && data.dueDate.matches('(20[0-9]{2}|2100)-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])')
+          && data.completedAt is int && data.completedAt >= 0
+          && data.version is int && data.updatedBy == request.auth.uid && data.updatedAt == request.time;
+      }
+      allow read: if teacher() || (student() && resource.data.groupId == groupId(myStudent())
+        && exists(/databases/$(database)/documents/groups/$(resource.data.groupId))
+        && member(get(/databases/$(database)/documents/groups/$(resource.data.groupId)).data));
+      allow create: if teacher() && validMilestone() && request.resource.data.version == 1
+        && request.resource.data.completedAt == 0 && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if teacher() && validMilestone()
+        && request.resource.data.groupId == resource.data.groupId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.version == resource.data.version + 1;
+      allow delete: if teacher();
+    }
+    match /teacher_inboxes/{uid}/items/{id} {
+      allow read: if self(uid) && teacher();
+      allow create: if self(uid) && teacher()
+        && id.matches('[0-9a-f]{64}')
+        && request.resource.data.keys().hasOnly(['kind', 'groupId', 'title', 'message', 'observedAt', 'read'])
+        && request.resource.data.keys().hasAll(['kind', 'groupId', 'title', 'message', 'observedAt', 'read'])
+        && request.resource.data.kind in ['submission', 'approval', 'revision', 'account']
+        && text(request.resource.data.groupId, 128)
+        && text(request.resource.data.title, 240) && text(request.resource.data.message, 4000)
+        && request.resource.data.observedAt == request.time && request.resource.data.read == false;
+      allow update: if self(uid) && teacher()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+    }
+    match /student_inboxes/{uid}/items/{id} {
+      allow read: if self(uid) && student();
+      allow create: if self(uid) && student() && id.matches('[0-9a-f]{64}')
+        && request.resource.data.keys().hasOnly(['kind', 'groupId', 'title', 'message', 'observedAt', 'read'])
+        && request.resource.data.keys().hasAll(['kind', 'groupId', 'title', 'message', 'observedAt', 'read'])
+        && request.resource.data.kind in ['submission', 'approval', 'revision']
+        && request.resource.data.groupId == groupId(myStudent())
+        && exists(/databases/$(database)/documents/groups/$(request.resource.data.groupId))
+        && member(get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data)
+        && text(request.resource.data.title, 240) && text(request.resource.data.message, 4000)
+        && request.resource.data.observedAt == request.time && request.resource.data.read == false;
+      allow update: if self(uid) && student()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+    }
     match /user_favorites/{uid}/items/{id} {
       allow read, delete: if self(uid) && approved();
       allow create, update: if self(uid) && approved()

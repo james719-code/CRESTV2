@@ -101,6 +101,15 @@ const UploadDialog = lazy(() =>
 )
 const HelpPage = lazy(() => import('./components/help-page').then((m) => ({ default: m.HelpPage })))
 const PaperReader = lazy(() => import('./components/paper-reader'))
+const Milestones = lazy(() =>
+  import('./components/milestones').then((m) => ({ default: m.Milestones })),
+)
+const MilestoneSummary = lazy(() =>
+  import('./components/milestones').then((m) => ({ default: m.MilestoneSummary })),
+)
+const NotificationInbox = lazy(() =>
+  import('./components/notification-inbox').then((m) => ({ default: m.NotificationInbox })),
+)
 
 function LoadingContent() {
   return (
@@ -120,10 +129,17 @@ const navigation: {
   { page: 'groups', label: 'Research groups', icon: UsersThree, section: 'classroom' },
   { page: 'students', label: 'Students', icon: GraduationCap, section: 'classroom' },
   { page: 'reviews', label: 'Submission reviews', icon: ClipboardText, section: 'classroom' },
+  {
+    page: 'milestones',
+    label: 'Deadlines & milestones',
+    icon: ClipboardText,
+    section: 'classroom',
+  },
   { page: 'research', label: 'Research library', icon: BookOpenText, section: 'library' },
   { page: 'documents', label: 'Documents', icon: Files, section: 'library' },
   { page: 'accounts', label: 'Account approvals', icon: Users, section: 'library' },
   { page: 'help', label: 'Help & tutorial', icon: Question, section: 'personal' },
+  { page: 'inbox', label: 'Notification inbox', icon: Bell, section: 'personal' },
   { page: 'settings', label: 'Settings', icon: SlidersHorizontal, section: 'personal' },
   { page: 'about', label: 'About CREST', icon: Info, section: 'personal' },
 ]
@@ -148,6 +164,16 @@ const descriptions: Record<Page, { title: string; description: string; eyebrow: 
     title: 'Submission reviews',
     description: 'Read manuscripts, guide revisions, and welcome new work to the library.',
     eyebrow: 'SUBMISSION REVIEWS',
+  },
+  milestones: {
+    title: 'Deadlines & milestones',
+    description: 'Plan proposals, chapters, defenses, and final manuscripts with clear due dates.',
+    eyebrow: 'RESEARCH PLANNING',
+  },
+  inbox: {
+    title: 'Notification inbox',
+    description: 'Keep up with submissions, research approvals, and revision feedback.',
+    eyebrow: 'YOUR SCHOOL UPDATES',
   },
   research: {
     title: 'Research library',
@@ -216,6 +242,7 @@ function TeacherApp({
   const [signingIn, setSigningIn] = useState(false)
   const [authError, setAuthError] = useState('')
   const pending = workspace.groups.filter((group) => groupStatus(group) === 'pending')
+  const unreadNotifications = (workspace.notifications || []).filter((item) => !item.read).length
   const pendingAccounts =
     workspace.students.filter((student) => studentAccountStatus(student) === 'pending').length +
     workspace.teachers.filter((item) => !item.access).length
@@ -536,6 +563,9 @@ function TeacherApp({
                       {item.page === 'accounts' && pendingAccounts > 0 && (
                         <span className="nav-count neutral-count">{pendingAccounts}</span>
                       )}
+                      {item.page === 'inbox' && unreadNotifications > 0 && (
+                        <span className="nav-count">{unreadNotifications}</span>
+                      )}
                     </a>
                   ))}
               </div>
@@ -588,33 +618,22 @@ function TeacherApp({
               </button>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="notification-button"
-                        aria-label={`Notifications, ${pending.length + pendingAccounts} items need attention`}
-                      >
-                        <Bell size={21} />
-                        {!!(pending.length + pendingAccounts) && <span />}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="notification-menu">
-                      <DropdownMenuLabel>Needs your attention</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => navigate('reviews')}>
-                        <ClipboardText size={18} />
-                        <span>{pending.length} submissions to review</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => navigate('accounts')}>
-                        <Users size={18} />
-                        <span>{pendingAccounts} accounts to approve</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="notification-button"
+                    aria-label={`Notification inbox, ${unreadNotifications} unread`}
+                    onClick={() => navigate('inbox')}
+                  >
+                    <Bell size={21} />
+                    {unreadNotifications > 0 && (
+                      <strong className="notification-unread-count">
+                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                      </strong>
+                    )}
+                  </Button>
                 </TooltipTrigger>
-                <TooltipContent>Needs your attention</TooltipContent>
+                <TooltipContent>Notification inbox</TooltipContent>
               </Tooltip>
               <div className="topbar-divider" />
               <DropdownMenu>
@@ -713,6 +732,13 @@ function TeacherApp({
               )}
               <Suspense fallback={<LoadingContent />}>
                 {page === 'overview' && (
+                  <MilestoneSummary
+                    workspace={workspace}
+                    onOpen={() => navigate('milestones')}
+                    onGroup={openGroup}
+                  />
+                )}
+                {page === 'overview' && (
                   <Overview
                     workspace={workspace}
                     onNavigate={navigate}
@@ -737,6 +763,8 @@ function TeacherApp({
                     onReview={service.review}
                     onFile={openFile}
                     onDelete={deleteGroup}
+                    onSaveMilestone={service.saveMilestone}
+                    onChangeMilestone={service.changeMilestone}
                   />
                 )}
                 {page === 'reviews' && (
@@ -770,6 +798,22 @@ function TeacherApp({
                   <StudentTable workspace={workspace} onOpen={setSelectedStudent} />
                 )}
                 {page === 'research' && <ResearchLibrary workspace={workspace} onFile={openFile} />}
+                {page === 'milestones' && (
+                  <Milestones
+                    workspace={workspace}
+                    onSave={service.saveMilestone}
+                    onChange={service.changeMilestone}
+                  />
+                )}
+                {page === 'inbox' && (
+                  <NotificationInbox
+                    workspace={workspace}
+                    onRead={service.markNotifications}
+                    navigate={navigate}
+                    error={service.inboxError}
+                    onRetry={service.retryInbox}
+                  />
+                )}
                 {page === 'documents' && (
                   <DocumentLibrary workspace={workspace} onFile={openFile} />
                 )}

@@ -26,6 +26,8 @@ import com.bdbshs.crest.ui.screens.*
 import com.bdbshs.crest.ui.viewmodels.LoginResult
 import com.bdbshs.crest.ui.viewmodels.MainViewModel // Import MainViewModel
 import com.bdbshs.crest.ui.viewmodels.GroupDeletionViewModel
+import com.bdbshs.crest.ui.viewmodels.PlanningViewModel
+import com.bdbshs.crest.ui.viewmodels.UserType
 import com.bdbshs.crest.ui.viewmodels.SignUpDetailsViewModel
 import com.google.firebase.auth.FirebaseAuth // Make sure FirebaseAuth is imported
 
@@ -39,6 +41,8 @@ sealed class AppDestination(val route: String) {
     object Accounts : AppDestination("accounts")
     object Documents : AppDestination("documents")
     object Favorites : AppDestination("favorites")
+    object Milestones : AppDestination("milestones")
+    object Inbox : AppDestination("inbox")
     object AboutUs : AppDestination("about_us")
     object GroupUpload : AppDestination("group_upload")
     object TeacherUpload : AppDestination("teacher_upload")
@@ -122,6 +126,10 @@ fun CrestApp() {
     val mainVm  : MainViewModel = hiltViewModel()
     val groupDeletionVm: GroupDeletionViewModel = hiltViewModel()
     val uiState by mainVm.uiState.collectAsStateWithLifecycle()
+    val planningVm: PlanningViewModel = hiltViewModel()
+    LaunchedEffect(uiState.currentUid, uiState.userRole, uiState.isAllowedOffline, uiState.isLoading) {
+        planningVm.bind(uiState.currentUid, uiState.userRole, uiState.isAllowedOffline && !uiState.isLoading)
+    }
 
     SessionNavigationHost(
         isLoading = uiState.isLoading,
@@ -146,7 +154,7 @@ fun CrestApp() {
             auth.addAuthStateListener(listener)
             onDispose { auth.removeAuthStateListener(listener) }
         }
-        CrestNavHost(navController, actions, startRoute, isOnline, mainVm, groupDeletionVm)
+        CrestNavHost(navController, actions, startRoute, isOnline, mainVm, groupDeletionVm, planningVm)
     }
 }
 
@@ -160,8 +168,10 @@ private fun CrestNavHost(
     startDestination: String,
     isOnline: Boolean,
     mainViewModel: MainViewModel,
-    groupDeletionViewModel: GroupDeletionViewModel
+    groupDeletionViewModel: GroupDeletionViewModel,
+    planningViewModel: PlanningViewModel
 ) {
+    val planningState by planningViewModel.uiState.collectAsStateWithLifecycle()
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -237,6 +247,18 @@ private fun CrestNavHost(
         composable(AppDestination.StorageManagement.route) {
             StorageManagementScreen(onNavigateBack = navigationActions::navigateBack)
         }
+        listOf(AppDestination.Milestones, AppDestination.Inbox).forEach { destination ->
+            composable(destination.route) {
+                MainScreen(navigationActions = navigationActions, currentRoute = destination.route,
+                    isOnline = isOnline, mainViewModel = mainViewModel,
+                    unreadNotifications = planningState.records.notifications.count { !it.read },
+                    onNavigationClick = { navigationActions.navigateBack() }) { padding, role ->
+                    PlanningScreen(planningViewModel, destination == AppDestination.Inbox, Modifier.padding(padding),
+                        onOpenGroup = { id -> if (role == UserType.TEACHER) navigationActions.navigateToGroupDetails(id) else navigationActions.navigateToHome() },
+                        onOpenAccounts = { navigationActions.navigateTo(AppDestination.Accounts) })
+                }
+            }
+        }
 
         // --- PRIMARY ROUTES ---
         // Main pager screen with swipeable tabs
@@ -246,7 +268,8 @@ private fun CrestNavHost(
                 isOnline = isOnline,
                 initialPage = 0,
                 mainViewModel = mainViewModel,
-                groupDeletionViewModel = groupDeletionViewModel
+                groupDeletionViewModel = groupDeletionViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read }
             )
         }
         composable(AppDestination.Researches.route) {
@@ -255,7 +278,8 @@ private fun CrestNavHost(
                 isOnline = isOnline,
                 initialPage = if (isOnline) 1 else 0,
                 mainViewModel = mainViewModel,
-                groupDeletionViewModel = groupDeletionViewModel
+                groupDeletionViewModel = groupDeletionViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read }
             )
         }
         composable(AppDestination.Accounts.route) {
@@ -264,6 +288,7 @@ private fun CrestNavHost(
                 currentRoute = AppDestination.Accounts.route, 
                 isOnline = isOnline,
                 mainViewModel = mainViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read },
                 onNavigationClick = navigationActions::navigateBack
             ) { padding, _ ->
                 AccountsScreen(modifier = Modifier.padding(padding))
@@ -275,7 +300,8 @@ private fun CrestNavHost(
                 isOnline = isOnline,
                 initialPage = 3,
                 mainViewModel = mainViewModel,
-                groupDeletionViewModel = groupDeletionViewModel
+                groupDeletionViewModel = groupDeletionViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read }
             )
         }
         composable(AppDestination.Documents.route) {
@@ -284,7 +310,8 @@ private fun CrestNavHost(
                 isOnline = isOnline,
                 initialPage = 2,
                 mainViewModel = mainViewModel,
-                groupDeletionViewModel = groupDeletionViewModel
+                groupDeletionViewModel = groupDeletionViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read }
             )
         }
         composable(AppDestination.Favorites.route) {
@@ -293,6 +320,7 @@ private fun CrestNavHost(
                 currentRoute = AppDestination.Favorites.route,
                 isOnline = isOnline,
                 mainViewModel = mainViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read },
                 onNavigationClick = navigationActions::navigateBack
             ) { padding, userRole ->
                 ResearchesScreen(
@@ -305,7 +333,8 @@ private fun CrestNavHost(
             }
         }
         composable(AppDestination.AboutUs.route) {
-            MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.AboutUs.route, isOnline = isOnline, mainViewModel = mainViewModel) { padding, _ ->
+            MainScreen(navigationActions = navigationActions, currentRoute = AppDestination.AboutUs.route, isOnline = isOnline, mainViewModel = mainViewModel,
+                unreadNotifications = planningState.records.notifications.count { !it.read }) { padding, _ ->
                 AboutUsScreen(modifier = Modifier.padding(padding))
             }
         }
@@ -318,7 +347,8 @@ private fun MainPagerRouteContent(
     isOnline: Boolean,
     initialPage: Int,
     mainViewModel: MainViewModel,
-    groupDeletionViewModel: GroupDeletionViewModel
+    groupDeletionViewModel: GroupDeletionViewModel,
+    unreadNotifications: Int = 0
 ) {
     val deletionState by groupDeletionViewModel.uiState.collectAsStateWithLifecycle()
     MainScreenWithPager(
@@ -326,6 +356,7 @@ private fun MainPagerRouteContent(
         isOnline = isOnline,
         initialPage = initialPage,
         mainViewModel = mainViewModel,
+        unreadNotifications = unreadNotifications,
         homeContent = { padding, userRole, onOpenGroups ->
             HomeScreen(
                 modifier = Modifier.padding(padding),

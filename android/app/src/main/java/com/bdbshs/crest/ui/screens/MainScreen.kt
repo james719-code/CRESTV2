@@ -44,6 +44,7 @@ fun MainScreen(
     isOnline: Boolean,
     onNavigationClick: (() -> Unit)? = null,
     mainViewModel: MainViewModel = hiltViewModel(),
+    unreadNotifications: Int = 0,
     content: @Composable (padding: PaddingValues, userRole: UserType?) -> Unit
 ) {
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +95,8 @@ fun MainScreen(
             AppDestination.Favorites.route -> "Favorites"
             AppDestination.Groups.route -> "Groups"
             AppDestination.Accounts.route -> "Accounts"
+            AppDestination.Milestones.route -> "Milestones"
+            AppDestination.Inbox.route -> "Notifications"
             AppDestination.AboutUs.route -> "About"
             else -> "CREST"
         }
@@ -127,6 +130,8 @@ fun MainScreen(
                     { navigationActions.navigateTo(AppDestination.Favorites) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
+                onMilestonesClick = { navigationActions.navigateTo(AppDestination.Milestones) },
+                onInboxClick = { navigationActions.navigateTo(AppDestination.Inbox) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },
                 onThemeChange = mainViewModel::onThemeChanged,
                 onSignOutClick = {
@@ -165,6 +170,8 @@ fun MainScreen(
                 isOnline = isOnline,
                 onNavigationClick = onNavigationClick,
                 onProfileClick = { showProfileSheet = true },
+                onNotificationClick = if (isOnline) ({ navigationActions.navigateTo(AppDestination.Inbox) }) else null,
+                unreadNotifications = unreadNotifications,
                 scrollBehavior = scrollBehavior
             )
         },
@@ -212,7 +219,8 @@ fun MainScreenWithPager(
     researchesContent: @Composable (PaddingValues, UserType?) -> Unit,
     documentsContent: @Composable (PaddingValues, UserType?) -> Unit,
     groupsContent: (@Composable (PaddingValues, UserType?) -> Unit)? = null,
-    mainViewModel: MainViewModel = hiltViewModel()
+    mainViewModel: MainViewModel = hiltViewModel(),
+    unreadNotifications: Int = 0
 ) {
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -225,6 +233,7 @@ fun MainScreenWithPager(
         documentsContent = documentsContent,
         groupsContent = groupsContent,
         uiState = uiState,
+        unreadNotifications = unreadNotifications,
         onThemeChanged = mainViewModel::onThemeChanged,
         onSignOutClick = {
             mainViewModel.onSignOut()
@@ -244,7 +253,8 @@ fun MainScreenWithPagerContent(
     groupsContent: (@Composable (padding: PaddingValues, userRole: UserType?) -> Unit)?,
     uiState: MainUiState,
     onThemeChanged: (ThemeMode) -> Unit,
-    onSignOutClick: () -> Unit
+    onSignOutClick: () -> Unit,
+    unreadNotifications: Int = 0
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -358,6 +368,8 @@ fun MainScreenWithPagerContent(
                     { navigationActions.navigateTo(AppDestination.Favorites) }
                 } else null,
                 onAboutClick = { navigationActions.navigateTo(AppDestination.AboutUs) },
+                onMilestonesClick = { navigationActions.navigateTo(AppDestination.Milestones) },
+                onInboxClick = { navigationActions.navigateTo(AppDestination.Inbox) },
                 onStorageClick = { navigationActions.navigateToStorageManagement() },
                 onThemeChange = onThemeChanged,
                 onSignOutClick = {
@@ -395,6 +407,8 @@ fun MainScreenWithPagerContent(
                 userPhotoUrl = uiState.userPhotoUrl,
                 isOnline = isOnline,
                 onProfileClick = { showProfileSheet = true },
+                onNotificationClick = if (isOnline) ({ navigationActions.navigateTo(AppDestination.Inbox) }) else null,
+                unreadNotifications = unreadNotifications,
                 scrollBehavior = scrollBehavior
             )
         },

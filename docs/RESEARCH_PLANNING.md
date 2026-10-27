@@ -1,0 +1,13 @@
+# Research deadlines and notification inbox
+
+The Android app and teacher website share research milestones in `group_milestones` and teacher notifications in `teacher_inboxes/{uid}/items`. Android students use private `student_inboxes/{uid}/items`. Event IDs use the same JSON identities and SHA-256 on both platforms, so reconnecting or switching between the website and Android does not create duplicate teacher notifications or reset read status.
+
+Teachers open **Deadlines & milestones** from the account menu. They can add, edit, complete, reopen, and delete proposal, chapter, defense, and final manuscript milestones, with group/stage/status filters. Students see a read-only plan for their own group. Due dates include the entire selected day in Asia/Manila. Completion is manual, independent of manuscript approval. Version checks prevent stale edits and deletion.
+
+The bell opens the **Notification inbox** and shows an unread badge. Submissions, research approvals, and retained revision comments are captured when the app connects; teachers also receive pending registration updates. Read/unread controls, mark-all-as-read, type filters, and links to research progress are available. Teacher read state is shared with the website. Student read state remains private, including from teachers. Updates retain the **Added to inbox** time, because legacy records lack original event times. Intermediate transitions that occur entirely while the client is closed may not be captured. FCM push delivery remains separately configured.
+
+School access and authentication changes stop listeners, cancel pending actions, and clear private state. Student milestone queries must constrain `groupId` to their own group, and membership is checked by Firestore rules. Students cannot edit plans or create inbox entries for another group. Client inbox content is immutable after creation except for the owner's read flag.
+
+The updated `firebase/firestore.rules` were deployed successfully to `crest-4fb99` on 27 October 2026 (Asia/Manila), after all 27 database permission tests passed. Firebase confirmed successful compilation and release to Cloud Firestore. The deployment covered rules only; no website, app release, or index changes were published. No existing group schema migration or new composite index is needed. The deployment receipt is in `artifacts/planning-rules-deploy.log`.
+
+For local verification, the debug-only `UiReviewActivity` offers `milestones`, `inbox`, `studentMilestones`, and `studentInbox` screens using fictional local records. It is excluded from release builds. Unit tests cover Manila day boundaries, input validation, shared notification identities, and account changes; emulator tests use local fixtures and do not modify school records.

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.navigation.AppDestination
 import com.bdbshs.crest.data.ThemeMode
+import com.bdbshs.crest.data.*
 import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.*
 import com.bdbshs.crest.ui.theme.CRESTTheme
@@ -84,7 +85,17 @@ private val reviewAccounts: List<AccountItem> = listOf(
 private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) {
     var page by remember { mutableStateOf(firstPage) }
     var mode by remember { mutableStateOf(firstMode) }
-    var role by remember { mutableStateOf(if (firstPage == "student") UserType.STUDENT else UserType.TEACHER) }
+    var role by remember { mutableStateOf(if (firstPage in listOf("student", "studentMilestones", "studentInbox")) UserType.STUDENT else UserType.TEACHER) }
+    var planningMilestones by remember { mutableStateOf(listOf(
+        ResearchMilestone("plan-1", "group-1", "Submit research proposal", MilestoneStage.PROPOSAL, PlanningDates.today().minusDays(2).toString()),
+        ResearchMilestone("plan-2", "group-1", "Complete Chapter 1", MilestoneStage.CHAPTER, PlanningDates.today().toString()),
+        ResearchMilestone("plan-3", "group-2", "Prepare for the oral defense", MilestoneStage.DEFENSE, PlanningDates.today().plusDays(7).toString())
+    )) }
+    var planningUpdates by remember { mutableStateOf(listOf(
+        SchoolUpdate("notice-1", "submission", "group-1", "Sustainable Futures submitted research", "The proposal is ready for review.", System.currentTimeMillis()),
+        SchoolUpdate("notice-2", "revision", "group-1", "Sustainable Futures: revision feedback", "Please clarify the sampling method in Chapter 2.", System.currentTimeMillis() - 60_000),
+        SchoolUpdate("notice-3", "approval", "group-2", "Digital Learners: research approved", "The final manuscript has been approved.", System.currentTimeMillis() - 120_000, read = true)
+    )) }
     var menu by remember { mutableStateOf(false) }
     var query by remember(page) { mutableStateOf("") }
     var pending by remember { mutableStateOf(false) }
@@ -139,11 +150,13 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                             Text("LOCAL DATA · UI REVIEW", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
                             TextButton(onClick = { menu = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.heightIn(min = 32.dp)) { Text("Screens") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                                listOf("teacher", "student", "research", "favorites", "documents", "groups", "accounts", "paper", "group", "storage", "upload", "teacherUpload", "signup", "signupStudent", "signupTeacher", "login", "about", "pending").forEach { destination ->
+                                listOf("teacher", "student", "milestones", "inbox", "studentMilestones", "studentInbox", "research", "favorites", "documents", "groups", "accounts", "paper", "group", "storage", "upload", "teacherUpload", "signup", "signupStudent", "signupTeacher", "login", "about", "pending").forEach { destination ->
                                     DropdownMenuItem(text = { Text(destination.replaceFirstChar { it.titlecase() }) }, onClick = {
                                         page = destination
                                         if (destination == "student") role = UserType.STUDENT
                                         if (destination == "teacher") role = UserType.TEACHER
+                                        if (destination in listOf("milestones", "inbox")) role = UserType.TEACHER
+                                        if (destination in listOf("studentMilestones", "studentInbox")) role = UserType.STUDENT
                                         menu = false
                                     })
                                 }
@@ -172,6 +185,8 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                             "teacherUpload" -> "Add research paper"
                             "signupStudent", "signupTeacher" -> "Complete Your Profile"
                             "about" -> "About"
+                            "milestones", "studentMilestones" -> "Milestones"
+                            "inbox", "studentInbox" -> "Notifications"
                             else -> "Home"
                         },
                         userRole = role,
@@ -197,6 +212,24 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
         val bodyModifier = Modifier.fillMaxSize().padding(padding)
         val retry = { mode = "data" }
         when (page) {
+            "milestones", "studentMilestones", "inbox", "studentInbox" -> {
+                val planningGroups = reviewGroups.map { PlanningGroup(it.id, it.group_name, it.research_title) }.filter { role == UserType.TEACHER || it.id == "group-1" }
+                val state = PlanningUiState(records = PlanningRecords(groups = planningGroups,
+                    milestones = if (mode == "empty") emptyList() else planningMilestones.filter { item -> planningGroups.any { it.id == item.groupId } },
+                    notifications = if (mode == "empty") emptyList() else planningUpdates.filter { item -> planningGroups.any { it.id == item.groupId } }, loading = loading), teacher = role == UserType.TEACHER, error = error)
+                if (page in listOf("inbox", "studentInbox")) NotificationInboxContent(state, bodyModifier, retry,
+                    onRead = { ids, read, done -> planningUpdates = planningUpdates.map { if (it.id in ids) it.copy(read = read) else it }; done() },
+                    onOpenGroup = { notice("Open group research") }, onOpenAccounts = { notice("Open account approvals") })
+                else MilestonesContent(state, bodyModifier, retry,
+                    onSave = { input, existing, done ->
+                        val item = ResearchMilestone(existing?.id ?: java.util.UUID.randomUUID().toString(), input.groupId, input.title, input.stage, input.dueDate, existing?.completedAt ?: 0, (existing?.version ?: 0) + 1)
+                        planningMilestones = planningMilestones.filterNot { it.id == item.id } + item; done()
+                    }, onChange = { item, action, done ->
+                        planningMilestones = if (action == "delete") planningMilestones.filterNot { it.id == item.id } else planningMilestones.map {
+                            if (it.id == item.id) it.copy(completedAt = if (action == "complete") System.currentTimeMillis() else 0, version = it.version + 1) else it
+                        }; done()
+                    })
+            }
             "research", "favorites" -> ResearchLibraryContent(
                 ResearchesUiState(isLoading = loading, searchQuery = query, error = error,
                     strands = listOf("STEM", "HUMSS", "ABM", "TVL", "GAS").map { Strand(it, it in strandFilter) },

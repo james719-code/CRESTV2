@@ -56,6 +56,8 @@ export function parseRoute(hash: string): Route {
     case 'overview':
     case 'groups':
     case 'reviews':
+    case 'milestones':
+    case 'inbox':
     case 'students':
     case 'research':
     case 'documents':

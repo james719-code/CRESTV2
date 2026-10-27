@@ -22,6 +22,8 @@ import type {
   Teacher,
   UploadInput,
   Workspace,
+  Milestone,
+  MilestoneInput,
 } from '../domain'
 import { validateReview } from '../domain'
 import { mapGroup, WorkspaceSnapshot, type WorkspaceSource } from './workspace-snapshot'
@@ -29,6 +31,13 @@ import { reviewStudentAccount } from './student-accounts'
 import { deleteDeclinedStudent, deleteResearchGroup } from './workspace-deletion'
 import { clearSchoolFileCache, deleteFile, uploadFile } from './storage'
 import { notifyEvent } from './edge'
+import {
+  captureInboxRecords,
+  changeMilestoneRecord,
+  saveMilestoneRecord,
+  setInboxRead,
+} from './teacher-planning'
+import type { identifyNotifications } from './inbox'
 export { readFile } from './storage'
 
 const app = initializeApp({
@@ -102,8 +111,12 @@ export function observeWorkspace(callbacks: {
           }
           watching = true
           const currentGeneration = generation
-          const values = new WorkspaceSnapshot()
-          const sources = Object.entries(paths)
+          const values = new WorkspaceSnapshot(['milestones', 'notifications'])
+          const sources = Object.entries({
+            ...paths,
+            milestones: 'group_milestones',
+            notifications: `teacher_inboxes/${user.uid}/items`,
+          })
           stops = sources.map(([key, path]) =>
             onSnapshot(
               collection(db, path),
@@ -236,6 +249,29 @@ export async function deleteStudent(id: string) {
 
 export async function deleteGroup(id: string) {
   await deleteResearchGroup(db, currentTeacherRef().id, id)
+}
+
+export async function saveMilestone(input: MilestoneInput, existing?: Milestone) {
+  return saveMilestoneRecord(db, currentTeacherRef().id, input, existing)
+}
+
+export async function changeMilestone(
+  milestone: Milestone,
+  action: 'complete' | 'reopen' | 'delete',
+) {
+  return changeMilestoneRecord(db, currentTeacherRef().id, milestone, action)
+}
+
+export async function captureInbox(
+  uid: string,
+  events: Awaited<ReturnType<typeof identifyNotifications>>,
+) {
+  if (currentTeacherRef().id !== uid) throw new Error('Your account has changed. Reopen the inbox.')
+  return captureInboxRecords(db, uid, events)
+}
+
+export async function markNotifications(ids: string[], read: boolean) {
+  return setInboxRead(db, currentTeacherRef().id, ids, read)
 }
 
 export async function upload(input: UploadInput) {

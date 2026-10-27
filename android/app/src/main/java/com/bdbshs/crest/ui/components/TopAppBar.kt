@@ -57,7 +57,8 @@ fun CrestTopAppBar(
     onNavigationClick: (() -> Unit)? = null,
     onNotificationClick: (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    unreadNotifications: Int = 0
 ) {
     val isMainTab = title in MainTabTitles
     TopAppBar(
@@ -92,7 +93,9 @@ fun CrestTopAppBar(
         actions = {
             onNotificationClick?.let { onClick ->
                 IconButton(onClick = onClick) {
-                    Icon(Icons.Outlined.Notifications, contentDescription = "Notifications")
+                    BadgedBox(badge = { if (unreadNotifications > 0) Badge { Text(if (unreadNotifications > 99) "99+" else unreadNotifications.toString()) } }) {
+                        Icon(Icons.Outlined.Notifications, contentDescription = "Notifications, $unreadNotifications unread")
+                    }
                 }
             }
             IconButton(onClick = onProfileClick) {
@@ -147,6 +150,8 @@ fun ProfileBottomSheet(
     currentTheme: ThemeMode = ThemeMode.SYSTEM,
     onAccountsClick: (() -> Unit)? = null,
     onFavoritesClick: (() -> Unit)? = null,
+    onMilestonesClick: (() -> Unit)? = null,
+    onInboxClick: (() -> Unit)? = null,
     onAboutClick: () -> Unit,
     onStorageClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
@@ -231,6 +236,12 @@ fun ProfileBottomSheet(
         
         // Menu items
         if (isOnline) {
+            onMilestonesClick?.let { onClick -> ProfileMenuItem(
+                icon = Icons.Outlined.CalendarMonth, title = "Deadlines & milestones", subtitle = "Follow research deadlines",
+                onClick = { onClick(); onDismiss() }) }
+            onInboxClick?.let { onClick -> ProfileMenuItem(
+                icon = Icons.Outlined.Notifications, title = "Notification inbox", subtitle = "Submissions, approvals, and feedback",
+                onClick = { onClick(); onDismiss() }) }
             // Accounts (Teacher only)
             onAccountsClick?.let { onClick ->
                 ProfileMenuItem(
