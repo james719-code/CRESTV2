@@ -1,0 +1,430 @@
+/*
+ * Modern surface layer for the teacher workspace. Loaded with the workspace chunk after
+ * workspace-polish.css, and built on the tokens in modern.css. Same rules as the public
+ * layer: static gradients, layered shadows and larger radii only. No blur, no entrance
+ * animation. Display settings (theme, text size, contrast, easy reading) still apply.
+ */
+
+/* ---------- Canvas ---------- */
+.workspace-main {
+  min-height: 100dvh;
+  background:
+    radial-gradient(56rem 26rem at 92% -10rem, var(--glow-blue), transparent 70%),
+    radial-gradient(38rem 22rem at 6% -6rem, var(--glow-teal), transparent 70%), var(--background);
+}
+
+/* ---------- Sidebar: light by default, ink in the dark theme ---------- */
+.sidebar {
+  border-right: 1px solid var(--hairline);
+  background:
+    radial-gradient(18rem 14rem at 0% 0%, var(--glow-blue), transparent 72%),
+    linear-gradient(180deg, var(--card) 0%, color-mix(in srgb, var(--primary) 3%, var(--card)) 100%);
+  scrollbar-color: color-mix(in srgb, var(--foreground) 24%, transparent) transparent;
+}
+.sidebar .brand-lockup .crest-logo {
+  box-shadow: 0 0 0 3px var(--glow-blue);
+}
+.sidebar .workspace-switch {
+  border-color: var(--hairline);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+  box-shadow: var(--shadow-xs);
+}
+.sidebar .workspace-status {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crest-color-secondary) 24%, transparent);
+}
+.sidebar .nav-section > p {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+}
+.sidebar .nav-item {
+  color: color-mix(in srgb, var(--foreground) 80%, var(--muted-foreground));
+  border-radius: 0.875rem;
+}
+.sidebar .nav-item:hover {
+  background: var(--tile-blue);
+  color: var(--foreground);
+}
+.sidebar .nav-item-active,
+.sidebar .nav-item-active:hover {
+  background: var(--tile-blue);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent);
+  color: var(--primary);
+  font-weight: 650;
+}
+.sidebar .nav-count {
+  background: var(--brand-gradient);
+  color: var(--primary-foreground);
+  box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+.sidebar .neutral-count {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: var(--muted-foreground);
+  box-shadow: none;
+}
+.sidebar .sidebar-note {
+  border-color: var(--hairline);
+  border-radius: 1.125rem;
+  background: linear-gradient(
+    135deg,
+    var(--tile-blue),
+    color-mix(in srgb, var(--crest-color-secondary) 9%, var(--card))
+  );
+}
+.sidebar .sidebar-note > span {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.8rem;
+  background: var(--brand-gradient);
+  color: var(--primary-foreground);
+  box-shadow: var(--brand-shadow);
+}
+.sidebar .help-link:hover {
+  background: var(--tile-blue);
+  color: var(--foreground);
+}
+
+/* dark theme: ink panel with soft colour glows */
+:root[data-theme='dark'] .sidebar {
+  --sb-line: rgb(255 255 255 / 10%);
+  border-right-color: var(--sb-line);
+  background:
+    radial-gradient(22rem 18rem at 0% 0%, rgb(36 87 214 / 30%), transparent 72%),
+    radial-gradient(20rem 16rem at 100% 100%, rgb(14 112 117 / 26%), transparent 72%),
+    linear-gradient(180deg, #0f1c33 0%, #0a1322 100%);
+  scrollbar-color: rgb(255 255 255 / 22%) transparent;
+}
+:root[data-theme='dark'][data-contrast='strong'] .sidebar {
+  --sb-line: rgb(255 255 255 / 28%);
+}
+:root[data-theme='dark'] .sidebar .brand-lockup .crest-logo {
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 14%);
+}
+:root[data-theme='dark'] .sidebar .workspace-switch {
+  border-color: var(--sb-line);
+  background: rgb(255 255 255 / 6%);
+  box-shadow: none;
+}
+:root[data-theme='dark'] .sidebar .nav-item:hover,
+:root[data-theme='dark'] .sidebar .help-link:hover {
+  background: rgb(255 255 255 / 8%);
+  color: #fff;
+}
+:root[data-theme='dark'] .sidebar .nav-item-active,
+:root[data-theme='dark'] .sidebar .nav-item-active:hover {
+  background: linear-gradient(90deg, rgb(94 134 255 / 32%), rgb(94 134 255 / 9%));
+  box-shadow: inset 0 0 0 1px rgb(182 202 255 / 20%);
+  color: #fff;
+}
+:root[data-theme='dark'] .sidebar .nav-item-active > svg {
+  color: var(--primary);
+}
+:root[data-theme='dark'] .sidebar .nav-item-active::before {
+  background: #9db9ff;
+  box-shadow: 0 0 10px rgb(157 185 255 / 70%);
+}
+:root[data-theme='dark'] .sidebar .nav-count {
+  background: linear-gradient(135deg, #6e98ff, #3f73f0);
+  color: #fff;
+}
+:root[data-theme='dark'] .sidebar .neutral-count {
+  background: rgb(255 255 255 / 13%);
+  color: #e3ebf9;
+}
+:root[data-theme='dark'] .sidebar .sidebar-note {
+  border-color: var(--sb-line);
+  background: rgb(255 255 255 / 6%);
+}
+:root[data-theme='dark'] .sidebar .sidebar-note > span {
+  background: linear-gradient(135deg, rgb(110 152 255 / 40%), rgb(136 214 211 / 32%));
+  color: #fff;
+  box-shadow: none;
+}
+:root[data-theme='dark'] .sidebar .sidebar-school {
+  border-top-color: var(--sb-line);
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  background: color-mix(in srgb, var(--card) 96%, transparent);
+  border-bottom-color: var(--hairline);
+  box-shadow: 0 1px 0 var(--hairline);
+}
+.breadcrumb strong {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.global-search {
+  background: var(--card);
+  border-color: var(--crest-color-outline-variant);
+  box-shadow: var(--shadow-xs);
+}
+.global-search:hover {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--crest-color-outline-variant));
+  box-shadow:
+    var(--shadow-xs),
+    0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.global-search kbd {
+  border-radius: 0.4rem;
+  background: var(--crest-color-surface-container);
+  border-color: var(--crest-color-outline-variant);
+  font-weight: 600;
+}
+.profile-avatar {
+  background: var(--brand-gradient);
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 3.5px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.notification-button > span {
+  box-shadow: 0 0 0 2px var(--card);
+}
+
+/* ---------- Page heading ---------- */
+.page-heading h1 {
+  font-size: clamp(1.75rem, 2.6vw, 2.375rem);
+  font-weight: 780;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+.page-heading .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--tile-teal);
+  font-size: 0.75rem;
+}
+.page-content {
+  padding-top: 2.25rem;
+}
+
+/* ---------- Notices and guidance ---------- */
+.page-guidance,
+.reading-shortcut,
+.review-intro,
+.library-note,
+.account-intro {
+  border: 1px solid var(--hairline);
+  border-radius: 1.25rem;
+  background: linear-gradient(
+    120deg,
+    var(--tile-blue),
+    color-mix(in srgb, var(--crest-color-secondary) 8%, var(--card))
+  );
+  color: var(--foreground);
+  box-shadow: var(--shadow-xs);
+}
+.page-guidance {
+  border-left: 1px solid var(--hairline);
+}
+.review-reading-guide {
+  border-radius: 1rem;
+}
+.demo-banner {
+  border-radius: 1rem;
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
+}
+.demo-banner > span > svg {
+  padding: 0.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: var(--tile-blue);
+}
+
+/* ---------- Stat cards ---------- */
+.stat-card {
+  --tint: var(--primary);
+  background:
+    radial-gradient(
+      16rem 10rem at 0% 0%,
+      color-mix(in srgb, var(--tint) 12%, transparent),
+      transparent 72%
+    ),
+    var(--card);
+  transition:
+    border-color 180ms,
+    box-shadow 180ms,
+    transform 180ms;
+}
+.stat-card.stat-teal {
+  --tint: var(--crest-color-secondary);
+}
+.stat-card.stat-amber {
+  --tint: #c98a1b;
+}
+.stat-card.stat-green {
+  --tint: #1d8f5c;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.stat-icon {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tint) 22%, transparent);
+}
+.stat-bottom strong {
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+/* ---------- Cards and lists ---------- */
+.progress-card,
+.attention-card,
+.recent-card,
+.table-card,
+.settings-panel,
+.group-detail-body {
+  border-radius: 1.5rem;
+}
+.section-heading h2,
+.table-card-heading h2 {
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+.section-heading .eyebrow {
+  color: var(--crest-color-secondary);
+}
+.decorative-book {
+  border-radius: 1rem;
+  background: var(--brand-gradient);
+  color: var(--primary-foreground);
+  box-shadow: var(--brand-shadow);
+}
+.attention-list > button,
+.progress-legend button,
+.recent-paper {
+  border-radius: 0.875rem;
+}
+.attention-icon {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentcolor 16%, transparent);
+}
+.count-label {
+  border-radius: 999px;
+  background: var(--crest-color-surface-container-low);
+  font-weight: 600;
+}
+
+/* ---------- Tabs, tables, badges ---------- */
+.filter-tabs[data-slot='tabs-list'] {
+  background: var(--crest-color-surface-container);
+  border-color: var(--crest-color-outline-variant);
+  box-shadow: inset 0 1px 2px rgb(20 35 59 / 6%);
+}
+.filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger']:hover {
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+.filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger'][data-state='active'] {
+  background: var(--card);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  color: var(--foreground);
+  font-weight: 650;
+  box-shadow: var(--shadow-sm);
+}
+[data-slot='table-header'] {
+  background: var(--crest-color-surface-container-low);
+}
+[data-slot='table-head'] {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+[data-slot='table-body'] [data-slot='table-row']:hover {
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+.status-badge,
+.strand-badge {
+  font-weight: 600;
+}
+.student-avatar,
+.group-avatar,
+.large-avatar {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentcolor 14%, transparent);
+}
+
+/* ---------- Library ---------- */
+.research-card,
+.recent-paper,
+.student-reading-card,
+.group-reading-card {
+  transition:
+    border-color 180ms,
+    box-shadow 180ms,
+    transform 180ms,
+    background-color 150ms;
+}
+.research-card {
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-xs);
+}
+.research-card:hover,
+.student-reading-card:hover,
+.group-reading-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow: var(--shadow-md);
+}
+.upload-zone {
+  border-radius: 1.25rem;
+}
+.empty-state {
+  border-radius: 1.25rem;
+}
+.empty-icon {
+  background: var(--brand-gradient);
+  color: var(--primary-foreground);
+  box-shadow: var(--brand-shadow);
+}
+
+/* ---------- Dialogs, sheets, search ---------- */
+.detail-sheet {
+  border-top-left-radius: 1.75rem;
+  border-bottom-left-radius: 1.75rem;
+}
+.dialog-feature-icon {
+  background: var(--brand-gradient);
+  color: var(--primary-foreground);
+  box-shadow: var(--brand-shadow);
+}
+.search-dialog {
+  border-radius: 1.5rem;
+}
+.workspace-search-results section > button {
+  border-radius: 0.875rem;
+}
+.progress-steps > li.complete > span,
+.progress-steps > li.current > span {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+/* ---------- Footer ---------- */
+.page-footer {
+  border-top-color: var(--hairline);
+}
+
+/* ---------- Responsive ---------- */
+@media (hover: none) {
+  .stat-card:hover,
+  .research-card:hover,
+  .student-reading-card:hover,
+  .group-reading-card:hover {
+    transform: none;
+  }
+}
+@media (max-width: 767px) {
+  .page-content {
+    padding-top: 1.5rem;
+  }
+  .detail-sheet {
+    border-radius: 0;
+  }
+  .sidebar {
+    box-shadow: var(--shadow-lg);
+  }
+}

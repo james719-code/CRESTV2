@@ -5,7 +5,8 @@ import App from './App.tsx'
 import { DisplayProvider } from './components/display-provider'
 import { initializeAppearance } from './preferences'
 import './appearance.css'
-import './card-designs.css'
+import './polish.css'
+import './modern.css'
 
 initializeAppearance()
 

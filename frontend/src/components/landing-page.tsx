@@ -20,6 +20,7 @@ import { CrestLogo } from './crest-logo'
 import { DisplaySettings } from './display-settings'
 import { AppDownload } from './app-download'
 import { androidDownloadUrl } from '@/data/app-release'
+import { noticesPath } from '@/data/credits'
 import './landing-page.css'
 
 interface LandingPageProps {
@@ -40,6 +41,7 @@ function scrollToSection(id: string) {
 
 export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: LandingPageProps) {
   const enter = signedIn ? onWorkspace : onSignIn
+
   const enterLabel = signedIn ? 'Open workspace' : 'Teacher sign in'
   return (
     <div className="landing-page">
@@ -69,8 +71,11 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
           </nav>
           <div className="landing-header-actions">
             <DisplaySettings />
-            <Button onClick={enter}>
-              {enterLabel}
+            <Button className="landing-enter" onClick={enter} aria-label={enterLabel}>
+              <span className="landing-enter-full">{enterLabel}</span>
+              <span className="landing-enter-short" aria-hidden="true">
+                {signedIn ? 'Workspace' : 'Sign in'}
+              </span>
               <ArrowUpRight size={17} />
             </Button>
           </div>
@@ -134,124 +139,144 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
               </span>
             </div>
           </div>
-          <figure
-            className="landing-preview"
-            aria-label="Illustrative teacher workspace preview with fictional sample records"
-          >
-            <div className="preview-window-bar">
-              <div>
-                <i />
-                <i />
-                <i />
+          <div className="landing-preview-stage">
+            <figure
+              className="landing-preview"
+              aria-label="Illustrative teacher workspace preview with fictional sample records"
+            >
+              <div className="preview-window-bar">
+                <div>
+                  <i />
+                  <i />
+                  <i />
+                </div>
+                <span>
+                  <ShieldCheck size={13} />
+                  CREST · Teacher workspace
+                </span>
+                <span className="preview-window-avatar">AR</span>
               </div>
-              <span>
-                <ShieldCheck size={13} />
-                CREST · Teacher workspace
+              <div className="preview-workspace">
+                <div className="preview-heading">
+                  <div>
+                    <p>YOUR RESEARCH CLASSROOM</p>
+                    <h2>A clear view. A useful next step.</h2>
+                  </div>
+                  <CrestLogo size={42} decorative />
+                </div>
+                <div className="preview-metrics">
+                  <div>
+                    <span>
+                      <UsersThree size={17} />
+                      Research groups
+                    </span>
+                    <strong>09</strong>
+                  </div>
+                  <div>
+                    <span>
+                      <ClipboardText size={17} />
+                      Pending review
+                    </span>
+                    <strong>03</strong>
+                  </div>
+                  <div>
+                    <span>
+                      <CheckCircle size={17} />
+                      Approved
+                    </span>
+                    <strong>03</strong>
+                  </div>
+                </div>
+                <div className="preview-progress">
+                  <div>
+                    <strong>Research progress</strong>
+                    <span>3 of 9 groups approved</span>
+                  </div>
+                  <div className="preview-progress-bar">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className="preview-legend">
+                    <span>
+                      <i />
+                      Preparing
+                    </span>
+                    <span>
+                      <i />
+                      In review
+                    </span>
+                    <span>
+                      <i />
+                      Revising
+                    </span>
+                    <span>
+                      <i />
+                      Approved
+                    </span>
+                  </div>
+                </div>
+                <div className="preview-table-heading">
+                  <strong>Your research groups</strong>
+                  <span>At a glance</span>
+                </div>
+                <div className="preview-group">
+                  <span className="preview-group-icon">
+                    <UsersThree size={19} />
+                  </span>
+                  <div>
+                    <strong>The Green Collective</strong>
+                    <span>STEM · Sustainable water filtration</span>
+                  </div>
+                  <span className="preview-status review">Pending review</span>
+                </div>
+                <div className="preview-group">
+                  <span className="preview-group-icon teal">
+                    <UsersThree size={19} />
+                  </span>
+                  <div>
+                    <strong>Tomorrow Lab</strong>
+                    <span>STEM · School rainwater collection</span>
+                  </div>
+                  <span className="preview-status approved">
+                    <Check size={12} />
+                    Approved
+                  </span>
+                </div>
+                <div className="preview-feedback">
+                  <ChatBubble />
+                  <div>
+                    <strong>A little feedback goes a long way.</strong>
+                    <p>Give every group a clear next step.</p>
+                  </div>
+                  <CheckCircle size={22} />
+                </div>
+              </div>
+              <figcaption>
+                <span />
+                Workspace preview · Fictional sample records
+              </figcaption>
+            </figure>
+            <div className="preview-float preview-float-review" aria-hidden="true">
+              <span className="preview-float-icon">
+                <ClipboardText size={18} />
               </span>
-              <span className="preview-window-avatar">AR</span>
-            </div>
-            <div className="preview-workspace">
-              <div className="preview-heading">
-                <div>
-                  <p>YOUR RESEARCH CLASSROOM</p>
-                  <h2>A clear view. A useful next step.</h2>
-                </div>
-                <CrestLogo size={42} decorative />
-              </div>
-              <div className="preview-metrics">
-                <div>
-                  <span>
-                    <UsersThree size={17} />
-                    Research groups
-                  </span>
-                  <strong>09</strong>
-                </div>
-                <div>
-                  <span>
-                    <ClipboardText size={17} />
-                    Pending review
-                  </span>
-                  <strong>03</strong>
-                </div>
-                <div>
-                  <span>
-                    <CheckCircle size={17} />
-                    Approved
-                  </span>
-                  <strong>03</strong>
-                </div>
-              </div>
-              <div className="preview-progress">
-                <div>
-                  <strong>Research progress</strong>
-                  <span>3 of 9 groups approved</span>
-                </div>
-                <div className="preview-progress-bar">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <div className="preview-legend">
-                  <span>
-                    <i />
-                    Preparing
-                  </span>
-                  <span>
-                    <i />
-                    In review
-                  </span>
-                  <span>
-                    <i />
-                    Revising
-                  </span>
-                  <span>
-                    <i />
-                    Approved
-                  </span>
-                </div>
-              </div>
-              <div className="preview-table-heading">
-                <strong>Your research groups</strong>
-                <span>At a glance</span>
-              </div>
-              <div className="preview-group">
-                <span className="preview-group-icon">
-                  <UsersThree size={19} />
-                </span>
-                <div>
-                  <strong>The Green Collective</strong>
-                  <span>STEM · Sustainable water filtration</span>
-                </div>
-                <span className="preview-status review">Pending review</span>
-              </div>
-              <div className="preview-group">
-                <span className="preview-group-icon teal">
-                  <UsersThree size={19} />
-                </span>
-                <div>
-                  <strong>Tomorrow Lab</strong>
-                  <span>STEM · School rainwater collection</span>
-                </div>
-                <span className="preview-status approved">
-                  <Check size={12} />
-                  Approved
-                </span>
-              </div>
-              <div className="preview-feedback">
-                <ChatBubble />
-                <div>
-                  <strong>A little feedback goes a long way.</strong>
-                  <p>Give every group a clear next step.</p>
-                </div>
-                <CheckCircle size={22} />
+              <div>
+                <strong>3 submissions waiting</strong>
+                <small>Ready for your feedback</small>
               </div>
             </div>
-            <figcaption>
-              <span />
-              Workspace preview · Fictional sample records
-            </figcaption>
-          </figure>
+            <div className="preview-float preview-float-approved" aria-hidden="true">
+              <span className="preview-float-icon teal">
+                <CheckCircle size={18} />
+              </span>
+              <div>
+                <strong>Tomorrow Lab approved</strong>
+                <small>Added to the school library</small>
+              </div>
+            </div>
+          </div>
         </section>
         <div className="landing-connection-strip">
           <div className="landing-container">
@@ -508,7 +533,13 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
             alt="Bonifacio D. Borebor Sr. High School seal"
             loading="lazy"
           />
-          <span>Bonifacio D. Borebor Sr. High School</span>
+          <span>
+            Bonifacio D. Borebor Sr. High School
+            <br />
+            <a className="landing-footer-link" href={noticesPath} target="_blank" rel="noreferrer">
+              Open-source licenses
+            </a>
+          </span>
         </div>
       </footer>
     </div>

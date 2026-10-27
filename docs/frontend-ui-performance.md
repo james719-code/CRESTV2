@@ -1,5 +1,122 @@
 # Teacher card design and frontend performance
 
+## Modern visual refresh — 27 October 2026
+
+The web UI keeps the CREST palette (blue, ink, teal, mist) and Inter, and adds depth
+with two paint-only CSS layers: `src/modern.css` (public site, sign-in, shared controls)
+and `src/workspace-modern.css` (teacher workspace, loaded with the workspace chunk).
+
+- Landing: floating pill header, dot-grid and soft colour glows, gradient headline
+  accent, a tilted gradient plate and two decorative notes around the workspace preview,
+  a bento feature grid with one ink feature card, step cards, and a gradient project
+  and closing panel.
+- Workspace: a sidebar that follows the theme (light with a blue-tinted active item in
+  the light theme, ink gradient with a glowing active item in the dark theme), softer
+  top bar, tinted stat cards, pill segmented tabs, larger card radii, layered shadows,
+  and hover lift on cards (disabled on touch devices).
+- Controls: gradient primary buttons, raised outline buttons, and consistent dialog,
+  menu and card radii in light and dark themes.
+
+Constraints kept: no backdrop blur, no looping or entrance animation, no remote assets,
+and no new JavaScript beyond two decorative `aria-hidden` notes on the landing preview.
+The gradient headline falls back to a solid colour under strong contrast and forced
+colours. Display settings (theme, text size, easy reading, reduce motion) still apply.
+The two new stylesheets add about 30 kB raw and 6.9 kB gzip, and the public entry
+JavaScript budget still passes (386.40 kB / 117.27 kB gzip).
+
+Validation: TypeScript build, ESLint on changed files, all 69 Node tests and the
+production build passed. Screenshots of the landing page, sign-in, overview, students,
+library, group detail, help, about, settings, and the Display and
+search dialogs were reviewed in light and dark at 1440 and 1280 pixels, and the landing
+page, overview and open navigation at 390 pixels. These checks used the fictional demo
+workspace; no frame-rate or real-device measurements were taken.
+
+## Web loading follow-up — 27 October 2026
+
+The public entry now loads the landing page directly and downloads the teacher
+application only when a visitor opens sign-in or a workspace link. A public-page
+visit does not initialize Firebase or subscribe to school records. After the
+teacher application has been opened, a React Activity boundary retains its
+operation state while home is visible and cleans up its subscriptions. Returning
+to the workspace rechecks teacher access before displaying school records.
+See the [React Activity reference](https://react.dev/reference/react/Activity).
+
+The Firebase observer now maps only the collection that changed. Other collection
+arrays retain their references, and student/group indexes depend only on students
+and groups. Research remains sorted across both research collections, and the
+workspace stays loading until all six initial collection snapshots arrive.
+
+Fresh production builds on the same machine measured:
+
+| Asset | Before | After |
+| --- | ---: | ---: |
+| Static public-entry JavaScript, raw | 677.97 kB | 382.49 kB |
+| Static public-entry JavaScript, Vite gzip estimate | 201.09 kB | 115.63 kB |
+
+The public JavaScript entry is about 44% smaller before compression. The old home
+page also fetched a separate 29.27 kB landing module; that page is included in the
+new entry. Teacher and Firebase modules still download when needed. These figures
+measure transfer size, not a guaranteed change in page-load time or Core Web
+Vitals. The shared 352.24 kB font remains a future optimization opportunity.
+
+Every production build now checks the complete static entry graph using Vite's
+manifest. It must remain below 420,000 raw bytes and 125,000 gzip bytes and must
+keep the teacher and Firebase entries dynamic. The guard uses Node's gzip defaults,
+which differ slightly from Vite's gzip estimate above. It does not hide large-chunk
+warnings. Netlify's fingerprinted assets receive a one-year immutable cache policy;
+HTML and the messaging worker revalidate.
+
+Validation: TypeScript/production build, bundle budgets, ESLint, and all 55 Node
+tests passed, including collection readiness, stable references, cross-collection
+research sorting/removal, and independent observer state. Browser checks covered
+the live-configured public page and sign-in screen plus an isolated teacher demo,
+student pagination/search, and return navigation. Deployment and real-device
+network timings remain separate release checks.
+
+An isolated browser check also exercised the actual app with a simulated backend:
+starting a group deletion, visiting home, and returning kept the same pending
+operation without starting another request. The active observer count changed
+from one to zero to one. Rejecting the simulated request after returning displayed
+the failure message and “Retry delete” action. This check used fictional records
+and made no production database changes.
+
+## Dedicated reader follow-up — 27 October 2026
+
+Research, document, group-manuscript, overview, and search links now open a
+dedicated, refreshable reader route. Existing Firestore metadata supplies the
+information panel; no abstract, publication date, or author details are invented.
+Mozilla PDF.js provides observable page changes for localStorage restoration,
+including changes from scrolling. Progress keys isolate backend, account, and
+immutable file ID; corrupt or unavailable storage falls back to reading from page
+one. The most recent 200 positions per account are retained.
+
+The reader and PDF.js load dynamically. Workers, fonts, character maps, and
+decoders use local versioned assets. The public-entry size budget still passes.
+PDF URLs remain temporary, and leaving the reader destroys its worker, observers,
+and object URL. The existing access checks and 30-day authorized PDF cache remain
+in use.
+
+Validation includes all 64 frontend tests, ESLint, TypeScript, the production
+build and entry budget. An isolated five-page PDF was uploaded through the actual
+demo interface and rendered in both development and production builds. Page 3
+survived closing/reopening and reloading the route; scrolling advanced to page 4,
+which was restored after another reload. Text search found all five matches.
+Phone layouts at 390 and 320 pixels and the desktop information panel were
+checked; viewport settings were restored after testing. These checks used
+fictional local records and did not change production school data.
+
+The reader-return regression was caused by PDF.js's generic `.sidebar` rule
+remaining active after navigating back. Vite now scopes all top-level PDF.js
+selectors and root variables to `.paper-reader`, preserving nested selectors,
+media queries, and the viewer's live height measurement. Regression tests check
+the entire installed PDF.js stylesheet. Browser checks with a five-page PDF
+confirmed that both the reader's Back button and browser Back restore the
+library's original sidebar width and toolbar position, while page 3 remains saved.
+The production build and a 390-pixel mobile layout passed the same return check
+without page overflow or browser errors.
+
+## Earlier card and layout optimization
+
 Measured locally on 26 October 2026. These results describe this workspace and browser, not a guarantee for every device or live school dataset.
 
 ## Changes

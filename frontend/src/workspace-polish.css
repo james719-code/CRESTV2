@@ -1,0 +1,295 @@
+/*
+ * Structural refinements for the teacher workspace. Loaded with the workspace chunk,
+ * after card-designs.css; workspace-modern.css loads after this file and layers depth
+ * (gradients, shadows, radii, the ink sidebar) on top. No blur or entrance animation,
+ * so navigation stays instant. Display settings still apply.
+ */
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  background: var(--card);
+  border-right-color: var(--hairline);
+}
+.brand-lockup .wordmark {
+  color: var(--primary);
+}
+.workspace-switch {
+  border-color: var(--hairline);
+  background: var(--background);
+}
+.workspace-icon {
+  color: var(--primary);
+}
+.nav-item {
+  position: relative;
+  border-radius: 0.75rem;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+.nav-item:hover {
+  background: var(--tile-blue);
+  color: var(--foreground);
+}
+.nav-item-active,
+.nav-item-active:hover {
+  background: var(--tile-blue);
+  color: var(--primary);
+}
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: -0.5rem;
+  top: 24%;
+  bottom: 24%;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--primary);
+}
+.nav-count {
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 650;
+}
+.neutral-count {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  color: var(--muted-foreground);
+}
+.sidebar-note {
+  border-color: var(--hairline);
+  background: var(--tile-blue);
+}
+.help-link {
+  border-radius: 0.75rem;
+}
+.help-link:hover {
+  background: var(--tile-blue);
+  color: var(--foreground);
+}
+
+/* ---------- Top bar ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--card);
+  border-bottom-color: var(--hairline);
+}
+.breadcrumb strong {
+  font-weight: 650;
+}
+.global-search {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  transition:
+    border-color 150ms,
+    color 150ms;
+}
+.global-search:hover {
+  border-color: var(--primary);
+  color: var(--foreground);
+}
+.notification-button > span {
+  width: 9px;
+  height: 9px;
+  top: 0.55rem;
+  right: 0.65rem;
+  background: #e5484d;
+}
+.profile-button {
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border-radius: 999px;
+}
+.profile-button:hover {
+  background: var(--tile-blue);
+}
+.profile-avatar {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ---------- Page heading ---------- */
+.page-heading .eyebrow {
+  color: var(--crest-color-secondary);
+}
+.page-heading h1 {
+  font-size: 2.125rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+}
+.page-heading p {
+  font-size: 0.9375rem;
+}
+.demo-banner {
+  border-radius: 0.875rem;
+  border-color: var(--hairline);
+}
+
+/* ---------- Cards ---------- */
+[data-slot='card'] {
+  border-color: var(--hairline);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(16 28 54 / 5%);
+}
+.section-heading h2,
+.table-card-heading h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.section-heading .eyebrow {
+  color: var(--crest-color-secondary);
+}
+.decorative-book {
+  background: var(--tile-blue);
+  color: var(--primary);
+}
+
+/* stat cards */
+.stat-card {
+  transition:
+    border-color 180ms,
+    box-shadow 180ms;
+}
+.stat-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow:
+    0 1px 2px rgb(16 28 54 / 6%),
+    0 8px 20px -10px rgb(16 28 54 / 18%);
+}
+.stat-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.8rem;
+}
+.stat-bottom strong {
+  font-size: 2.5rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+
+/* progress + attention */
+.progress-legend button,
+.attention-list button {
+  border-radius: 0.75rem;
+  transition: background-color 150ms;
+}
+.progress-legend button:hover,
+.attention-list button:hover {
+  background: var(--tile-blue);
+}
+.attention-icon {
+  border-radius: 0.8rem;
+}
+.progress-card-footer {
+  color: var(--crest-color-secondary);
+  font-weight: 550;
+}
+
+/* ---------- Tables, filters, badges ---------- */
+.filter-tabs[data-slot='tabs-list'] {
+  border-radius: 999px;
+  background: var(--background);
+}
+.filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger'] {
+  border-radius: 999px;
+}
+.filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger'][data-state='active'] {
+  border-color: var(--primary);
+  background: var(--tile-blue);
+  color: var(--primary);
+}
+.filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger'] > span {
+  border-radius: 999px;
+}
+[data-slot='table-header'] {
+  background: var(--background);
+}
+[data-slot='table-head'] {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-slot='table-body'] [data-slot='table-row']:hover {
+  background: var(--tile-blue);
+}
+.status-badge {
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+}
+.strand-badge {
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+.row-action {
+  border-radius: 0.6rem;
+}
+.row-action:hover {
+  background: var(--tile-blue);
+}
+
+/* ---------- Library, recents ---------- */
+.research-card,
+.recent-paper {
+  transition:
+    border-color 180ms,
+    box-shadow 180ms,
+    background-color 150ms;
+}
+.research-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  box-shadow:
+    0 1px 2px rgb(16 28 54 / 6%),
+    0 8px 20px -10px rgb(16 28 54 / 18%);
+}
+.recent-paper:hover {
+  background: var(--tile-blue);
+}
+.paper-icon,
+.document-file-icon {
+  border-radius: 0.8rem;
+}
+.review-intro {
+  border-color: var(--hairline);
+  background: var(--tile-blue);
+  border-radius: 1rem;
+}
+.page-footer .wordmark {
+  color: var(--primary);
+}
+
+/* ---------- Dialogs and menus ---------- */
+[data-slot='dialog-content'],
+[data-slot='sheet-content'] {
+  border-color: var(--hairline);
+}
+[data-slot='dialog-content'] {
+  border-radius: 1.5rem;
+}
+[data-slot='dropdown-menu-content'],
+[data-slot='select-content'] {
+  border-radius: 0.9rem;
+  border-color: var(--hairline);
+}
+[data-slot='dropdown-menu-item'],
+[data-slot='select-item'] {
+  border-radius: 0.6rem;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px) {
+  .page-heading h1 {
+    font-size: 1.75rem;
+  }
+  .topbar {
+    padding-inline: 1rem;
+  }
+}
