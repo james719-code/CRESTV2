@@ -96,13 +96,15 @@ internal fun GroupsContent(
     onClearFilters: () -> Unit,
     onRefresh: () -> Unit,
     onGroupClick: (GroupItem) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    deletions: Map<String, GroupDeletionOperation> = emptyMap(),
+    onRetryDelete: (String) -> Unit = {}
 ) {
     val filtered = state.searchQuery.isNotBlank() || state.showPendingOnly || state.showAcceptedOnly
     CollectionLayout(
         title = "Research groups",
         subtitle = "See each group's paper, submission status, and members.",
-        records = groups, isLoading = state.isLoading, isRefreshing = state.isRefreshing, error = state.error,
+        records = groups, isLoading = state.isLoading && groups.isEmpty(), isRefreshing = state.isRefreshing, error = state.error,
         onRefresh = onRefresh, recordKey = { it.id },
         emptyTitle = if (state.showPendingOnly) "No submissions waiting for review" else if (filtered) "No groups match these filters" else "No research groups yet",
         emptyMessage = if (filtered) "Show all groups or try another group name." else "Groups appear here after students create them. Submitted papers can then be reviewed from each group.",
@@ -122,13 +124,19 @@ internal fun GroupsContent(
                 }
             }
         }
-    ) { group -> GroupRecordCard(group, { onGroupClick(group) }) }
+    ) { group -> GroupRecordCard(group, { onGroupClick(group) }, deletions[group.id], { onRetryDelete(group.id) }) }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun GroupRecordCard(group: GroupItem, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+internal fun GroupRecordCard(
+    group: GroupItem,
+    onClick: () -> Unit,
+    deletion: GroupDeletionOperation? = null,
+    onRetryDelete: () -> Unit = {}
+) {
+    val deleting = deletion?.isDeleting == true
+    Surface(onClick = onClick, enabled = !deleting, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 PaperCover(group.strand, size = 56.dp)
@@ -155,7 +163,16 @@ internal fun GroupRecordCard(group: GroupItem, onClick: () -> Unit) {
                 if (group.research_type.isNotBlank()) InformationLine(Icons.Outlined.Article,
                     group.research_type.lowercase().replaceFirstChar { it.titlecase() })
             }
-            if (group.uploaded && !group.accepted_research) {
+            if (deleting) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    Text("Deleting group…", style = MaterialTheme.typography.labelLarge)
+                }
+            } else if (deletion?.error != null) {
+                Text(deletion.error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                OutlinedButton(onClick = onRetryDelete, modifier = Modifier.fillMaxWidth()) { Text("Retry delete") }
+            } else if (group.uploaded && !group.accepted_research) {
                 Button(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text("Review submission")
                     Spacer(Modifier.width(6.dp))
@@ -183,16 +200,22 @@ internal fun AccountsContent(
     onAccount: (AccountItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pending = state.allAccounts.count { !accountIsApproved(it) }
+    val declined = state.allAccounts.count { it is AccountItem.Student && !it.accepted && it.declined }
+    val pending = state.allAccounts.count { !accountIsApproved(it) } - declined
     val filtered = state.searchQuery.isNotBlank() || state.selectedAccountType != null
     CollectionLayout(
         title = "School accounts",
         subtitle = "Verify registrations and manage student and teacher access.",
         records = accounts, isLoading = state.isLoading, isRefreshing = state.isRefreshing, error = state.error,
         onRefresh = onRefresh, recordKey = { it.uid },
-        emptyTitle = if (filtered) "No accounts match these filters" else if (state.selectedStatus == AccountStatus.Pending) "No accounts waiting for approval" else "No approved accounts to show",
+        emptyTitle = if (filtered) "No accounts match these filters" else when (state.selectedStatus) {
+            AccountStatus.Pending -> "No accounts waiting for approval"
+            AccountStatus.Accepted -> "No approved accounts to show"
+            AccountStatus.Declined -> "No declined accounts to show"
+        },
         emptyMessage = if (filtered) "Clear the search or change the account type filter."
             else if (state.selectedStatus == AccountStatus.Pending) "You're viewing pending registrations. Approved accounts are available in the Approved tab."
+            else if (state.selectedStatus == AccountStatus.Declined) "Declined student registrations appear here. Open a record to restore access or delete it."
             else "Accounts appear here after their registration is approved.",
         emptyActionLabel = if (state.selectedStatus == AccountStatus.Pending && !filtered) "View approved accounts" else "Refresh accounts",
         onEmptyAction = if (state.selectedStatus == AccountStatus.Pending && !filtered) ({ onStatus(AccountStatus.Accepted) }) else onRefresh,
@@ -206,7 +229,8 @@ internal fun AccountsContent(
                 ModernSearchBar(state.searchQuery, onQuery, placeholder = "Search name or email", onFilterClick = onFilter)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(state.selectedStatus == AccountStatus.Pending, { onStatus(AccountStatus.Pending) }, label = { Text("Pending ($pending)") })
-                    FilterChip(state.selectedStatus == AccountStatus.Accepted, { onStatus(AccountStatus.Accepted) }, label = { Text("Approved (${state.allAccounts.size - pending})") })
+                    FilterChip(state.selectedStatus == AccountStatus.Accepted, { onStatus(AccountStatus.Accepted) }, label = { Text("Approved (${state.allAccounts.size - pending - declined})") })
+                    FilterChip(state.selectedStatus == AccountStatus.Declined, { onStatus(AccountStatus.Declined) }, label = { Text("Declined ($declined)") })
                 }
             }
         }
@@ -230,6 +254,7 @@ internal fun AccountRecordCard(account: AccountItem, onClick: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MetadataBadge(if (isStudent) "Student" else "Teacher")
                         if (approved) MetadataBadge("Approved", MaterialTheme.crestColors.success, MaterialTheme.crestColors.onSuccess)
+                        else if (account is AccountItem.Student && account.declined) MetadataBadge("Declined", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
                         else MetadataBadge("Pending approval", MaterialTheme.crestColors.warning, MaterialTheme.crestColors.onWarning)
                     }
                 }

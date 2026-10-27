@@ -6,13 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.bdbshs.crest.data.repository.AccountRecord
 import com.bdbshs.crest.data.repository.AccountRepository
 import com.bdbshs.crest.data.repository.UserRole
+import com.bdbshs.crest.data.repository.WorkspaceDeletionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Immutable
 sealed class AccountItem {
@@ -26,7 +26,8 @@ sealed class AccountItem {
         val strand: String = "",
         val gender: String = "",
         val accepted: Boolean = false,
-        val research_accepted: Boolean = false // Using snake_case to match Firestore
+        val research_accepted: Boolean = false, // Using snake_case to match Firestore
+        val declined: Boolean = false
     ) : AccountItem()
 
     data class Teacher(
@@ -42,7 +43,8 @@ sealed class AccountItem {
 enum class AccountType { STUDENT, TEACHER }
 enum class AccountStatus(val displayName: String) {
     Pending("Pending Approval"),
-    Accepted("Accepted")
+    Accepted("Accepted"),
+    Declined("Declined")
 }
 enum class AccountSortOption(val displayName: String) {
     NameAZ("Name (A-Z)"),
@@ -67,7 +69,8 @@ data class AccountsUiState(
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class AccountsViewModel @Inject constructor(
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val deletionRepository: WorkspaceDeletionRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -88,8 +91,9 @@ class AccountsViewModel @Inject constructor(
                     (state.selectedAccountType == AccountType.TEACHER && account is AccountItem.Teacher)
 
             val statusMatch = when (state.selectedStatus) {
-                AccountStatus.Pending -> (account is AccountItem.Student && !account.accepted) || (account is AccountItem.Teacher && !account.access)
+                AccountStatus.Pending -> (account is AccountItem.Student && !account.accepted && !account.declined) || (account is AccountItem.Teacher && !account.access)
                 AccountStatus.Accepted -> (account is AccountItem.Student && account.accepted) || (account is AccountItem.Teacher && account.access)
+                AccountStatus.Declined -> account is AccountItem.Student && !account.accepted && account.declined
             }
             queryMatch && typeMatch && statusMatch
         }
@@ -111,9 +115,7 @@ class AccountsViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                val combinedList = withContext(Dispatchers.IO) {
-                    accountRepository.fetchAllAccounts().map { it.toUiItem() }
-                }
+                val combinedList = accountRepository.fetchAllAccounts().map { it.toUiItem() }
                 _uiState.update { it.copy(allAccounts = combinedList, isLoading = false, isRefreshing = false) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "Could not load school accounts. Check your connection and try again.") }
@@ -141,10 +143,11 @@ class AccountsViewModel @Inject constructor(
     fun applyFilters() = dismissFilterDialog()
 
     fun onAccountClicked(account: AccountItem) {
-        _uiState.update { it.copy(isActionDialogVisible = true, selectedAccountForAction = account) }
+        _uiState.update { it.copy(isActionDialogVisible = true, selectedAccountForAction = account, error = null) }
     }
 
     fun dismissActionDialog() {
+        if (_uiState.value.isUpdatingAccount) return
         _uiState.update { it.copy(isActionDialogVisible = false, isUpdatingAccount = false) }
     }
 
@@ -152,13 +155,13 @@ class AccountsViewModel @Inject constructor(
         val accountToUpdate = _uiState.value.selectedAccountForAction ?: return
         _uiState.update { it.copy(isUpdatingAccount = true) }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 accountRepository.approveAccount(accountToUpdate.uid, accountToUpdate.toRepositoryRole())
 
                 // Refresh the list locally for an instant UI update
                 updateLocalAccountState(accountToUpdate.uid, isApproved = true)
-                dismissActionDialog()
+                _uiState.update { it.copy(isActionDialogVisible = false, isUpdatingAccount = false, selectedAccountForAction = null) }
 
             } catch (e: Exception) {
                 _uiState.update { it.copy(isUpdatingAccount = false, error = "Failed to approve: ${e.message}") }
@@ -170,14 +173,18 @@ class AccountsViewModel @Inject constructor(
         val accountToDelete = _uiState.value.selectedAccountForAction ?: return
         _uiState.update { it.copy(isUpdatingAccount = true) }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 accountRepository.denyAccount(accountToDelete.uid, accountToDelete.toRepositoryRole())
 
                 // Remove from local list for instant UI update
                 _uiState.update { currentState ->
                     currentState.copy(
-                        allAccounts = currentState.allAccounts.filterNot { it.uid == accountToDelete.uid },
+                        allAccounts = currentState.allAccounts.mapNotNull { account ->
+                            if (account.uid != accountToDelete.uid) account
+                            else if (account is AccountItem.Student) account.copy(accepted = false, declined = true)
+                            else null
+                        },
                         isActionDialogVisible = false,
                         isUpdatingAccount = false
                     )
@@ -188,12 +195,29 @@ class AccountsViewModel @Inject constructor(
         }
     }
 
+    fun deleteSelectedAccount() {
+        val account = _uiState.value.selectedAccountForAction as? AccountItem.Student ?: return
+        if (account.accepted || !account.declined || _uiState.value.isUpdatingAccount) return
+        _uiState.update { it.copy(isUpdatingAccount = true, error = null) }
+        viewModelScope.launch {
+            try {
+                deletionRepository.deleteDeclinedStudent(account.uid)
+                _uiState.update { state -> state.copy(
+                    allAccounts = state.allAccounts.filterNot { it.uid == account.uid },
+                    selectedAccountForAction = null, isActionDialogVisible = false, isUpdatingAccount = false
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isUpdatingAccount = false, error = "Could not delete student: ${e.message}") }
+            }
+        }
+    }
+
     private fun updateLocalAccountState(uid: String, isApproved: Boolean) {
         _uiState.update { currentState ->
             val updatedList = currentState.allAccounts.map { account ->
                 if (account.uid == uid) {
                     when (account) {
-                        is AccountItem.Student -> account.copy(accepted = isApproved)
+                        is AccountItem.Student -> account.copy(accepted = isApproved, declined = false)
                         is AccountItem.Teacher -> account.copy(access = isApproved)
                     }
                 } else {
@@ -214,7 +238,8 @@ private fun AccountRecord.toUiItem(): AccountItem {
             strand = strand,
             gender = gender,
             accepted = accepted,
-            research_accepted = researchAccepted
+            research_accepted = researchAccepted,
+            declined = declined
         )
 
         is AccountRecord.Teacher -> AccountItem.Teacher(

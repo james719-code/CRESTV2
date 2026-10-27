@@ -61,10 +61,36 @@ private fun Context.isCurrentlyConnected(): Boolean {
 @Composable
 fun GroupDetailScreen(
     onNavigateBack: () -> Unit,
+    onDeleteGroup: (com.bdbshs.crest.ui.viewmodels.GroupItem) -> Unit,
     viewModel: GroupDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOnline by rememberNetworkState()
+    var confirmDelete by remember { mutableStateOf(false) }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { if (!uiState.isUpdating) confirmDelete = false },
+            title = { Text("Delete group?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Permanently delete ${uiState.group?.group_name ?: "this group"}, its submission record, and feedback? Members can create or join another group. Published research and PDFs remain in the library. This cannot be undone.")
+                    uiState.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    uiState.group?.let { group ->
+                        confirmDelete = false
+                        onDeleteGroup(group)
+                    }
+                }, enabled = !uiState.isUpdating && uiState.group != null,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                    Text("Delete group")
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }, enabled = !uiState.isUpdating) { Text("Cancel") } }
+        )
+    }
     val pdfPath = uiState.pdfFilePath
     if (uiState.isShowingPdf && pdfPath != null) {
         PdfViewerScreen(pdfPath, viewModel::hidePdfViewer)
@@ -74,7 +100,12 @@ fun GroupDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(uiState.group?.group_name ?: "Group details", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onNavigateBack, enabled = !uiState.isUpdating) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                actions = {
+                    if (uiState.group != null) IconButton(onClick = { confirmDelete = true }, enabled = !uiState.isUpdating) {
+                        Icon(Icons.Default.Delete, "Delete group", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             )
         }
     ) { padding ->

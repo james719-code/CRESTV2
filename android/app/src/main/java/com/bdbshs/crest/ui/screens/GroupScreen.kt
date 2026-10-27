@@ -35,12 +35,15 @@ import com.bdbshs.crest.ui.viewmodels.GroupItem
 import com.bdbshs.crest.ui.viewmodels.GroupSortOption
 import com.bdbshs.crest.ui.viewmodels.GroupsUiState
 import com.bdbshs.crest.ui.viewmodels.GroupsViewModel
+import com.bdbshs.crest.ui.viewmodels.GroupDeletionUiState
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun GroupsScreen(
     modifier: Modifier = Modifier,
     viewModel: GroupsViewModel = hiltViewModel(),
+    deletionState: GroupDeletionUiState = GroupDeletionUiState(),
+    onRetryDelete: (String) -> Unit = {},
     onNavigateToDetails: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,8 +76,8 @@ fun GroupsScreen(
     }
 
     GroupsContent(
-        state = uiState,
-        groups = groupsToShow,
+        state = uiState.copy(allGroups = deletionState.visibleGroups(uiState.allGroups)),
+        groups = deletionState.visibleGroups(groupsToShow),
         onQuery = viewModel::onSearchQueryChanged,
         onFilter = { isSheetOpen = true },
         onPending = viewModel::onShowPendingOnlyToggled,
@@ -86,7 +89,9 @@ fun GroupsScreen(
         },
         onRefresh = viewModel::onRefresh,
         onGroupClick = { onNavigateToDetails(it.id) },
-        modifier = modifier
+        modifier = modifier,
+        deletions = deletionState.operations,
+        onRetryDelete = onRetryDelete
     )
 }
 

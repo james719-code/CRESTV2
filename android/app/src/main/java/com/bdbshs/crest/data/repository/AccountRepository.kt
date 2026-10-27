@@ -22,7 +22,8 @@ sealed class AccountRecord {
         val strand: String = "",
         val gender: String = "",
         val accepted: Boolean = false,
-        val researchAccepted: Boolean = false
+        val researchAccepted: Boolean = false,
+        val declined: Boolean = false
     ) : AccountRecord()
 
     data class Teacher(
@@ -52,7 +53,8 @@ class AccountRepository @Inject constructor(
                 strand = doc.getString("strand").orEmpty(),
                 gender = doc.getString("gender").orEmpty(),
                 accepted = doc.getBoolean("accepted") ?: false,
-                researchAccepted = doc.getBoolean("research_accepted") ?: false
+                researchAccepted = doc.getBoolean("research_accepted") ?: false,
+                declined = doc.getBoolean("declined") ?: false
             )
         }
 
@@ -77,12 +79,17 @@ class AccountRepository @Inject constructor(
 
         firestore.collection(collectionPath)
             .document(uid)
-            .update(fieldToUpdate, true)
+            .update(if (role == UserRole.STUDENT) mapOf("accepted" to true, "declined" to false) else mapOf(fieldToUpdate to true))
             .await()
         edge.notifyEvent("account-approved", uid, role.name.lowercase())
     }
 
     suspend fun denyAccount(uid: String, role: UserRole) {
+        if (role == UserRole.STUDENT) {
+            firestore.collection(FirestorePaths.STUDENTS).document(uid)
+                .update(mapOf("accepted" to false, "declined" to true)).await()
+            return
+        }
         val collectionPath = when (role) {
             UserRole.STUDENT -> FirestorePaths.STUDENTS
             UserRole.TEACHER -> FirestorePaths.TEACHERS

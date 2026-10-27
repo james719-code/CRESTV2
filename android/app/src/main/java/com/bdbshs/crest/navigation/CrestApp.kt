@@ -25,6 +25,7 @@ import com.bdbshs.crest.data.FirebaseClient
 import com.bdbshs.crest.ui.screens.*
 import com.bdbshs.crest.ui.viewmodels.LoginResult
 import com.bdbshs.crest.ui.viewmodels.MainViewModel // Import MainViewModel
+import com.bdbshs.crest.ui.viewmodels.GroupDeletionViewModel
 import com.bdbshs.crest.ui.viewmodels.SignUpDetailsViewModel
 import com.google.firebase.auth.FirebaseAuth // Make sure FirebaseAuth is imported
 
@@ -119,6 +120,7 @@ fun CrestApp() {
     val auth          = FirebaseClient.auth
 
     val mainVm  : MainViewModel = hiltViewModel()
+    val groupDeletionVm: GroupDeletionViewModel = hiltViewModel()
     val uiState by mainVm.uiState.collectAsStateWithLifecycle()
 
     SessionNavigationHost(
@@ -144,7 +146,7 @@ fun CrestApp() {
             auth.addAuthStateListener(listener)
             onDispose { auth.removeAuthStateListener(listener) }
         }
-        CrestNavHost(navController, actions, startRoute, isOnline, mainVm)
+        CrestNavHost(navController, actions, startRoute, isOnline, mainVm, groupDeletionVm)
     }
 }
 
@@ -157,7 +159,8 @@ private fun CrestNavHost(
     navigationActions: NavigationActions,
     startDestination: String,
     isOnline: Boolean,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    groupDeletionViewModel: GroupDeletionViewModel
 ) {
     NavHost(
         navController = navController,
@@ -223,7 +226,13 @@ private fun CrestNavHost(
             route = AppDestination.GroupDetail.routeWithArg,
             arguments = listOf(navArgument(AppDestination.GroupDetail.groupIdArg) { type = NavType.StringType })
         ) {
-            GroupDetailScreen(onNavigateBack = navigationActions::navigateBack)
+            GroupDetailScreen(
+                onNavigateBack = navigationActions::navigateBack,
+                onDeleteGroup = { group ->
+                    groupDeletionViewModel.deleteGroup(group)
+                    navigationActions.navigateTo(AppDestination.Groups)
+                }
+            )
         }
         composable(AppDestination.StorageManagement.route) {
             StorageManagementScreen(onNavigateBack = navigationActions::navigateBack)
@@ -236,7 +245,8 @@ private fun CrestNavHost(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
                 initialPage = 0,
-                mainViewModel = mainViewModel
+                mainViewModel = mainViewModel,
+                groupDeletionViewModel = groupDeletionViewModel
             )
         }
         composable(AppDestination.Researches.route) {
@@ -244,7 +254,8 @@ private fun CrestNavHost(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
                 initialPage = if (isOnline) 1 else 0,
-                mainViewModel = mainViewModel
+                mainViewModel = mainViewModel,
+                groupDeletionViewModel = groupDeletionViewModel
             )
         }
         composable(AppDestination.Accounts.route) {
@@ -263,7 +274,8 @@ private fun CrestNavHost(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
                 initialPage = 3,
-                mainViewModel = mainViewModel
+                mainViewModel = mainViewModel,
+                groupDeletionViewModel = groupDeletionViewModel
             )
         }
         composable(AppDestination.Documents.route) {
@@ -271,7 +283,8 @@ private fun CrestNavHost(
                 navigationActions = navigationActions,
                 isOnline = isOnline,
                 initialPage = 2,
-                mainViewModel = mainViewModel
+                mainViewModel = mainViewModel,
+                groupDeletionViewModel = groupDeletionViewModel
             )
         }
         composable(AppDestination.Favorites.route) {
@@ -304,8 +317,10 @@ private fun MainPagerRouteContent(
     navigationActions: NavigationActions,
     isOnline: Boolean,
     initialPage: Int,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
+    groupDeletionViewModel: GroupDeletionViewModel
 ) {
+    val deletionState by groupDeletionViewModel.uiState.collectAsStateWithLifecycle()
     MainScreenWithPager(
         navigationActions = navigationActions,
         isOnline = isOnline,
@@ -341,6 +356,8 @@ private fun MainPagerRouteContent(
         groupsContent = { padding, _ ->
             GroupsScreen(
                 modifier = Modifier.padding(padding),
+                deletionState = deletionState,
+                onRetryDelete = groupDeletionViewModel::retry,
                 onNavigateToDetails = navigationActions::navigateToGroupDetails
             )
         }

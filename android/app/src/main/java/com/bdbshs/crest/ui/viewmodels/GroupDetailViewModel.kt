@@ -104,7 +104,7 @@ class GroupDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, group = groupItem, error = null) }
                     groupItem?.group_member?.let { fetchMemberNames(it) }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, error = "Group not found.") }
+                    _uiState.update { it.copy(isLoading = false, group = null, error = "Group not found.") }
                 }
             }
     }

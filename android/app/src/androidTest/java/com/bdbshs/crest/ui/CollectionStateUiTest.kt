@@ -1,5 +1,6 @@
 package com.bdbshs.crest.ui
 
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
@@ -8,6 +9,7 @@ import com.bdbshs.crest.ui.screens.*
 import com.bdbshs.crest.ui.theme.CRESTTheme
 import com.bdbshs.crest.ui.viewmodels.*
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,6 +73,37 @@ class CollectionStateUiTest(private val dark: Boolean) {
         compose.onNodeWithText("2 members").assertExists()
         compose.onNodeWithText("Review submission").performClick()
         assertEquals(1, opened)
+    }
+
+    @Test fun deletingGroupOnlyDisablesItsOwnCard() {
+        var opened = 0
+        val deleting = GroupItem("deleting", "Deleting science group")
+        compose.setContent {
+            CRESTTheme(darkTheme = dark) {
+                androidx.compose.foundation.layout.Column(
+                    androidx.compose.ui.Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())
+                ) {
+                    GroupRecordCard(deleting, { opened += 10 }, GroupDeletionOperation(deleting))
+                    GroupRecordCard(GroupItem("other", "Other science group"), { opened++ })
+                }
+            }
+        }
+        compose.onNodeWithText("Deleting group…").assertExists()
+        compose.onNodeWithText("View group details").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test fun failedGroupDeletionOffersRetryOnItsCard() {
+        var retried = false
+        val group = GroupItem("failed", "Science Group")
+        compose.setContent {
+            CRESTTheme(darkTheme = dark) {
+                GroupRecordCard(group, {}, GroupDeletionOperation(group, false, "Connection lost"), { retried = true })
+            }
+        }
+        compose.onNodeWithText("Connection lost").assertIsDisplayed()
+        compose.onNodeWithText("Retry delete").performClick()
+        assertTrue(retried)
     }
 
     @Test fun readerFailureKeepsThePaperInformationAndWorkingRetry() {

@@ -60,7 +60,9 @@ fun AccountsScreen(
                 isUpdating = uiState.isUpdatingAccount,
                 onDismiss = viewModel::dismissActionDialog,
                 onApprove = viewModel::approveSelectedAccount,
-                onDeny = viewModel::denySelectedAccount
+                onDeny = viewModel::denySelectedAccount,
+                onDelete = viewModel::deleteSelectedAccount,
+                error = uiState.error
             )
         }
     }
@@ -168,9 +170,9 @@ private fun AccountCard(account: AccountItem, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StatusIndicator(isApproved: Boolean) {
-    val icon = if (isApproved) Icons.Default.CheckCircle else Icons.Default.Pending
-    val text = if (isApproved) "Accepted" else "Pending"
+private fun StatusIndicator(isApproved: Boolean, isDeclined: Boolean = false) {
+    val icon = if (isApproved) Icons.Default.CheckCircle else if (isDeclined) Icons.Default.Cancel else Icons.Default.Pending
+    val text = if (isApproved) "Accepted" else if (isDeclined) "Declined" else "Pending"
     // Using theme primary color for accepted status
     val color = if (isApproved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -200,7 +202,7 @@ private fun AccountsFilterDialog(
             Column {
                 // Status Section
                 Text("Status", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccountStatus.entries.forEach { status ->
                         FilterChip(
                             selected = uiState.selectedStatus == status,
@@ -259,12 +261,41 @@ internal fun AccountActionDialog(
     isUpdating: Boolean,
     onDismiss: () -> Unit,
     onApprove: () -> Unit,
-    onDeny: () -> Unit
+    onDeny: () -> Unit,
+    onDelete: () -> Unit = {},
+    error: String? = null
 ) {
     val isPending = (account is AccountItem.Student && !account.accepted) || (account is AccountItem.Teacher && !account.access)
+    val isDeclined = account is AccountItem.Student && !account.accepted && account.declined
+    var confirmation by remember(account.uid) { mutableStateOf<String?>(null) }
+
+    if (confirmation != null) {
+        AlertDialog(
+            onDismissRequest = { if (!isUpdating) confirmation = null },
+            title = { Text(if (confirmation == "delete") "Delete declined student?" else "Decline registration?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(if (confirmation == "delete")
+                        "Permanently delete ${account.name}'s student profile and group memberships? Published research remains in the library. This cannot be undone."
+                    else if (account is AccountItem.Student)
+                        "Decline ${account.name}'s registration? Their profile will appear in Declined, where you can restore access or delete it."
+                    else "Deny ${account.name}'s teacher registration? This removes the pending registration.")
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { if (confirmation == "delete") onDelete() else onDeny() }, enabled = !isUpdating,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                    Text(if (isUpdating) "Saving…" else if (confirmation == "delete") "Confirm delete" else "Confirm decline")
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmation = null }, enabled = !isUpdating) { Text("Cancel") } }
+        )
+        return
+    }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isUpdating) onDismiss() },
         icon = {
             val icon = when (account) {
                 is AccountItem.Student -> Icons.Default.School
@@ -281,9 +312,15 @@ internal fun AccountActionDialog(
                     is AccountItem.Teacher -> account.email
                 }
                 Text("Role: $details")
-                StatusIndicator(isApproved = !isPending)
-                if (isPending) {
-                    TextButton(onClick = onDeny, enabled = !isUpdating,
+                StatusIndicator(isApproved = !isPending, isDeclined = isDeclined)
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (isDeclined) {
+                    TextButton(onClick = { confirmation = "delete" }, enabled = !isUpdating,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                        Text("Delete student")
+                    }
+                } else if (isPending) {
+                    TextButton(onClick = { confirmation = "decline" }, enabled = !isUpdating,
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
                         Text("Deny registration")
                     }
@@ -299,7 +336,7 @@ internal fun AccountActionDialog(
                     if (isUpdating) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
                     } else {
-                        Text("Approve")
+                        Text(if (isDeclined) "Restore access" else "Approve")
                     }
                 }
             } else {

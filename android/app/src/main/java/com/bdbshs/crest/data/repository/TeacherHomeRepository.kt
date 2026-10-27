@@ -75,7 +75,7 @@ class TeacherHomeRepository @Inject constructor(
         val pendingAccountsDeferred = async {
             val pendingStudents = firestore.collection(FirestorePaths.STUDENTS)
                 .whereEqualTo("accepted", false)
-                .countWithCacheFallback()
+                .get().await().documents.count { it.getBoolean("declined") != true }.toLong()
             val pendingTeachers = firestore.collection(FirestorePaths.TEACHERS)
                 .whereEqualTo("access", false)
                 .countWithCacheFallback()
