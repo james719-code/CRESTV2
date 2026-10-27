@@ -1,5 +1,113 @@
+.group-detail-page {
+  max-width: 980px;
+  margin-inline: auto;
+}
+.group-detail-body {
+  margin-top: 20px;
+  padding: clamp(16px, 3vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+.group-detail-body > .detail-section:first-of-type {
+  padding-top: 20px;
+}
+.group-detail-body p,
+.about-page p {
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.group-delete-section p {
+  margin-bottom: 16px;
+}
+.group-delete-section {
+  border-bottom: 0;
+}
+.settings-panel {
+  max-width: 900px;
+  width: 100%;
+  padding: clamp(18px, 3vw, 32px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+.settings-page {
+  display: grid;
+  gap: 20px;
+}
+.settings-panel h2,
+.display-panel-header h2 {
+  font-size: 1.25rem;
+  font-weight: 650;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.display-panel-header {
+  display: grid;
+  gap: 8px;
+}
+.about-page {
+  display: grid;
+  gap: 20px;
+  max-width: 900px;
+  margin-inline: auto;
+}
+.about-page p + p,
+.about-page h3 {
+  margin-top: 14px;
+}
+.about-introduction > svg,
+.about-introduction > img {
+  margin-bottom: 18px;
+}
+.school-profile {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.school-profile img {
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 50%;
+}
+@media (max-width: 600px) {
+  .school-profile {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .app-shell {
   min-height: 100dvh;
+}
+.group-deleting {
+  background: var(--muted);
+}
+.group-deletion-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.group-delete-spinner {
+  flex-shrink: 0;
+  animation: group-delete-spin 1s linear infinite;
+}
+.group-deletion-error {
+  display: grid;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--destructive);
+  overflow-wrap: anywhere;
+}
+.group-deletion-error [data-slot='button'] {
+  justify-self: start;
+}
+@keyframes group-delete-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .sidebar {
   width: 244px;
@@ -11,6 +119,7 @@
   flex-direction: column;
   padding: 30px 18px 18px;
   z-index: 30;
+  overflow-y: auto;
 }
 .brand-lockup {
   display: flex;

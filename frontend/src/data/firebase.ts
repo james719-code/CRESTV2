@@ -17,9 +17,17 @@ import {
   type DocumentData,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { ResearchGroup, StudentAccountStatus, StudentDecision, Teacher, UploadInput, Workspace } from '../domain'
+import type {
+  ResearchGroup,
+  StudentAccountStatus,
+  StudentDecision,
+  Teacher,
+  UploadInput,
+  Workspace,
+} from '../domain'
 import { researchType, validateReview } from '../domain'
 import { reviewStudentAccount } from './student-accounts'
+import { deleteDeclinedStudent, deleteResearchGroup } from './workspace-deletion'
 import { clearSchoolFileCache, deleteFile, uploadFile } from './storage'
 import { notifyEvent } from './edge'
 export { readFile } from './storage'
@@ -282,9 +290,21 @@ export async function approveAccount(id: string, role: 'student' | 'teacher') {
   await notifyEvent('account-approved', id, role)
 }
 
-export async function reviewStudent(id: string, decision: StudentDecision, expected: StudentAccountStatus) {
+export async function reviewStudent(
+  id: string,
+  decision: StudentDecision,
+  expected: StudentAccountStatus,
+) {
   await reviewStudentAccount(db, currentTeacherRef().id, id, decision, expected)
   if (decision === 'approve') await notifyEvent('account-approved', id, 'student')
+}
+
+export async function deleteStudent(id: string) {
+  await deleteDeclinedStudent(db, currentTeacherRef().id, id)
+}
+
+export async function deleteGroup(id: string) {
+  await deleteResearchGroup(db, currentTeacherRef().id, id)
 }
 
 export async function upload(input: UploadInput) {

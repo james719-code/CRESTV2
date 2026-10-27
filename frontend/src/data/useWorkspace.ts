@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { GroupDeletionTracker, withGroupDeletions } from './group-deletions'
 import { createDemoWorkspace } from './demo'
 import { readDemoFile, saveDemoFile } from './demoFiles'
 import type { SessionState } from './firebase'
 import {
+  deleteStudentWorkspace,
+  deleteGroupWorkspace,
   reviewStudentWorkspace,
   reviewWorkspace,
   type StudentAccountStatus,
@@ -57,6 +60,12 @@ export function useWorkspace() {
   const [session, setSession] = useState<SessionState>(isDemo ? 'ready' : 'loading')
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [groupDeletionTracker] = useState(() => new GroupDeletionTracker())
+  const groupDeletions = useSyncExternalStore(
+    groupDeletionTracker.subscribe,
+    groupDeletionTracker.getSnapshot,
+  )
+  const accountId = useRef<string | null>(null)
 
   useEffect(() => {
     if (isDemo || !validConfig) return
@@ -67,6 +76,10 @@ export function useWorkspace() {
         if (disposed) return
         stop = api.observeWorkspace({
           session: (state, currentTeacher) => {
+            if (accountId.current !== (currentTeacher?.id ?? null)) {
+              accountId.current = currentTeacher?.id ?? null
+              groupDeletionTracker.reset()
+            }
             setSession(state)
             setTeacher(currentTeacher)
             if (state === 'denied' || state === 'signed-out') setWorkspace(emptyWorkspace)
@@ -88,7 +101,7 @@ export function useWorkspace() {
       disposed = true
       stop?.()
     }
-  }, [retry])
+  }, [retry, groupDeletionTracker])
 
   function commitDemo(next: Workspace) {
     try {
@@ -154,6 +167,21 @@ export function useWorkspace() {
     commitDemo(next)
   }
 
+  async function deleteStudent(id: string) {
+    if (!isDemo) return (await import('./firebase')).deleteStudent(id)
+    commitDemo(deleteStudentWorkspace(workspace, id))
+  }
+
+  function deleteGroup(id: string): Promise<void> {
+    const group =
+      workspace.groups.find((item) => item.id === id) || groupDeletions.operations[id]?.group
+    if (!group) return Promise.reject(new Error('This group no longer exists.'))
+    return groupDeletionTracker.delete(group, async () => {
+      if (!isDemo) return (await import('./firebase')).deleteGroup(id)
+      commitDemo(deleteGroupWorkspace(workspace, id))
+    })
+  }
+
   async function readFile(fileId: string) {
     if (!isDemo) return (await import('./firebase')).readFile(fileId)
     if (fileId.startsWith('sample-')) return undefined
@@ -164,7 +192,8 @@ export function useWorkspace() {
   }
 
   return {
-    workspace,
+    workspace: withGroupDeletions(workspace, groupDeletions),
+    groupDeletions: groupDeletions.operations,
     teacher,
     session,
     isDemo,
@@ -180,6 +209,8 @@ export function useWorkspace() {
     review,
     approveAccount,
     reviewStudent,
+    deleteStudent,
+    deleteGroup,
     upload,
     readFile,
   }

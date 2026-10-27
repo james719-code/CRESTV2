@@ -5,6 +5,7 @@ import {
   CheckCircle,
   FileMagnifyingGlass,
   MagnifyingGlass,
+  SpinnerGap,
   UsersThree,
   X,
 } from '@/icons'
@@ -43,6 +44,29 @@ import { indexWorkspace, pageWindow } from '../workspace-index'
 import { useCardLayout } from './use-card-layout'
 import { ListPagination } from './list-pagination'
 import { ResearchArt, ResearchSteps } from './research-art'
+import type { GroupDeletionOperation } from '../data/group-deletions'
+
+function GroupDeletionNotice({
+  operation,
+  onRetry,
+}: {
+  operation: GroupDeletionOperation
+  onRetry: () => void
+}) {
+  return operation.deleting ? (
+    <span className="group-deletion-progress" role="status">
+      <SpinnerGap size={18} className="group-delete-spinner" />
+      Deleting group…
+    </span>
+  ) : (
+    <div className="group-deletion-error" role="alert">
+      <p>{operation.error}</p>
+      <Button size="sm" variant="outline" onClick={onRetry}>
+        Retry delete
+      </Button>
+    </div>
+  )
+}
 
 export function StatusBadge({ status }: { status: GroupStatus }) {
   return (
@@ -154,11 +178,15 @@ export function GroupTable({
   onOpen,
   reviewsOnly = false,
   compact = false,
+  deletions = {},
+  onRetryDelete = () => {},
 }: {
   workspace: Workspace
   onOpen: (id: string) => void
   reviewsOnly?: boolean
   compact?: boolean
+  deletions?: Record<string, GroupDeletionOperation>
+  onRetryDelete?: (id: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [strand, setStrand] = useState('all')
@@ -197,8 +225,12 @@ export function GroupTable({
             (tab === 'all' || groupStatus(group) === tab)
           )
         })
-        .sort((a, b) => (ascending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name))),
-    [base, lookup, search, strand, tab, ascending],
+        .sort(
+          (a, b) =>
+            Number(!!deletions[b.id]) - Number(!!deletions[a.id]) ||
+            (ascending ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)),
+        ),
+    [base, lookup, search, strand, tab, ascending, deletions],
   )
   const pagination = pageWindow(matches, page, compact ? 5 : 12)
   const rows = pagination.rows
@@ -309,14 +341,22 @@ export function GroupTable({
                     </TableHeader>
                     <TableBody>
                       {rows.map((group, index) => (
-                        <TableRow key={group.id}>
+                        <TableRow
+                          key={group.id}
+                          className={deletions[group.id]?.deleting ? 'group-deleting' : ''}
+                          aria-busy={deletions[group.id]?.deleting || undefined}
+                        >
                           <TableCell>
                             <div className="group-cell">
                               <span className={`group-avatar avatar-${index % 4}`}>
                                 <UsersThree size={21} />
                               </span>
                               <div>
-                                <button className="name-button" onClick={() => onOpen(group.id)}>
+                                <button
+                                  className="name-button"
+                                  onClick={() => onOpen(group.id)}
+                                  disabled={deletions[group.id]?.deleting}
+                                >
                                   {group.name || 'Unnamed group'}
                                 </button>
                                 <p className="research-snippet" title={group.title}>
@@ -352,16 +392,23 @@ export function GroupTable({
                             <StatusBadge status={groupStatus(group)} />
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="row-action"
-                              onClick={() => onOpen(group.id)}
-                              aria-label={`${groupStatus(group) === 'pending' ? 'Review' : 'View'} ${group.name}`}
-                            >
-                              {groupStatus(group) === 'pending' ? 'Review paper' : 'View group'}
-                              <ArrowRight size={15} />
-                            </Button>
+                            {deletions[group.id] ? (
+                              <GroupDeletionNotice
+                                operation={deletions[group.id]}
+                                onRetry={() => onRetryDelete(group.id)}
+                              />
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="row-action"
+                                onClick={() => onOpen(group.id)}
+                                aria-label={`${groupStatus(group) === 'pending' ? 'Review' : 'View'} ${group.name}`}
+                              >
+                                {groupStatus(group) === 'pending' ? 'Review paper' : 'View group'}
+                                <ArrowRight size={15} />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -371,7 +418,11 @@ export function GroupTable({
               ) : (
                 <ul className="group-card-list" aria-label="Research groups">
                   {rows.map((group, index) => (
-                    <li className="group-reading-card" key={group.id}>
+                    <li
+                      className={`group-reading-card ${deletions[group.id]?.deleting ? 'group-deleting' : ''}`}
+                      key={group.id}
+                      aria-busy={deletions[group.id]?.deleting || undefined}
+                    >
                       <header>
                         <span className={`group-avatar avatar-${index % 4}`}>
                           <UsersThree size={22} />
@@ -392,14 +443,21 @@ export function GroupTable({
                       <ResearchSteps status={groupStatus(group)} />
                       <div className="group-card-footer">
                         <StatusBadge status={groupStatus(group)} />
-                        <Button
-                          variant={groupStatus(group) === 'pending' ? 'default' : 'outline'}
-                          onClick={() => onOpen(group.id)}
-                          aria-label={`${groupStatus(group) === 'pending' ? 'Review paper for' : 'View group'} ${group.name}`}
-                        >
-                          {groupStatus(group) === 'pending' ? 'Review paper' : 'View group'}
-                          <ArrowRight size={18} />
-                        </Button>
+                        {deletions[group.id] ? (
+                          <GroupDeletionNotice
+                            operation={deletions[group.id]}
+                            onRetry={() => onRetryDelete(group.id)}
+                          />
+                        ) : (
+                          <Button
+                            variant={groupStatus(group) === 'pending' ? 'default' : 'outline'}
+                            onClick={() => onOpen(group.id)}
+                            aria-label={`${groupStatus(group) === 'pending' ? 'Review paper for' : 'View group'} ${group.name}`}
+                          >
+                            {groupStatus(group) === 'pending' ? 'Review paper' : 'View group'}
+                            <ArrowRight size={18} />
+                          </Button>
+                        )}
                       </div>
                     </li>
                   ))}

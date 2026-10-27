@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing'
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, query, where, documentId, increment } from 'firebase/firestore'
 import { reviewStudentAccount } from '../src/data/student-accounts.ts'
+import { deleteDeclinedStudent, deleteResearchGroup } from '../src/data/workspace-deletion.ts'
 
 let env
 const students = 'users/user_details/students'
@@ -31,6 +32,57 @@ before(async () => {
   })
 })
 after(async () => { await env?.cleanup() })
+
+test('deleting declined accounts clears all memberships and refuses restored or pending students', async () => {
+  const uid = 'delete-declined'
+  await env.withSecurityRulesDisabled(async context => {
+    const admin = context.firestore()
+    await Promise.all([
+      setDoc(doc(admin, students, uid), studentData(uid, { accepted: false, declined: true, groupId: 'delete-membership', group_id: 'delete-membership' })),
+      setDoc(doc(admin, 'groups/delete-membership'), groupData([uid, 'peer'])),
+      setDoc(doc(admin, 'groups/delete-stale-membership'), groupData([uid])),
+      setDoc(doc(admin, students, 'delete-restored'), studentData('delete-restored', { accepted: true, declined: true })),
+    ])
+  })
+  await assert.rejects(deleteDeclinedStudent(db('teacher'), 'teacher', 'pending'), /Only declined/)
+  await assert.rejects(deleteDeclinedStudent(db('teacher'), 'teacher', 'delete-restored'), /Only declined/)
+  await assertSucceeds(deleteDeclinedStudent(db('teacher'), 'teacher', uid))
+  assert.equal((await getDoc(doc(db('teacher'), students, uid))).exists(), false)
+  assert.deepEqual((await getDoc(doc(db('teacher'), 'groups/delete-membership'))).data().group_member, ['peer'])
+  assert.deepEqual((await getDoc(doc(db('teacher'), 'groups/delete-stale-membership'))).data().group_member, [])
+  assert.equal((await getDoc(doc(db('teacher'), 'researches/research_details/qualitative/paper'))).exists(), true)
+})
+
+test('group deletion cleans both profile field spellings, including stale links, and preserves other groups', async () => {
+  const id = 'delete-group'
+  await env.withSecurityRulesDisabled(async context => {
+    const admin = context.firestore()
+    await Promise.all([
+      setDoc(doc(admin, 'groups', id), groupData(['delete-member', 'missing-member', 'moved-member'], { accepted_research: true, file_link: 'legacy' })),
+      setDoc(doc(admin, students, 'delete-member'), studentData('delete-member', { groupId: id, group_id: id })),
+      setDoc(doc(admin, students, 'stale-member'), studentData('stale-member', { group_id: id })),
+      setDoc(doc(admin, students, 'legacy-only-member'), { uid: 'legacy-only-member', name: 'Legacy student', accepted: true, group_id: id }),
+      setDoc(doc(admin, students, 'moved-member'), studentData('moved-member', { groupId: 'other', group_id: 'other' })),
+    ])
+  })
+  await assertSucceeds(deleteResearchGroup(db('teacher'), 'teacher', id))
+  assert.equal((await getDoc(doc(db('teacher'), 'groups', id))).exists(), false)
+  for (const uid of ['delete-member', 'stale-member']) {
+    const data = (await getDoc(doc(db('teacher'), students, uid))).data()
+    assert.equal(data.groupId, '')
+    assert.equal(data.group_id, '')
+  }
+  assert.equal((await getDoc(doc(db('teacher'), students, 'moved-member'))).data().groupId, 'other')
+  assert.equal((await getDoc(doc(db('teacher'), students, 'legacy-only-member'))).data().group_id, '')
+  assert.equal((await getDoc(doc(db('teacher'), 'researches/research_details/qualitative/paper'))).exists(), true)
+})
+
+test('students and unapproved teachers cannot use teacher deletion operations', async () => {
+  await assertFails(deleteResearchGroup(db('student'), 'teacher', 'team'))
+  await assertFails(deleteDeclinedStudent(db('student'), 'teacher', 'pending'))
+  await env.withSecurityRulesDisabled(context => setDoc(doc(context.firestore(), teachers, 'deletion-no-access'), { uid: 'deletion-no-access', access: false }))
+  await assertFails(deleteResearchGroup(db('deletion-no-access'), 'deletion-no-access', 'team'))
+})
 
 test('legacy parent records stay inaccessible to every client role', async () => {
   for (const client of [env.unauthenticatedContext().firestore(), db('pending'), db('student'), db('teacher')]) {

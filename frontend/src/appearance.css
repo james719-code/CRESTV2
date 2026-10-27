@@ -1019,12 +1019,22 @@ body:has(.sidebar-open) {
   }
 }
 @media (max-width: 420px) {
+  .topbar {
+    flex-wrap: nowrap;
+  }
   .topbar .breadcrumb {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar .breadcrumb strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .topbar-actions {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    flex-shrink: 0;
+    justify-content: flex-end;
     margin-left: 0;
   }
   .topbar .global-search {

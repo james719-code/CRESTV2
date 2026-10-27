@@ -21,6 +21,7 @@ import {
   Plus,
   Question,
   SignOut,
+  SlidersHorizontal,
   SquaresFour,
   Users,
   UsersThree,
@@ -53,8 +54,10 @@ import { AuthPage } from './components/auth-page'
 import { CrestLogo } from './components/crest-logo'
 import { DisplaySettings } from './components/display-settings'
 import { NotificationSettings } from './components/notification-settings'
+import { notificationsEnabled } from './data/edge'
 import { PageGuidance } from './components/page-guidance'
-import { isWorkspaceRoute, parseRoute, type Route } from './routing'
+import { groupRoute, routeGroupId, isWorkspaceRoute, parseRoute, type Route } from './routing'
+import { AboutPage } from './components/about-page'
 import {
   groupStatus,
   initials,
@@ -100,7 +103,12 @@ function LoadingContent() {
   )
 }
 
-const navigation: { page: Page; label: string; icon: Icon; section: 'classroom' | 'library' }[] = [
+const navigation: {
+  page: Page
+  label: string
+  icon: Icon
+  section: 'classroom' | 'library' | 'personal'
+}[] = [
   { page: 'overview', label: 'Overview', icon: SquaresFour, section: 'classroom' },
   { page: 'groups', label: 'Research groups', icon: UsersThree, section: 'classroom' },
   { page: 'students', label: 'Students', icon: GraduationCap, section: 'classroom' },
@@ -108,6 +116,8 @@ const navigation: { page: Page; label: string; icon: Icon; section: 'classroom' 
   { page: 'research', label: 'Research library', icon: BookOpenText, section: 'library' },
   { page: 'documents', label: 'Documents', icon: Files, section: 'library' },
   { page: 'accounts', label: 'Account approvals', icon: Users, section: 'library' },
+  { page: 'settings', label: 'Settings', icon: SlidersHorizontal, section: 'personal' },
+  { page: 'about', label: 'About CREST', icon: Info, section: 'personal' },
 ]
 
 const descriptions: Record<Page, { title: string; description: string; eyebrow: string }> = {
@@ -146,17 +156,31 @@ const descriptions: Record<Page, { title: string; description: string; eyebrow: 
     description: 'Review student and teacher registrations for your school.',
     eyebrow: 'ACCOUNT APPROVALS',
   },
+  settings: {
+    title: 'Settings',
+    description: 'Choose a display and reading style that feels comfortable on your device.',
+    eyebrow: 'YOUR PREFERENCES',
+  },
+  about: {
+    title: 'About CREST',
+    description: 'Built for the researchers of Bonifacio D. Borebor Sr. High School.',
+    eyebrow: 'OUR PURPOSE & OUR SCHOOL',
+  },
 }
 
 function App() {
   const service = useWorkspace()
   const { workspace, teacher, isDemo, session } = service
   const [routeName, setRouteName] = useState<Route>(() => parseRoute(location.hash))
-  const page: Page = isWorkspaceRoute(routeName) ? routeName : 'overview'
+  const selectedGroup = routeGroupId(routeName)
+  const page: Page = selectedGroup
+    ? 'groups'
+    : isWorkspaceRoute(routeName)
+      ? (routeName as Page)
+      : 'overview'
   const [mobileNav, setMobileNav] = useState(false)
   const navigationRef = useRef<HTMLElement>(null)
   const wasNavigationOpen = useRef(false)
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [uploadKind, setUploadKind] = useState<'research' | 'document' | null>(null)
   const [file, setFile] = useState<FileRequest | null>(null)
@@ -212,7 +236,6 @@ function App() {
       setRouteName(parseRoute(location.hash))
       setMobileNav(false)
       setSearchOpen(false)
-      setSelectedGroup(null)
       setSelectedStudent(null)
       setUploadKind(null)
       setFile(null)
@@ -253,6 +276,22 @@ function App() {
     setRouteName(next)
     setMobileNav(false)
     window.scrollTo(0, 0)
+  }
+
+  function openGroup(id: string) {
+    setSelectedStudent(null)
+    setSearchOpen(false)
+    navigate(groupRoute(id))
+  }
+
+  function deleteGroup(id: string) {
+    const deletion = service.deleteGroup(id)
+    navigate('groups')
+    void deletion
+      .then(() => toast.success('Group deleted. Its members can create or join another group.'))
+      .catch(() => {
+        // The group card keeps the failure and its retry action visible.
+      })
   }
 
   async function login() {
@@ -419,9 +458,15 @@ function App() {
             />
           </div>
           <nav>
-            {(['classroom', 'library'] as const).map((section) => (
+            {(['classroom', 'library', 'personal'] as const).map((section) => (
               <div className="nav-section" key={section}>
-                <p>{section === 'classroom' ? 'YOUR CLASSROOM' : 'SCHOOL LIBRARY'}</p>
+                <p>
+                  {section === 'classroom'
+                    ? 'YOUR CLASSROOM'
+                    : section === 'library'
+                      ? 'SCHOOL LIBRARY'
+                      : 'PREFERENCES & ABOUT'}
+                </p>
                 {navigation
                   .filter((item) => item.section === section)
                   .map((item) => (
@@ -486,8 +531,6 @@ function App() {
               <strong>{currentNav.label}</strong>
             </div>
             <div className="topbar-actions">
-              <DisplaySettings />
-              {!isDemo && <NotificationSettings />}
               <button
                 className="global-search"
                 aria-label="Search your workspace"
@@ -544,9 +587,9 @@ function App() {
                     {isDemo ? 'Demo teacher account' : teacher?.name}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => setHelpOpen(true)}>
+                  <DropdownMenuItem onSelect={() => navigate('about')}>
                     <Info size={17} />
-                    About your workspace
+                    About CREST
                   </DropdownMenuItem>
                   {!isDemo && (
                     <DropdownMenuItem
@@ -573,16 +616,26 @@ function App() {
                       ? `HELLO, ${teacher?.name.split(' ')[0].toUpperCase() || 'TEACHER'} · YOUR TEACHER WORKSPACE`
                       : descriptions[page].eyebrow}
                   </div>
-                  <h1>{descriptions[page].title}</h1>
-                  <p>{descriptions[page].description}</p>
+                  <h1>
+                    {selectedGroup
+                      ? workspace.groups.find((group) => group.id === selectedGroup)?.name ||
+                        'Group details'
+                      : descriptions[page].title}
+                  </h1>
+                  <p>
+                    {selectedGroup
+                      ? 'Thesis, members, submission progress, and teacher feedback.'
+                      : descriptions[page].description}
+                  </p>
                 </div>
                 <div className="page-heading-actions">
-                  {page !== 'research' && page !== 'documents' && page !== 'accounts' && (
-                    <Button variant="outline" className="export-button" onClick={exportProgress}>
-                      <DownloadSimple size={18} />
-                      Export progress
-                    </Button>
-                  )}
+                  {!selectedGroup &&
+                    ['overview', 'groups', 'reviews', 'students'].includes(page) && (
+                      <Button variant="outline" className="export-button" onClick={exportProgress}>
+                        <DownloadSimple size={18} />
+                        Export progress
+                      </Button>
+                    )}
                   {page === 'research' || page === 'documents' ? (
                     <Button
                       onClick={() => setUploadKind(page === 'documents' ? 'document' : 'research')}
@@ -598,7 +651,7 @@ function App() {
                   ) : null}
                 </div>
               </div>
-              <PageGuidance page={page} navigate={navigate} />
+              {!selectedGroup && <PageGuidance page={page} navigate={navigate} />}
               {isDemo && (
                 <div className="demo-banner">
                   <span>
@@ -617,12 +670,28 @@ function App() {
                   <Overview
                     workspace={workspace}
                     onNavigate={navigate}
-                    onGroup={setSelectedGroup}
+                    onGroup={openGroup}
                     onFile={setFile}
                   />
                 )}
-                {page === 'groups' && (
-                  <GroupTable workspace={workspace} onOpen={setSelectedGroup} />
+                {page === 'groups' && !selectedGroup && (
+                  <GroupTable
+                    workspace={workspace}
+                    onOpen={openGroup}
+                    deletions={service.groupDeletions}
+                    onRetryDelete={deleteGroup}
+                  />
+                )}
+                {selectedGroup && (
+                  <GroupDetails
+                    key={selectedGroup}
+                    group={workspace.groups.find((group) => group.id === selectedGroup)}
+                    workspace={workspace}
+                    onClose={() => navigate('groups')}
+                    onReview={service.review}
+                    onFile={setFile}
+                    onDelete={deleteGroup}
+                  />
                 )}
                 {page === 'reviews' && (
                   <>
@@ -642,7 +711,13 @@ function App() {
                         </p>
                       </div>
                     </div>
-                    <GroupTable workspace={workspace} onOpen={setSelectedGroup} reviewsOnly />
+                    <GroupTable
+                      workspace={workspace}
+                      onOpen={openGroup}
+                      reviewsOnly
+                      deletions={service.groupDeletions}
+                      onRetryDelete={deleteGroup}
+                    />
                   </>
                 )}
                 {page === 'students' && (
@@ -657,6 +732,18 @@ function App() {
                     onReviewStudent={service.reviewStudent}
                   />
                 )}
+                {page === 'settings' && (
+                  <div className="settings-page">
+                    <DisplaySettings inline />
+                    {!isDemo && notificationsEnabled && (
+                      <section className="settings-panel">
+                        <h2>School notifications</h2>
+                        <NotificationSettings />
+                      </section>
+                    )}
+                  </div>
+                )}
+                {page === 'about' && <AboutPage />}
               </Suspense>
               <footer className="page-footer">
                 <span>
@@ -675,16 +762,6 @@ function App() {
             </div>
           }
         >
-          {selectedGroup && (
-            <GroupDetails
-              key={selectedGroup}
-              group={workspace.groups.find((group) => group.id === selectedGroup)}
-              workspace={workspace}
-              onClose={() => setSelectedGroup(null)}
-              onReview={service.review}
-              onFile={setFile}
-            />
-          )}
           {selectedStudent && (
             <StudentDetails
               student={
@@ -692,8 +769,9 @@ function App() {
               }
               workspace={workspace}
               onClose={() => setSelectedStudent(null)}
-              onGroup={setSelectedGroup}
+              onGroup={openGroup}
               onReviewStudent={service.reviewStudent}
+              onDeleteStudent={service.deleteStudent}
             />
           )}
           {uploadKind && (
@@ -736,7 +814,7 @@ function App() {
                       key={group.id}
                       onClick={() => {
                         setSearchOpen(false)
-                        setSelectedGroup(group.id)
+                        openGroup(group.id)
                       }}
                     >
                       <UsersThree size={20} />

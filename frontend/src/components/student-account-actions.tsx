@@ -17,13 +17,30 @@ export type ReviewStudent = (
 export function StudentAccountActions({
   student,
   onReview,
+  onDelete,
 }: {
   student: Student
   onReview: ReviewStudent
+  onDelete?: (id: string) => Promise<void>
 }) {
   const status = studentAccountStatus(student)
   const [confirm, setConfirm] = useState<StudentAccountStatus | null>(null)
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  async function remove() {
+    if (!onDelete) return
+    setBusy(true)
+    try {
+      await onDelete(student.id)
+      toast.success('Declined student deleted. Group memberships have been cleared.')
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error ? cause.message : 'The account could not be deleted. Try again.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
   async function submit(decision: StudentDecision, expected: StudentAccountStatus) {
     setBusy(true)
     try {
@@ -52,7 +69,22 @@ export function StudentAccountActions({
       role="group"
       aria-label={`Account controls for ${student.name}`}
     >
-      {confirm ? (
+      {deleting ? (
+        <div className="account-decision-confirmation" role="alert">
+          <p>
+            Delete {student.name}’s declined registration? This permanently removes their student
+            profile and group memberships. Published research stays in the library.
+          </p>
+          <div className="button-row">
+            <Button variant="outline" disabled={busy} onClick={() => setDeleting(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={busy} onClick={remove}>
+              {busy ? 'Deleting…' : 'Confirm delete'}
+            </Button>
+          </div>
+        </div>
+      ) : confirm ? (
         <div className="account-decision-confirmation">
           <p>
             {confirm === 'approved'
@@ -98,6 +130,11 @@ export function StudentAccountActions({
               aria-label={`${status === 'approved' ? 'Revoke access' : 'Decline registration'} for ${student.name}`}
             >
               {status === 'approved' ? 'Revoke access' : 'Decline'}
+            </Button>
+          )}
+          {status === 'declined' && onDelete && (
+            <Button variant="destructive" disabled={busy} onClick={() => setDeleting(true)}>
+              Delete student
             </Button>
           )}
         </div>

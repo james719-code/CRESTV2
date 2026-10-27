@@ -29,7 +29,7 @@ const guidance: Record<Page, { title: string; steps: string[]; action: string; n
     steps: [
       'Search for the student’s name.',
       'Check their group and research status.',
-      'Open their record to approve, decline, or restore access.',
+      'Open their record to approve, decline, restore access, or delete a declined registration.',
     ],
     action: 'Open research groups',
     next: 'groups',
@@ -73,6 +73,26 @@ const guidance: Record<Page, { title: string; steps: string[]; action: string; n
     ],
     action: 'Manage students',
     next: 'students',
+  },
+  settings: {
+    title: 'Make the workspace easier to read',
+    steps: [
+      'Choose a reading layout.',
+      'Adjust the theme, text size, and contrast.',
+      'Your choices are saved in this browser automatically.',
+    ],
+    action: 'Return to overview',
+    next: 'overview',
+  },
+  about: {
+    title: 'Get to know CREST',
+    steps: [
+      'Learn why we built the school research library.',
+      'See how students and teachers work together.',
+      'Meet the team behind the project.',
+    ],
+    action: 'Explore the research library',
+    next: 'research',
   },
 }
 

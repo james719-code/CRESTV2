@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   ArrowRight,
+  ArrowLeft,
   Check,
   CheckCircle,
   ChatText,
@@ -18,13 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -64,19 +58,25 @@ export function GroupDetails({
   onClose,
   onReview,
   onFile,
+  onDelete,
 }: {
   group?: ResearchGroup
   workspace: Workspace
   onClose: () => void
   onReview: (id: string, decision: 'approve' | 'changes', feedback?: string) => Promise<void>
   onFile: (file: FileRequest) => void
+  onDelete: (id: string) => void
 }) {
   const { preferences } = useDisplayPreferences()
-  const restoreFocus = useReturnFocus()
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [decision, setDecision] = useState<'approve' | 'changes' | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  function remove() {
+    if (!group) return
+    onDelete(group.id)
+  }
   const status = group && groupStatus(group)
   async function submit(action: 'approve' | 'changes') {
     if (!group) return
@@ -103,212 +103,221 @@ export function GroupDetails({
     }
   }
   return (
-    <Sheet
-      open={!!group}
-      onOpenChange={(open) => {
-        if (!open && !busy) onClose()
-      }}
-    >
-      <SheetContent
-        className="detail-sheet"
-        onCloseAutoFocus={restoreFocus}
-        onInteractOutside={(event) => {
-          if (busy) event.preventDefault()
-        }}
-        onEscapeKeyDown={(event) => {
-          if (busy) event.preventDefault()
-        }}
-      >
-        <SheetHeader>
-          <div className="eyebrow">RESEARCH GROUP</div>
-          <SheetTitle>{group?.name || 'Group details'}</SheetTitle>
-          <SheetDescription>Research progress, people, and your feedback.</SheetDescription>
-        </SheetHeader>
-        {group && (
-          <div className="sheet-body">
-            <div className="flex flex-wrap items-center gap-2">
-              <StrandBadge strand={group.strand} />
-              <StatusBadge status={groupStatus(group)} />
-            </div>
-            <section className="detail-section">
-              <h3>Current research</h3>
-              <h2 className="detail-research-title">
-                {group.title || 'The group is preparing their research'}
-              </h2>
-              {group.type && <p className="capitalize muted">{group.type} research</p>}
-              {group.fileId && (
-                <button
-                  className="pdf-attachment"
-                  onClick={() => onFile({ id: group.fileId, title: group.title || group.name })}
-                >
-                  <span className="pdf-icon">
-                    <FilePdf size={26} />
-                  </span>
-                  <span>
-                    <strong>Research manuscript</strong>
-                    <small>Open the submitted PDF</small>
-                  </span>
-                  <ArrowRight size={20} />
-                </button>
+    <article className="group-detail-page">
+      <Button variant="outline" onClick={onClose} disabled={busy}>
+        <ArrowLeft size={18} /> Back to groups
+      </Button>
+      {!group && (
+        <p className="notice-box" role="status">
+          This group is no longer available. Return to groups to choose another.
+        </p>
+      )}
+      {group && (
+        <div className="group-detail-body">
+          <div className="flex flex-wrap items-center gap-2">
+            <StrandBadge strand={group.strand} />
+            <StatusBadge status={groupStatus(group)} />
+          </div>
+          <section className="detail-section">
+            <h3>Current research</h3>
+            <h2 className="detail-research-title">
+              {group.title || 'The group is preparing their research'}
+            </h2>
+            {group.type && <p className="capitalize muted">{group.type} research</p>}
+            {group.fileId && (
+              <button
+                className="pdf-attachment"
+                onClick={() => onFile({ id: group.fileId, title: group.title || group.name })}
+              >
+                <span className="pdf-icon">
+                  <FilePdf size={26} />
+                </span>
+                <span>
+                  <strong>Research manuscript</strong>
+                  <small>Open the submitted PDF</small>
+                </span>
+                <ArrowRight size={20} />
+              </button>
+            )}
+          </section>
+          <section className="detail-section">
+            <h3>
+              <UsersThree size={18} />
+              Group members <span className="muted">({group.memberIds.length})</span>
+            </h3>
+            <div className="member-list">
+              {group.memberIds.map((id) => {
+                const student = workspace.students.find((item) => item.id === id)
+                return (
+                  <div key={id}>
+                    <span className="student-avatar">{initials(student?.name || 'Student')}</span>
+                    <span>{student?.name || 'Student record unavailable'}</span>
+                  </div>
+                )
+              })}
+              {!group.memberIds.length && (
+                <p className="muted">No members are recorded for this group.</p>
               )}
-            </section>
-            <section className="detail-section">
-              <h3>
-                <UsersThree size={18} />
-                Group members <span className="muted">({group.memberIds.length})</span>
-              </h3>
-              <div className="member-list">
-                {group.memberIds.map((id) => {
-                  const student = workspace.students.find((item) => item.id === id)
-                  return (
-                    <div key={id}>
-                      <span className="student-avatar">{initials(student?.name || 'Student')}</span>
-                      <span>{student?.name || 'Student record unavailable'}</span>
-                    </div>
-                  )
-                })}
-                {!group.memberIds.length && (
-                  <p className="muted">No members are recorded for this group.</p>
-                )}
+            </div>
+          </section>
+          <section className="detail-section">
+            <h3>Submission progress</h3>
+            <ol className="progress-steps">
+              <li className="complete">
+                <span>
+                  <Check size={13} />
+                </span>
+                <div>
+                  <strong>Group formed</strong>
+                  <p>Students are working together.</p>
+                </div>
+              </li>
+              <li className={status === 'preparing' ? 'current' : 'complete'}>
+                <span>{status === 'preparing' ? '2' : <Check size={13} />}</span>
+                <div>
+                  <strong>{status === 'changes' ? 'Revising research' : 'Prepare & submit'}</strong>
+                  <p>
+                    {status === 'changes'
+                      ? 'Your feedback is with the group.'
+                      : 'The group prepares their manuscript.'}
+                  </p>
+                </div>
+              </li>
+              <li
+                className={
+                  status === 'pending' ? 'current' : status === 'approved' ? 'complete' : ''
+                }
+              >
+                <span>{status === 'approved' ? <Check size={13} /> : '3'}</span>
+                <div>
+                  <strong>Teacher review</strong>
+                  <p>
+                    {status === 'pending'
+                      ? 'This submission is ready for you.'
+                      : 'Read the PDF and share feedback.'}
+                  </p>
+                </div>
+              </li>
+              <li className={status === 'approved' ? 'complete' : ''}>
+                <span>{status === 'approved' ? <Check size={13} /> : '4'}</span>
+                <div>
+                  <strong>Approved for the library</strong>
+                  <p>Preserved for the next researchers.</p>
+                </div>
+              </li>
+            </ol>
+            <p className="small-note">
+              <Info size={15} />
+              Based on group and submission records.
+            </p>
+          </section>
+          <section className="detail-section">
+            <h3>
+              <ChatText size={18} />
+              Teacher feedback
+            </h3>
+            {group.comments.length ? (
+              <div className="feedback-list">
+                {group.comments.map((comment, index) => (
+                  <div key={index}>
+                    <small>Feedback {index + 1}</small>
+                    <p>{comment}</p>
+                  </div>
+                ))}
               </div>
-            </section>
-            <section className="detail-section">
-              <h3>Submission progress</h3>
-              <ol className="progress-steps">
-                <li className="complete">
-                  <span>
-                    <Check size={13} />
-                  </span>
+            ) : (
+              <p className="muted">No feedback has been shared yet.</p>
+            )}
+          </section>
+          {status === 'pending' && (
+            <section className="review-actions">
+              {preferences.guidance && (
+                <div className="review-reading-guide">
+                  <h3>Before you finish this review</h3>
+                  <ol>
+                    <li>Open and read the research PDF.</li>
+                    <li>Add clear feedback if the group needs to make changes.</li>
+                    <li>Choose Request changes or Approve research.</li>
+                  </ol>
+                </div>
+              )}
+              <h3>Your review</h3>
+              <p className="muted">Check the manuscript before making your decision.</p>
+              <Label htmlFor="review-feedback">
+                Feedback for the group <span className="muted">(required for changes)</span>
+              </Label>
+              <Textarea
+                id="review-feedback"
+                value={feedback}
+                maxLength={4000}
+                onChange={(event) => {
+                  setFeedback(event.target.value)
+                  setError('')
+                  setDecision(null)
+                }}
+                placeholder="Be specific about what is working and what needs attention…"
+                rows={4}
+                disabled={busy}
+              />
+              {decision === 'approve' ? (
+                <div className="approval-confirmation">
+                  <CheckCircle size={22} />
+                  <p>Approve this manuscript? It will be added to the shared research library.</p>
                   <div>
-                    <strong>Group formed</strong>
-                    <p>Students are working together.</p>
+                    <Button variant="outline" disabled={busy} onClick={() => setDecision(null)}>
+                      Back
+                    </Button>
+                    <Button disabled={busy} onClick={() => submit('approve')}>
+                      {busy ? 'Approving…' : 'Confirm approval'}
+                    </Button>
                   </div>
-                </li>
-                <li className={status === 'preparing' ? 'current' : 'complete'}>
-                  <span>{status === 'preparing' ? '2' : <Check size={13} />}</span>
-                  <div>
-                    <strong>
-                      {status === 'changes' ? 'Revising research' : 'Prepare & submit'}
-                    </strong>
-                    <p>
-                      {status === 'changes'
-                        ? 'Your feedback is with the group.'
-                        : 'The group prepares their manuscript.'}
-                    </p>
-                  </div>
-                </li>
-                <li
-                  className={
-                    status === 'pending' ? 'current' : status === 'approved' ? 'complete' : ''
-                  }
-                >
-                  <span>{status === 'approved' ? <Check size={13} /> : '3'}</span>
-                  <div>
-                    <strong>Teacher review</strong>
-                    <p>
-                      {status === 'pending'
-                        ? 'This submission is ready for you.'
-                        : 'Read the PDF and share feedback.'}
-                    </p>
-                  </div>
-                </li>
-                <li className={status === 'approved' ? 'complete' : ''}>
-                  <span>{status === 'approved' ? <Check size={13} /> : '4'}</span>
-                  <div>
-                    <strong>Approved for the library</strong>
-                    <p>Preserved for the next researchers.</p>
-                  </div>
-                </li>
-              </ol>
-              <p className="small-note">
-                <Info size={15} />
-                Based on group and submission records.
-              </p>
-            </section>
-            <section className="detail-section">
-              <h3>
-                <ChatText size={18} />
-                Teacher feedback
-              </h3>
-              {group.comments.length ? (
-                <div className="feedback-list">
-                  {group.comments.map((comment, index) => (
-                    <div key={index}>
-                      <small>Feedback {index + 1}</small>
-                      <p>{comment}</p>
-                    </div>
-                  ))}
                 </div>
               ) : (
-                <p className="muted">No feedback has been shared yet.</p>
+                <div className="button-row">
+                  <Button variant="outline" disabled={busy} onClick={() => submit('changes')}>
+                    <ChatText size={17} />
+                    {busy ? 'Saving…' : 'Request changes'}
+                  </Button>
+                  <Button disabled={busy} onClick={() => setDecision('approve')}>
+                    <Check size={17} />
+                    Approve research
+                  </Button>
+                </div>
               )}
             </section>
-            {status === 'pending' && (
-              <section className="review-actions">
-                {preferences.guidance && (
-                  <div className="review-reading-guide">
-                    <h3>Before you finish this review</h3>
-                    <ol>
-                      <li>Open and read the research PDF.</li>
-                      <li>Add clear feedback if the group needs to make changes.</li>
-                      <li>Choose Request changes or Approve research.</li>
-                    </ol>
-                  </div>
-                )}
-                <h3>Your review</h3>
-                <p className="muted">Check the manuscript before making your decision.</p>
-                <Label htmlFor="review-feedback">
-                  Feedback for the group <span className="muted">(required for changes)</span>
-                </Label>
-                <Textarea
-                  id="review-feedback"
-                  value={feedback}
-                  maxLength={4000}
-                  onChange={(event) => {
-                    setFeedback(event.target.value)
-                    setError('')
-                    setDecision(null)
-                  }}
-                  placeholder="Be specific about what is working and what needs attention…"
-                  rows={4}
-                  disabled={busy}
-                />
-                {error && (
-                  <p role="alert" className="inline-error">
-                    {error}
-                  </p>
-                )}
-                {decision === 'approve' ? (
-                  <div className="approval-confirmation">
-                    <CheckCircle size={22} />
-                    <p>Approve this manuscript? It will be added to the shared research library.</p>
-                    <div>
-                      <Button variant="outline" disabled={busy} onClick={() => setDecision(null)}>
-                        Back
-                      </Button>
-                      <Button disabled={busy} onClick={() => submit('approve')}>
-                        {busy ? 'Approving…' : 'Confirm approval'}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="button-row">
-                    <Button variant="outline" disabled={busy} onClick={() => submit('changes')}>
-                      <ChatText size={17} />
-                      {busy ? 'Saving…' : 'Request changes'}
-                    </Button>
-                    <Button disabled={busy} onClick={() => setDecision('approve')}>
-                      <Check size={17} />
-                      Approve research
-                    </Button>
-                  </div>
-                )}
-              </section>
+          )}
+          <section className="detail-section group-delete-section">
+            <h3>Delete group</h3>
+            <p className="muted">
+              Remove this group, its submission record, and feedback. Members can create or join
+              another group. Published research and PDFs remain in the library.
+            </p>
+            {confirmDelete ? (
+              <div className="account-decision-confirmation" role="alert">
+                <p>Permanently delete {group.name}? This cannot be undone.</p>
+                <div className="button-row">
+                  <Button variant="outline" disabled={busy} onClick={() => setConfirmDelete(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" disabled={busy} onClick={remove}>
+                    {busy ? 'Deleting…' : 'Confirm delete group'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}>
+                Delete group
+              </Button>
             )}
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
+          </section>
+          {error && (
+            <p role="alert" className="inline-error">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+    </article>
   )
 }
 
@@ -318,12 +327,14 @@ export function StudentDetails({
   onClose,
   onGroup,
   onReviewStudent,
+  onDeleteStudent,
 }: {
   student: Student | null
   workspace: Workspace
   onClose: () => void
   onGroup: (id: string) => void
   onReviewStudent: ReviewStudent
+  onDeleteStudent: (id: string) => Promise<void>
 }) {
   const group = student && studentGroup(student, workspace.groups)
   const restoreFocus = useReturnFocus()
@@ -354,7 +365,14 @@ export function StudentDetails({
               <span>Account status</span>
               <strong>{studentAccountLabels[studentAccountStatus(student)]}</strong>
             </div>
-            <StudentAccountActions student={student} onReview={onReviewStudent} />
+            <StudentAccountActions
+              student={student}
+              onReview={onReviewStudent}
+              onDelete={async (id) => {
+                await onDeleteStudent(id)
+                onClose()
+              }}
+            />
             <div className="student-detail-row">
               <span>Research group</span>
               <strong>{group?.name || 'No group yet'}</strong>

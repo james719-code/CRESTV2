@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseRoute, isWorkspaceRoute } from '../src/routing.ts'
+import { parseRoute, isWorkspaceRoute, groupRoute, routeGroupId } from '../src/routing.ts'
 
 test('the public entry and unknown routes open the landing page', () => {
   for (const hash of ['', '#', '#home', '#unrecognized', '#features']) {
@@ -23,8 +23,20 @@ test('existing teacher deep links remain available behind the session gate', () 
     'research',
     'documents',
     'accounts',
+    'settings',
+    'about',
   ]) {
     assert.equal(parseRoute(`#${page}`), page)
     assert.equal(isWorkspaceRoute(page), true)
   }
+})
+
+test('group details have persistent, encoded page links and reject malformed IDs', () => {
+  const route = groupRoute('STEM group #1')
+  assert.equal(parseRoute(`#${route}`), route)
+  assert.equal(routeGroupId(route), 'STEM group #1')
+  assert.equal(isWorkspaceRoute(route), true)
+  assert.equal(routeGroupId('groups'), null)
+  for (const hash of ['#groups/', '#groups/%', '#groups/a%2Fb'])
+    assert.equal(parseRoute(hash), 'home')
 })

@@ -1,7 +1,15 @@
 export type ResearchType = 'qualitative' | 'quantitative'
 export type GroupStatus = 'preparing' | 'pending' | 'changes' | 'approved'
 export type Page =
-  'overview' | 'groups' | 'reviews' | 'students' | 'research' | 'documents' | 'accounts'
+  | 'overview'
+  | 'groups'
+  | 'reviews'
+  | 'students'
+  | 'research'
+  | 'documents'
+  | 'accounts'
+  | 'settings'
+  | 'about'
 
 export interface Student {
   id: string
@@ -52,6 +60,33 @@ export function reviewStudentWorkspace(
   if (!student) throw new Error('This student account no longer exists.')
   Object.assign(student, studentDecisionUpdate(student, decision, expected))
   return next
+}
+
+export function deleteStudentWorkspace(workspace: Workspace, id: string): Workspace {
+  const student = workspace.students.find((item) => item.id === id)
+  if (!student) throw new Error('This student account no longer exists.')
+  if (studentAccountStatus(student) !== 'declined')
+    throw new Error('Only declined student accounts can be deleted. Check the current status.')
+  return {
+    ...workspace,
+    students: workspace.students.filter((item) => item.id !== id),
+    groups: workspace.groups.map((group) => ({
+      ...group,
+      memberIds: group.memberIds.filter((member) => member !== id),
+    })),
+  }
+}
+
+export function deleteGroupWorkspace(workspace: Workspace, id: string): Workspace {
+  if (!workspace.groups.some((group) => group.id === id))
+    throw new Error('This group no longer exists.')
+  return {
+    ...workspace,
+    groups: workspace.groups.filter((group) => group.id !== id),
+    students: workspace.students.map((student) =>
+      student.groupId === id ? { ...student, groupId: '' } : student,
+    ),
+  }
 }
 
 export interface Teacher {
