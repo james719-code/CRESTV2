@@ -1,7 +1,7 @@
 import type { ResearchGroup, Workspace } from './domain.ts'
 
 // Build joins once when records change, rather than searching every group per row/keystroke.
-export function indexWorkspace(workspace: Workspace) {
+export function indexWorkspace(workspace: Pick<Workspace, 'students' | 'groups'>) {
   const studentsById = new Map(workspace.students.map((student) => [student.id, student]))
   const groupsById = new Map<string, { group: ResearchGroup; order: number }>()
   const memberships = new Map<string, { group: ResearchGroup; order: number }>()

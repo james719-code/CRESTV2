@@ -35,16 +35,11 @@
   display: grid;
   gap: 20px;
 }
-.settings-panel h2,
-.display-panel-header h2 {
+.settings-panel h2 {
   font-size: 1.25rem;
   font-weight: 650;
   line-height: 1.4;
   margin-bottom: 12px;
-}
-.display-panel-header {
-  display: grid;
-  gap: 8px;
 }
 .about-page {
   display: grid;
@@ -137,13 +132,6 @@
   color: var(--primary);
   display: grid;
   place-items: center;
-}
-.wordmark {
-  font-weight: var(--crest-wordmark-weight);
-  letter-spacing: var(--crest-wordmark-tracking);
-  font-size: 1.5rem;
-  line-height: 1.2;
-  display: block;
 }
 .brand-descriptor {
   font-size: 0.875rem;
@@ -1291,9 +1279,6 @@
 .wrap-toolbar .search-input {
   margin-right: auto;
 }
-.muted {
-  color: var(--muted-foreground);
-}
 .empty-state {
   padding: 55px 25px;
   display: flex;
@@ -2067,19 +2052,6 @@
 .auth-loading {
   display: grid;
   gap: 17px;
-}
-.skip-link {
-  position: fixed;
-  left: 20px;
-  top: -100px;
-  z-index: 100;
-  padding: 12px 20px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-radius: 8px;
-}
-.skip-link:focus {
-  top: 20px;
 }
 .mobile-menu,
 .mobile-nav-close,

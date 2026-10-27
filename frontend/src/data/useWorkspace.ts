@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { GroupDeletionTracker, withGroupDeletions } from './group-deletions'
 import { createDemoWorkspace } from './demo'
 import { readDemoFile, saveDemoFile } from './demoFiles'
 import type { SessionState } from './firebase'
+import { isDemo, validConfig } from './config'
 import {
   deleteStudentWorkspace,
   deleteGroupWorkspace,
@@ -16,14 +17,6 @@ import {
 } from '../domain'
 
 const storageKey = 'crest-teacher-demo-v1'
-const settings = [
-  import.meta.env.VITE_FIREBASE_API_KEY,
-  import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  import.meta.env.VITE_FIREBASE_APP_ID,
-]
-const isDemo = settings.every((value) => !value)
-const validConfig = settings.every(Boolean)
 const emptyWorkspace: Workspace = {
   students: [],
   teachers: [],
@@ -76,8 +69,11 @@ export function useWorkspace() {
         if (disposed) return
         stop = api.observeWorkspace({
           session: (state, currentTeacher) => {
-            if (accountId.current !== (currentTeacher?.id ?? null)) {
-              accountId.current = currentTeacher?.id ?? null
+            // Reconnecting after the public page is not an account change.
+            const nextAccount = currentTeacher?.id ??
+              (state === 'signed-out' || state === 'denied' ? null : accountId.current)
+            if (accountId.current !== nextAccount) {
+              accountId.current = nextAccount
               groupDeletionTracker.reset()
             }
             setSession(state)
@@ -100,6 +96,10 @@ export function useWorkspace() {
     return () => {
       disposed = true
       stop?.()
+      // Activity pauses this observer on the public page. Require a fresh role
+      // check before showing retained state when the workspace becomes visible.
+      setSession('loading')
+      setWorkspace(emptyWorkspace)
     }
   }, [retry, groupDeletionTracker])
 
@@ -182,14 +182,14 @@ export function useWorkspace() {
     })
   }
 
-  async function readFile(fileId: string) {
+  const readFile = useCallback(async (fileId: string) => {
     if (!isDemo) return (await import('./firebase')).readFile(fileId)
     if (fileId.startsWith('sample-')) return undefined
     const file = await readDemoFile(fileId)
     if (!file)
       throw new Error('This demo file is no longer in your browser. Upload it again to view it.')
     return file
-  }
+  }, [])
 
   return {
     workspace: withGroupDeletions(workspace, groupDeletions),

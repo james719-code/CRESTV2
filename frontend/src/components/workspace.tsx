@@ -194,7 +194,10 @@ export function GroupTable({
   const [ascending, setAscending] = useState(true)
   const [page, setPage] = useState(1)
   const { ref, cards } = useCardLayout()
-  const lookup = useMemo(() => indexWorkspace(workspace), [workspace])
+  const lookup = useMemo(
+    () => indexWorkspace({ students: workspace.students, groups: workspace.groups }),
+    [workspace.students, workspace.groups],
+  )
   const search = useDeferredValue(query.trim().toLowerCase())
   const base = useMemo(
     () => workspace.groups.filter((group) => !reviewsOnly || groupStatus(group) === 'pending'),
@@ -528,7 +531,10 @@ export function StudentTable({
   const [accountStatus, setAccountStatus] = useState('all')
   const [page, setPage] = useState(1)
   const { ref, cards } = useCardLayout()
-  const lookup = useMemo(() => indexWorkspace(workspace), [workspace])
+  const lookup = useMemo(
+    () => indexWorkspace({ students: workspace.students, groups: workspace.groups }),
+    [workspace.students, workspace.groups],
+  )
   const search = useDeferredValue(query.trim().toLowerCase())
   const students = workspace.students
   const strands = useMemo(

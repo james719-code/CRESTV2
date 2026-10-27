@@ -14,18 +14,17 @@ import {
   getFirestore,
   onSnapshot,
   runTransaction,
-  type DocumentData,
   type Unsubscribe,
 } from 'firebase/firestore'
 import type {
-  ResearchGroup,
   StudentAccountStatus,
   StudentDecision,
   Teacher,
   UploadInput,
   Workspace,
 } from '../domain'
-import { researchType, validateReview } from '../domain'
+import { validateReview } from '../domain'
+import { mapGroup, WorkspaceSnapshot, type WorkspaceSource } from './workspace-snapshot'
 import { reviewStudentAccount } from './student-accounts'
 import { deleteDeclinedStudent, deleteResearchGroup } from './workspace-deletion'
 import { clearSchoolFileCache, deleteFile, uploadFile } from './storage'
@@ -51,35 +50,6 @@ const paths = {
 } as const
 
 const string = (value: unknown) => (typeof value === 'string' ? value : '')
-const strings = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
-const timestamp = (value: unknown): number => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
-  if (
-    value &&
-    typeof value === 'object' &&
-    'toMillis' in value &&
-    typeof value.toMillis === 'function'
-  )
-    return value.toMillis()
-  return 0
-}
-
-function mapGroup(id: string, data: DocumentData): ResearchGroup {
-  return {
-    id,
-    name: string(data.group_name),
-    strand: string(data.strand),
-    memberIds: strings(data.group_member),
-    title: string(data.research_title),
-    type: researchType(data.research_type),
-    uploaded: data.uploaded === true,
-    accepted: data.accepted_research === true,
-    fileId: string(data.file_link),
-    comments: strings(data.comments),
-  }
-}
-
 export type SessionState = 'loading' | 'signed-out' | 'ready' | 'denied' | 'error'
 
 export function observeWorkspace(callbacks: {
@@ -107,6 +77,7 @@ export function observeWorkspace(callbacks: {
       }
       callbacks.session('loading', null)
       let watching = false
+      let ready = false
       stopRole = onSnapshot(
         doc(db, paths.teachers, user.uid),
         (role) => {
@@ -114,6 +85,7 @@ export function observeWorkspace(callbacks: {
             void clearSchoolFileCache()
             clearData()
             watching = false
+            ready = false
             callbacks.session('denied', null)
             return
           }
@@ -125,66 +97,25 @@ export function observeWorkspace(callbacks: {
             access: true,
           }
           if (watching) {
-            callbacks.session('ready', teacher)
+            callbacks.session(ready ? 'ready' : 'loading', teacher)
             return
           }
           watching = true
           const currentGeneration = generation
-          const values = new Map<string, { id: string; data: DocumentData }[]>()
+          const values = new WorkspaceSnapshot()
           const sources = Object.entries(paths)
           stops = sources.map(([key, path]) =>
             onSnapshot(
               collection(db, path),
               (snapshot) => {
                 if (generation !== currentGeneration) return
-                values.set(
-                  key,
+                const workspace = values.update(
+                  key as WorkspaceSource,
                   snapshot.docs.map((item) => ({ id: item.id, data: item.data() })),
                 )
-                if (values.size !== sources.length) return
-                const rows = (key: string) => values.get(key) || []
-                callbacks.data({
-                  students: rows('students').map(({ id, data }) => ({
-                    id,
-                    name: string(data.name),
-                    strand: string(data.strand),
-                    groupId: string(data.groupId) || string(data.group_id),
-                    accepted: data.accepted === true,
-                    declined: data.declined === true,
-                  })),
-                  teachers: rows('teachers').map(({ id, data }) => ({
-                    id,
-                    name: string(data.name),
-                    email: string(data.email),
-                    access: data.access === true,
-                  })),
-                  groups: rows('groups').map(({ id, data }) => mapGroup(id, data)),
-                  research: (['qualitative', 'quantitative'] as const)
-                    .flatMap((type) =>
-                      rows(type).map(({ id, data }) => ({
-                        id,
-                        type,
-                        title: string(data.title),
-                        strand: string(data.strand),
-                        members: strings(data.members),
-                        fileId: string(data.file_link),
-                        createdAt: timestamp(data.createdAt),
-                        downloads:
-                          typeof data.downloads === 'number' ? Math.max(0, data.downloads) : 0,
-                        unfinished: data.unfinished === true,
-                      })),
-                    )
-                    .sort((a, b) => b.createdAt - a.createdAt),
-                  documents: rows('documents')
-                    .map(({ id, data }) => ({
-                      id,
-                      name: string(data.name),
-                      description: string(data.description),
-                      fileId: string(data.file_link),
-                      createdAt: timestamp(data.createdAt),
-                    }))
-                    .sort((a, b) => b.createdAt - a.createdAt),
-                })
+                if (!workspace) return
+                ready = true
+                callbacks.data(workspace)
                 callbacks.session('ready', teacher)
               },
               () => {

@@ -1,11 +1,10 @@
-import { getAuth } from 'firebase/auth'
-
 export const storageProvider = String(import.meta.env.VITE_STORAGE_PROVIDER || 'disabled')
 export const notificationsEnabled = import.meta.env.VITE_FCM_ENABLED === 'true'
 
 export async function edgeRequest<T>(name: 'crest-storage' | 'crest-notifications', body: object): Promise<T> {
   const base = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '')
   if (!base || new URL(base).protocol !== 'https:') throw new Error('The school connection is not configured.')
+  const { getAuth } = await import('firebase/auth')
   const user = getAuth().currentUser
   if (!user) throw new Error('Sign in again to continue.')
   const response = await fetch(`${base}/functions/v1/${name}`, {
