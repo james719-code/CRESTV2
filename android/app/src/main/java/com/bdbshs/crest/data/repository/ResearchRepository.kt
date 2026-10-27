@@ -9,6 +9,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,6 +41,12 @@ class ResearchRepository @Inject constructor(
         
         return query.get().await()
     }
+
+    suspend fun fetchCachedQualitativeResearches(): QuerySnapshot =
+        firestore.collection(FirestorePaths.QUALITATIVE_RESEARCHES).get(Source.CACHE).await()
+
+    suspend fun fetchCachedQuantitativeResearches(): QuerySnapshot =
+        firestore.collection(FirestorePaths.QUANTITATIVE_RESEARCHES).get(Source.CACHE).await()
 
     fun observeQualitativeById(
         researchId: String,

@@ -207,6 +207,15 @@ internal fun ResearchLibraryContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            if (!isOnline) {
+                item {
+                    Text(
+                        "Showing research details saved on this phone. A PDF can be read offline after it has been opened or downloaded while online.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             if (uiState.error != null) {
                 item { FeedbackPanel("Could not update the library", uiState.error!!, "Try again", onRefresh) }
             }
@@ -214,11 +223,11 @@ internal fun ResearchLibraryContent(
                 uiState.isLoading -> items(4) { ShimmerResearchCardPlaceholder() }
                 papers.isEmpty() && uiState.error == null -> item {
                     EmptyCollectionPanel(
-                        title = if (hasSearchFilters) "No papers match your search" else if (uiState.showFavoritesOnly) "No favorite papers yet" else "No research papers yet",
-                        message = if (hasSearchFilters) "Try another title or clear the filters." else if (uiState.showFavoritesOnly) "Tap the heart on a paper in Research to save it here." else "Teacher papers and approved student research appear here. Groups can prepare a submission from Home.",
+                        title = if (hasSearchFilters) "No papers match your search" else if (!isOnline) "No research saved on this phone yet" else if (uiState.showFavoritesOnly) "No favorite papers yet" else "No research papers yet",
+                        message = if (hasSearchFilters) "Try another title or clear the filters." else if (!isOnline) "Connect to the internet and browse Research to save paper details. Open a PDF while online to make it available for offline reading." else if (uiState.showFavoritesOnly) "Tap the heart on a paper in Research to save it here." else "Teacher papers and approved student research appear here. Groups can prepare a submission from Home.",
                         actionLabel = if (hasSearchFilters) "Clear filters" else "Refresh papers",
                         onAction = if (hasSearchFilters) onClearFilters else onRefresh,
-                        guidance = if (!hasSearchFilters && !uiState.showFavoritesOnly) listOf(
+                        guidance = if (isOnline && !hasSearchFilters && !uiState.showFavoritesOnly) listOf(
                             "For students" to "Create or join a group from Home, then submit your research PDF for teacher review.",
                             "For teachers" to "Add research from Home or approve a submitted group paper."
                         ) else emptyList()

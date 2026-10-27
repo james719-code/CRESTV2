@@ -85,12 +85,42 @@ screen, removing one existence read per increment and selecting the correct
 collection even if two research types have the same document ID. These client
 improvements require distributing the updated Android application.
 
+## Group cleanup and offline research
+
+Group deletion reads the teacher-accessible student collection from the server
+and matches both `groupId` and legacy `group_id` locally. The legacy field is
+intentionally exempt from indexing, so an equality query on it fails against the
+deployed configuration. Member/profile changes and group removal still commit
+together in a transaction. Declined-student cleanup likewise requires a server
+membership list. Published research and shared PDFs remain intact.
+
+Confirming a group deletion returns immediately to Research groups. App-level
+state keeps the request alive across navigation, pins the affected card to the
+top, and shows progress only on that card. A failure keeps the card visible with
+a retry action; successful removals stay hidden while live snapshots catch up.
+Deletion state resets when the signed-in account changes.
+
+Android already uses a persistent 100 MiB Firestore cache. Offline Research now
+reads both cached research collections explicitly with `Source.CACHE`, without
+the online first-page limit. Reconnecting refreshes the online pages. This caches
+metadata already loaded by the app, rather than mirroring the entire database.
+PDF bytes are cached separately after opening/downloading a paper. Offline
+navigation remains limited to research papers.
+
+`LivePhoneVerificationTest` is opt-in (`verifyLiveSchool=true`) and reads school
+records without modifying them. It checks the membership lookup against deployed
+indexes, then disables only Firestore's network to verify cached metadata and a
+previously downloaded PDF. Run its cache check again with
+`verificationPhase=cold` in a fresh app process to verify disk persistence.
+Network access is restored in `finally`; no phone connectivity setting changes.
+
 ## Validation and repeatable audit
 
-- 52 Android unit tests passed, including offline counts, denied/missing-index
-  errors, cancellation, and direct counter updates for both research types.
+- 68 Android unit tests passed, including offline counts, denied/missing-index
+  errors, cancellation, direct counter updates, legacy membership cleanup, and
+  research cache reloads and reconnection, and deletion progress/retry state.
 - The Android debug APK built successfully.
-- 18 backend tests passed: 14 access-rule tests in the local emulator and four
+- 21 backend tests passed: 17 access-rule tests in the local emulator and four
   index contract checks. Legacy parent-record access was explicitly denied for
   all client roles.
 - The production audit checks 20 real query shapes using Google IAM: exact

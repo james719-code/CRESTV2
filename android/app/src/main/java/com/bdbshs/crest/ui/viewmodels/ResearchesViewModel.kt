@@ -135,6 +135,7 @@ class ResearchesViewModel @Inject constructor(
     private fun loadInitialData() {
         initialLoadJob?.cancel()
         loadMoreJob?.cancel()
+        val online = _uiState.value.isOnline
         _uiState.update { it.copy(isLoading = true, isLoadingMore = false, error = null, hasMoreQualitative = true, hasMoreQuantitative = true) }
         lastQualitativeDoc = null
         lastQuantitativeDoc = null
@@ -142,8 +143,14 @@ class ResearchesViewModel @Inject constructor(
         initialLoadJob = viewModelScope.launch {
             try {
                 val (qualSnap, quantSnap) = coroutineScope {
-                    val qualitative = async { researchRepository.fetchQualitativeResearches(limit = 15L) }
-                    val quantitative = async { researchRepository.fetchQuantitativeResearches(limit = 15L) }
+                    val qualitative = async {
+                        if (online) researchRepository.fetchQualitativeResearches(limit = 15L)
+                        else researchRepository.fetchCachedQualitativeResearches()
+                    }
+                    val quantitative = async {
+                        if (online) researchRepository.fetchQuantitativeResearches(limit = 15L)
+                        else researchRepository.fetchCachedQuantitativeResearches()
+                    }
                     qualitative.await() to quantitative.await()
                 }
                 
@@ -159,8 +166,8 @@ class ResearchesViewModel @Inject constructor(
                         quantitativeResearches = quantList,
                         isLoading = false,
                         isRefreshing = false,
-                        hasMoreQualitative = qualSnap.documents.size >= 15,
-                        hasMoreQuantitative = quantSnap.documents.size >= 15
+                        hasMoreQualitative = online && qualSnap.documents.size >= 15,
+                        hasMoreQuantitative = online && quantSnap.documents.size >= 15
                     ) 
                 }
             } catch (e: CancellationException) {
@@ -356,7 +363,9 @@ class ResearchesViewModel @Inject constructor(
     }
 
     fun setOnlineStatus(isOnline: Boolean) {
+        if (_uiState.value.isOnline == isOnline) return
         _uiState.update { it.copy(isOnline = isOnline) }
+        loadInitialData()
     }
 
     fun onDeleteConfirmed() {

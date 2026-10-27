@@ -88,6 +88,8 @@ class ResearchLoadingTest {
     @Test fun `pagination skips network requests while offline`() = runTest(dispatcher) {
         coEvery { repository.fetchQualitativeResearches(15L, null) } returns snapshot((1..15).map { "paper-$it" })
         coEvery { repository.fetchQuantitativeResearches(15L, null) } returns snapshot(emptyList())
+        coEvery { repository.fetchCachedQualitativeResearches() } returns snapshot((1..15).map { "paper-$it" })
+        coEvery { repository.fetchCachedQuantitativeResearches() } returns snapshot(emptyList())
         val vm = viewModel()
         advanceUntilIdle()
         vm.setOnlineStatus(false)
@@ -95,5 +97,46 @@ class ResearchLoadingTest {
         advanceUntilIdle()
         coVerify(exactly = 0) { repository.fetchQualitativeResearches(10L, any()) }
         assertFalse(vm.uiState.value.isLoadingMore)
+    }
+
+    @Test fun `offline reload reads every cached paper instead of limiting the first page`() = runTest(dispatcher) {
+        coEvery { repository.fetchQualitativeResearches(15L, null) } returns snapshot(listOf("online"))
+        coEvery { repository.fetchQuantitativeResearches(15L, null) } returns snapshot(emptyList())
+        coEvery { repository.fetchCachedQualitativeResearches() } returns snapshot((1..24).map { "cached-$it" })
+        coEvery { repository.fetchCachedQuantitativeResearches() } returns snapshot(listOf("cached-quant"))
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.setOnlineStatus(false)
+        advanceUntilIdle()
+        assertEquals(24, vm.uiState.value.qualitativeResearches.size)
+        assertEquals("cached-quant", vm.uiState.value.quantitativeResearches.single().id)
+        assertFalse(vm.uiState.value.isLoading)
+        assertFalse(vm.uiState.value.hasMoreQualitative)
+        assertFalse(vm.uiState.value.hasMoreQuantitative)
+        vm.onRefresh()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { repository.fetchQualitativeResearches(15L, null) }
+        coVerify(exactly = 2) { repository.fetchCachedQualitativeResearches() }
+    }
+
+    @Test fun `switching offline cancels an in-flight server load and reconnecting refreshes`() = runTest(dispatcher) {
+        val pending = CompletableDeferred<QuerySnapshot>()
+        coEvery { repository.fetchQualitativeResearches(15L, null) } coAnswers { pending.await() }
+        coEvery { repository.fetchQuantitativeResearches(15L, null) } returns snapshot(emptyList())
+        coEvery { repository.fetchCachedQualitativeResearches() } returns snapshot(listOf("saved"))
+        coEvery { repository.fetchCachedQuantitativeResearches() } returns snapshot(emptyList())
+        val vm = viewModel()
+        runCurrent()
+        vm.setOnlineStatus(false)
+        advanceUntilIdle()
+        assertEquals("saved", vm.uiState.value.qualitativeResearches.single().id)
+        pending.complete(snapshot(listOf("stale")))
+        advanceUntilIdle()
+        assertEquals("saved", vm.uiState.value.qualitativeResearches.single().id)
+        coEvery { repository.fetchQualitativeResearches(15L, null) } returns snapshot(listOf("refreshed"))
+        vm.setOnlineStatus(true)
+        advanceUntilIdle()
+        assertEquals("refreshed", vm.uiState.value.qualitativeResearches.single().id)
+        assertNull(vm.uiState.value.error)
     }
 }
