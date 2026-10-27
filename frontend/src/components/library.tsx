@@ -16,7 +16,7 @@ import {
 import { displayDate, initials, studentAccountStatus, type Workspace } from '../domain'
 import { StudentAccountActions, type ReviewStudent } from './student-account-actions'
 import { EmptyState, LabeledFilter, SearchInput, StrandBadge } from './workspace'
-import type { FileRequest } from './workspace-dialogs'
+import type { ReaderTarget } from '../routing'
 import { ResearchArt } from './research-art'
 import { ListPagination } from './list-pagination'
 import { pageWindow } from '../workspace-index'
@@ -27,7 +27,7 @@ export function ResearchLibrary({
   onFile,
 }: {
   workspace: Workspace
-  onFile: (file: FileRequest) => void
+  onFile: (file: ReaderTarget) => void
 }) {
   const [query, setQuery] = useState('')
   const [type, setType] = useState('all')
@@ -105,7 +105,7 @@ export function ResearchLibrary({
                   size="sm"
                   variant="ghost"
                   disabled={!paper.fileId}
-                  onClick={() => onFile({ id: paper.fileId, title: paper.title })}
+                  onClick={() => onFile({ source: paper.type, id: paper.id })}
                 >
                   Read paper
                   <ArrowRight size={15} />
@@ -157,7 +157,7 @@ export function DocumentLibrary({
   onFile,
 }: {
   workspace: Workspace
-  onFile: (file: FileRequest) => void
+  onFile: (file: ReaderTarget) => void
 }) {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -209,7 +209,7 @@ export function DocumentLibrary({
               <Button
                 variant="outline"
                 disabled={!document.fileId}
-                onClick={() => onFile({ id: document.fileId, title: document.name })}
+                onClick={() => onFile({ source: 'documents', id: document.id })}
               >
                 Open document
                 <ArrowRight size={16} />

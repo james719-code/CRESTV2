@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   ArrowRight,
   ArrowLeft,
@@ -29,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   groupStatus,
   initials,
@@ -47,10 +46,7 @@ import { useDisplayPreferences } from '../display-context'
 import { useReturnFocus } from './use-return-focus'
 import { StudentAccountActions, type ReviewStudent } from './student-account-actions'
 
-export interface FileRequest {
-  id: string
-  title: string
-}
+import type { ReaderTarget } from '../routing'
 
 export function GroupDetails({
   group,
@@ -64,7 +60,7 @@ export function GroupDetails({
   workspace: Workspace
   onClose: () => void
   onReview: (id: string, decision: 'approve' | 'changes', feedback?: string) => Promise<void>
-  onFile: (file: FileRequest) => void
+  onFile: (file: ReaderTarget) => void
   onDelete: (id: string) => void
 }) {
   const { preferences } = useDisplayPreferences()
@@ -127,7 +123,7 @@ export function GroupDetails({
             {group.fileId && (
               <button
                 className="pdf-attachment"
-                onClick={() => onFile({ id: group.fileId, title: group.title || group.name })}
+                onClick={() => onFile({ source: 'groups', id: group.id })}
               >
                 <span className="pdf-icon">
                   <FilePdf size={26} />
@@ -630,105 +626,6 @@ export function UploadDialog({
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-export function FileViewer({
-  file,
-  readFile,
-  onClose,
-  isDemo,
-}: {
-  file: FileRequest | null
-  readFile: (id: string) => Promise<Blob | undefined>
-  onClose: () => void
-  isDemo: boolean
-}) {
-  const restoreFocus = useReturnFocus()
-  const [url, setUrl] = useState('')
-  const [error, setError] = useState('')
-  useEffect(() => {
-    if (!file || (isDemo && file.id.startsWith('sample-'))) return
-    let disposed = false
-    let objectUrl = ''
-    readFile(file.id)
-      .then((blob) => {
-        if (disposed || !blob) return
-        objectUrl = URL.createObjectURL(blob)
-        setUrl(objectUrl)
-      })
-      .catch((cause) => {
-        if (!disposed)
-          setError(cause instanceof Error ? cause.message : 'This PDF could not be opened.')
-      })
-    return () => {
-      disposed = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-    // This viewer is remounted for each file; the file service is stable for this request.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file?.id, isDemo])
-  return (
-    <Dialog
-      open={!!file}
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DialogContent className="file-dialog" onCloseAutoFocus={restoreFocus}>
-        <DialogHeader>
-          <DialogTitle>{file?.title || 'Research PDF'}</DialogTitle>
-          <DialogDescription>
-            {isDemo
-              ? 'Teacher workspace demo'
-              : 'School research document · Saved in this browser for up to 30 days. Access is checked each time.'}
-          </DialogDescription>
-        </DialogHeader>
-        {isDemo && file?.id.startsWith('sample-') ? (
-          <div className="sample-document">
-            <div className="sample-document-banner">
-              <Info size={18} />
-              Sample record · No student manuscript is attached
-            </div>
-            <div className="paper-preview">
-              <span>CREST · SCHOOL RESEARCH LIBRARY</span>
-              <FilePdf size={46} />
-              <h2>{file.title}</h2>
-              <p>
-                This sample record helps you explore the review workflow. Upload your own PDF from
-                Research or Documents to try the document viewer.
-              </p>
-              <div />
-              <div />
-              <div />
-            </div>
-          </div>
-        ) : error ? (
-          <div className="notice-box inline-error" role="alert">
-            {error}
-          </div>
-        ) : url ? (
-          <>
-            <iframe title={file?.title || 'PDF document'} src={url} className="pdf-frame" />
-            <p className="small-note">
-              If the preview is unavailable,{' '}
-              <a href={url} download={`${file?.title || 'CREST-document'}.pdf`}>
-                download the PDF
-              </a>
-              .
-            </p>
-          </>
-        ) : (
-          <div className="pdf-loading" aria-label="Loading PDF" role="status">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-72 w-full" />
-            <span>Opening your PDF…</span>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   )

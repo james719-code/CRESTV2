@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { groupStatus, statusLabels, type GroupStatus, type Page, type Workspace } from '../domain'
 import { GroupTable, SummaryStrip } from './workspace'
-import type { FileRequest } from './workspace-dialogs'
+import type { ReaderTarget } from '../routing'
 
 export function Overview({
   workspace,
@@ -22,7 +22,7 @@ export function Overview({
   workspace: Workspace
   onNavigate: (page: Page) => void
   onGroup: (id: string) => void
-  onFile: (file: FileRequest) => void
+  onFile: (file: ReaderTarget) => void
 }) {
   const counts = Object.fromEntries(
     (['preparing', 'pending', 'changes', 'approved'] as GroupStatus[]).map((status) => [
@@ -168,7 +168,7 @@ export function Overview({
               <button
                 key={`${paper.type}-${paper.id}`}
                 className="recent-paper"
-                onClick={() => onFile({ id: paper.fileId, title: paper.title })}
+                onClick={() => onFile({ source: paper.type, id: paper.id })}
               >
                 <span className="paper-icon">
                   <FileText size={23} />

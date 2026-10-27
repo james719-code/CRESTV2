@@ -1,6 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseRoute, isWorkspaceRoute, groupRoute, routeGroupId } from '../src/routing.ts'
+import {
+  parseRoute,
+  isWorkspaceRoute,
+  groupRoute,
+  routeGroupId,
+  readerRoute,
+  routeReader,
+} from '../src/routing.ts'
 
 test('the public entry and unknown routes open the landing page', () => {
   for (const hash of ['', '#', '#home', '#unrecognized', '#features']) {
@@ -25,6 +32,7 @@ test('existing teacher deep links remain available behind the session gate', () 
     'accounts',
     'settings',
     'about',
+    'help',
   ]) {
     assert.equal(parseRoute(`#${page}`), page)
     assert.equal(isWorkspaceRoute(page), true)
@@ -39,4 +47,24 @@ test('group details have persistent, encoded page links and reject malformed IDs
   assert.equal(routeGroupId('groups'), null)
   for (const hash of ['#groups/', '#groups/%', '#groups/a%2Fb'])
     assert.equal(parseRoute(hash), 'home')
+})
+
+test('reader links survive reload and identify collection plus record, never a signed file URL', () => {
+  for (const source of ['qualitative', 'quantitative', 'documents', 'groups']) {
+    const target = { source, id: 'Paper #1 with spaces' }
+    const route = readerRoute(target)
+    assert.equal(parseRoute(`#${route}`), route)
+    assert.deepEqual(routeReader(route), target)
+    assert.equal(isWorkspaceRoute(route), true)
+    assert.equal(routeGroupId(route), null)
+  }
+  for (const hash of [
+    '#read/groups/',
+    '#read/other/id',
+    '#read/groups/%',
+    '#read/groups/a%2Fb',
+    '#read/qualitative/a/b',
+  ])
+    assert.equal(parseRoute(hash), 'home')
+  assert.equal(routeReader('research'), null)
 })
