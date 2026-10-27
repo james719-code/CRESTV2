@@ -74,6 +74,24 @@ Server credentials are stored only in Supabase secrets and ignored local files.
 
 ### PDF bandwidth and browser storage
 
+Papers now open on their own reader page (`#read/qualitative/{id}` or
+`#read/quantitative/{id}`), with the PDF on the left and the saved paper information
+on the right. Documents and group manuscripts use corresponding reader links.
+On small screens, the information follows the PDF. The reader supports selectable
+text, search, page navigation, zoom, fit width, and downloading the original PDF.
+
+The last visible page is saved automatically in localStorage as you scroll or
+change pages, separately for each account/backend and immutable PDF ID. Reopening
+or refreshing the reader restores that page after the PDF loads. Only file ID,
+page number, and update time are saved; the most recent 200 files per account are
+retained. A new uploaded PDF has its own position. If browser storage is blocked
+or full, the PDF remains readable and the reader shows that progress could not be
+saved. Progress belongs to this browser/device and is not synchronized to another.
+
+Mozilla PDF.js, its worker, fonts, character maps, and image decoders are served
+locally. Reader code and styles load only when a reader link is opened. PDF access
+continues to use the existing authorization and byte cache described below.
+
 The active Supabase provider saves validated, viewed PDFs in IndexedDB for **30 days from download**, keyed by Firebase project, Supabase backend, user, and immutable file ID. Opening a cached copy does not extend its expiry. Each open first rechecks current Firebase approval and file permissions through the storage gateway; cached bytes then replace the PDF download. Signed URLs are never persisted or extended. Expired entries are removed on cache use, and the least recently viewed copies are evicted at a **100 MiB total browser cache limit**. New uploads have new IDs and therefore cannot reuse an older PDF.
 
 Signing out or losing teacher approval clears local copies. Failed authorization removes that file's cached copy; offline access is deliberately unavailable. Concurrent opens share one in-flight request. Storage denial, browser eviction, or quota errors fall back to a normal authorized download. The cache reduces repeat PDF bandwidth; authorization calls and their Firestore reads still occur. Browsers can remove cached copies before 30 days, and signing out ends their retention early. Demo uploads use their existing separate storage.
@@ -92,7 +110,9 @@ Student cards include strand colors, the group's research title, and three submi
 
 Lists render at most 12 records per page (five groups in the overview). Searches and filters still cover the complete collection and return to page one when changed. Pagination returns keyboard focus to the section heading. A container observer selects either a table or cards; the hidden alternative is no longer built. Easy reading always uses cards. Student/group joins and searchable member names are indexed when the workspace changes, while search input can update ahead of its filtered results.
 
-Icons and Radix controls import only their used modules. The overview, library, public landing page, and file/detail windows load on demand; closed detail windows are unmounted, and PDF object URLs are released on close. Global search scans records only while open. Modal backdrops use a plain tint to avoid an extra blur pass.
+Icons and Radix controls import only their used modules. The public landing page loads first; the teacher application, Firebase connection, overview, library, and file/detail windows load on demand. Returning home pauses school-data subscriptions while retaining operation tracking, so an ongoing group deletion can still report a failure and offer a retry after returning. Closed detail windows are unmounted, and PDF object URLs are released on close. Global search scans records only while open. Modal backdrops use a plain tint to avoid an extra blur pass.
+
+Each Firestore listener maps only its changed collection. Student/group indexes retain their results when unrelated research or documents change. The production build checks the complete static JavaScript entry graph against a 420 kB raw / 125 kB gzip budget. Netlify caches fingerprinted `/assets/*` for one year and revalidates HTML and the messaging worker.
 
 See [the measurement notes](../docs/frontend-ui-performance.md) for before/after results and limits. The repeatable synthetic join/search benchmark is:
 

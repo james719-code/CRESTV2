@@ -10,6 +10,7 @@ export type Page =
   | 'accounts'
   | 'settings'
   | 'about'
+  | 'help'
 
 export interface Student {
   id: string

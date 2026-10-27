@@ -1,6 +1,19 @@
 # CREST backend setup and deployment status
 
-Updated: 2026-10-26 (Asia/Manila).
+Updated: 2026-10-27 (Asia/Manila).
+
+## Test-account cleanup — 27 October 2026
+
+At the maintainer's request, test accounts were cleared while preserving the two
+specified real accounts: one approved teacher and one approved student. The
+cleanup removed 107 Firebase Authentication accounts and 89 Firestore profiles.
+Both protected profiles were verified unchanged; all 12 research records and
+their file references were also verified unchanged. No group or school-document
+records existed at the time of cleanup. Stored PDFs were retained.
+
+The private Auth/profile inventory, exact conditional deletion plan, and verified
+receipt are in ignored `state/backend-migration/account-cleanup-20261027/`.
+Personal account identifiers and backups are not published in this guide.
 
 The Firestore access review, deployed index settings, Android read improvements,
 and repeatable query checks are documented in

@@ -3,7 +3,10 @@ import { Button } from '@/components/ui/button'
 import { useDisplayPreferences } from '../display-context'
 import type { Page } from '../domain'
 
-const guidance: Record<Page, { title: string; steps: string[]; action: string; next: Page }> = {
+const guidance: Record<
+  Exclude<Page, 'help'>,
+  { title: string; steps: string[]; action: string; next: Page }
+> = {
   overview: {
     title: 'Start with what needs your attention',
     steps: [
@@ -122,6 +125,7 @@ export function PageGuidance({ page, navigate }: { page: Page; navigate: (page: 
         </div>
       </section>
     )
+  if (page === 'help') return null
   const guide = guidance[page]
   return (
     <section className="page-guidance" aria-label="Page guide">

@@ -1,0 +1,355 @@
+.about-modern {
+  display: grid;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+.about-eyebrow {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--crest-color-secondary);
+}
+.about-hero,
+.about-section {
+  border: 1px solid var(--hairline);
+  border-radius: 1.5rem;
+  background: var(--card);
+  padding: 2.25rem;
+}
+.about-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3rem;
+  align-items: center;
+}
+.about-hero-copy h2,
+.about-heading h2 {
+  margin: 0.625rem 0 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.about-heading h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  max-width: 40rem;
+}
+.about-hero-copy > p,
+.about-heading > p {
+  margin: 1rem 0 0;
+  max-width: 40rem;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+}
+.about-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.about-facts li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--tile-blue);
+}
+.about-facts svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+.about-facts span {
+  display: grid;
+  line-height: 1.4;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.about-facts strong {
+  color: var(--foreground);
+  font-weight: 650;
+}
+.about-hero-mark {
+  display: grid;
+  justify-items: center;
+  gap: 1.25rem;
+  padding: 1.75rem 2rem;
+  border-radius: 1.5rem;
+  background: var(--background);
+  border: 1px solid var(--hairline);
+}
+.about-school {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.about-school img {
+  border-radius: 50%;
+  background: #fff;
+  padding: 2px;
+  border: 1px solid var(--hairline);
+}
+.about-heading {
+  margin-bottom: 1.75rem;
+}
+.about-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.about-values > div {
+  padding: 1.5rem;
+  border: 1px solid var(--hairline);
+  border-radius: 1.25rem;
+  background: var(--background);
+}
+.about-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.9rem;
+  background: var(--tile-blue);
+  color: var(--primary);
+}
+.about-values h3,
+.about-journey h3 {
+  margin: 1.125rem 0 0.375rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.about-values p,
+.about-journey p {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.7;
+}
+.about-journey {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about-journey li {
+  position: relative;
+}
+.about-journey li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 1.25rem;
+  left: 3.25rem;
+  right: -1.75rem;
+  border-top: 2px dashed var(--hairline);
+}
+.about-step {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--primary);
+  background: var(--tile-blue);
+  color: var(--primary);
+  font-weight: 700;
+}
+.about-place {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.125rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: var(--tile-teal);
+  color: var(--crest-color-secondary);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+.about-people {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 1.25rem;
+}
+.about-lead,
+.about-team {
+  padding: 1.5rem;
+  border: 1px solid var(--hairline);
+  border-radius: 1.25rem;
+  background: var(--background);
+}
+.about-lead {
+  display: flex;
+  align-items: center;
+  gap: 1.125rem;
+  background: var(--tile-blue);
+}
+.about-lead strong,
+.about-lead > div > span {
+  display: block;
+}
+.about-lead > div > span {
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.about-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.about-avatar.large {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.125rem;
+}
+.about-team h3,
+.about-credits h3 {
+  margin: 0 0 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.about-team ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about-team li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 550;
+}
+.about-team .about-avatar {
+  background: var(--tile-teal);
+  color: var(--crest-color-secondary);
+}
+.about-credits {
+  display: grid;
+  gap: 1.75rem;
+}
+.about-credits ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--hairline);
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+.about-credits li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 6.5rem;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--background);
+}
+.about-credits li + li {
+  border-top: 1px solid var(--hairline);
+}
+.about-credits li strong,
+.about-credits li small {
+  display: block;
+}
+.about-credits li small {
+  margin-top: 0.125rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.about-license {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--tile-blue);
+  color: var(--primary);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.about-credits a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  min-height: 2.5rem;
+  color: var(--primary);
+  font-size: 0.875rem;
+  font-weight: 550;
+}
+.about-credits a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.about-license-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+.about-fineprint {
+  margin: 1.25rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+@media (max-width: 1000px) {
+  .about-hero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .about-hero-mark {
+    justify-self: start;
+    grid-auto-flow: column;
+    align-items: center;
+  }
+  .about-values,
+  .about-journey,
+  .about-people {
+    grid-template-columns: 1fr;
+  }
+  .about-journey li:not(:last-child)::after {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .about-hero,
+  .about-section {
+    padding: 1.5rem 1.25rem;
+    border-radius: 1.25rem;
+  }
+  .about-hero-mark {
+    grid-auto-flow: row;
+    justify-self: stretch;
+  }
+  .about-team ul {
+    grid-template-columns: 1fr;
+  }
+  .about-credits li {
+    grid-template-columns: 1fr auto;
+  }
+  .about-credits li a {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    min-height: 0;
+  }
+}
