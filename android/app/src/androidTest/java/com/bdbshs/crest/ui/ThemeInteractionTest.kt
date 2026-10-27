@@ -104,4 +104,28 @@ class ThemeInteractionTest(private val dark: Boolean) {
         assertEquals(0, approved)
         assertEquals(0, denied)
     }
+
+    @Test fun declinedStudentDeletionRequiresConfirmationAndSupportsCancel() {
+        var deleted = 0
+        var restored = 0
+        compose.setContent {
+            CRESTTheme(darkTheme = dark) {
+                AccountActionDialog(
+                    AccountItem.Student(uid = "declined", name = "Declined Student", declined = true),
+                    false, {}, { restored++ }, {}, { deleted++ }
+                )
+            }
+        }
+        compose.onNodeWithText("Declined").assertIsDisplayed()
+        compose.onNodeWithText("Restore access").assertIsDisplayed()
+        compose.onNodeWithText("Delete student").performClick()
+        compose.onNodeWithText("Delete declined student?").assertIsDisplayed()
+        assertEquals(0, deleted)
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(0, deleted)
+        compose.onNodeWithText("Delete student").performClick()
+        compose.onNodeWithText("Confirm delete").performClick()
+        assertEquals(1, deleted)
+        assertEquals(0, restored)
+    }
 }
