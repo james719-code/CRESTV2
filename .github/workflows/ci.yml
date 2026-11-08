@@ -163,7 +163,9 @@ jobs:
       - name: Install security test dependencies
         run: npm ci --prefix frontend
       - name: Check Edge Function types
-        run: deno check --config supabase/functions/deno.json supabase/functions/crest-storage/index.ts supabase/functions/crest-notifications/index.ts
+        run: deno check --config supabase/functions/deno.json supabase/functions/crest-*/index.ts
+      - name: Test public database health check without production credentials
+        run: deno test --config supabase/functions/deno.json --allow-env=SUPABASE_URL,SUPABASE_SECRET_KEYS,CREST_SUPABASE_KEY_NAME,SUPABASE_SERVICE_ROLE_KEY supabase/functions/crest-health/handler.test.ts
       - name: Test Firestore rules without production credentials
         run: npx --yes firebase-tools@15.15.0 emulators:exec --only firestore --project demo-crest "npm --prefix frontend run test:rules"
 

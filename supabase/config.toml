@@ -7,3 +7,7 @@ verify_jwt = false
 
 [functions.crest-notifications]
 verify_jwt = false
+
+# Public, read-only database health check for external uptime monitors.
+[functions.crest-health]
+verify_jwt = false

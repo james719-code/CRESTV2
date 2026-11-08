@@ -1,0 +1,28 @@
+name: Supabase health
+
+on:
+  schedule:
+    # Supabase recommends a few database requests daily, not one weekly ping.
+    # Every eight hours, away from the busy start of the hour (UTC).
+    - cron: '17 */8 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: supabase-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Check CREST database availability
+    if: github.repository == 'james719-code/CRESTV2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read database health
+        run: >-
+          curl --fail-with-body --silent --show-error
+          --connect-timeout 10 --max-time 30
+          --retry 3 --retry-all-errors --retry-delay 10
+          https://mkmirlnypehadajrtxvg.supabase.co/functions/v1/crest-health

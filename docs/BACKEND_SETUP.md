@@ -1,6 +1,19 @@
 # CREST backend setup and deployment status
 
-Updated: 2026-10-27 (Asia/Manila).
+Updated: 2026-11-08 (Asia/Manila).
+
+## Supabase health check — 8 November 2026
+
+`crest-health` is deployed to the existing CREST Supabase project. Live checks
+confirmed HTTP 200 for GET and HEAD, a successful database read, `no-store`
+responses, and HTTP 405 for POST. The endpoint returns only service status.
+All six health-function tests and all 27 workflow-routing tests passed; Edge
+Function type checks and workflow validation passed as well.
+
+The eight-hour GitHub health workflow is versioned at
+`.github/workflows/supabase-health.yml` and runs from the default branch, `master`.
+See [Supabase health](SUPABASE_HEALTH.md) for deployment, monitoring, and Free-plan
+limitations.
 
 ## Research planning rules — 27 October 2026
 
@@ -42,7 +55,7 @@ and repeatable query checks are documented in
 | Supabase | CREST, `mkmirlnypehadajrtxvg`, Tokyo |
 | Supabase URL | https://mkmirlnypehadajrtxvg.supabase.co |
 | Storage | Private `crest-files` bucket; PDFs up to 20 MiB |
-| Edge Functions | `crest-storage` enabled; `crest-notifications` deployed but disabled |
+| Edge Functions | `crest-storage` enabled; public `crest-health` deployed; `crest-notifications` deployed but disabled |
 | Android | Supabase provider selected in build defaults and local configuration |
 | Teacher website | Netlify build settings connected; production hostname not chosen |
 | Notifications | Disabled in server and clients; FCM send permission not granted |
@@ -186,13 +199,16 @@ was created during this backend setup.
 
 ## Future backend updates
 
+For database health monitoring and scheduled inactivity checks, see
+[Supabase health](SUPABASE_HEALTH.md).
+
 Use the existing signed-in CLIs and selected projects:
 
 ~~~powershell
 firebase deploy --only firestore --project crest-4fb99
 supabase db push --linked
 supabase secrets set --project-ref mkmirlnypehadajrtxvg --env-file supabase/functions/.env.local
-supabase functions deploy crest-storage crest-notifications --project-ref mkmirlnypehadajrtxvg --use-api
+supabase functions deploy crest-storage crest-notifications crest-health --project-ref mkmirlnypehadajrtxvg --use-api
 ~~~
 
 Apply new SQL changes as new migration files. Keep storage private and never
