@@ -47,6 +47,70 @@ class ResearchLoadingTest {
         repository, mockk<FavoritesRepository>(), auth, GetFilteredResearchesUseCase()
     )
 
+    private fun filterViewModel(): ResearchesViewModel {
+        coEvery { repository.fetchQualitativeResearches(15L, null) } returns snapshot(emptyList())
+        coEvery { repository.fetchQuantitativeResearches(15L, null) } returns snapshot(emptyList())
+        return viewModel()
+    }
+
+    @Test fun `canceling filter choices keeps the current library unchanged`() = runTest(dispatcher) {
+        val vm = filterViewModel()
+        vm.onStrandCheckedChange("STEM", true)
+        vm.showFilterDialog()
+        vm.onStrandCheckedChange("STEM", false)
+        vm.onStrandCheckedChange("HUMSS", true)
+        vm.onResearchTypeSelected(ResearchType.QUANTITATIVE)
+        vm.onSortOptionSelected(SortOption.TitleZA)
+        assertTrue(vm.uiState.value.strands.first { it.name == "STEM" }.isSelected)
+        assertNull(vm.uiState.value.selectedResearchType)
+        assertEquals(SortOption.DateNewest, vm.uiState.value.selectedSortOption)
+        vm.dismissFilterDialog()
+        vm.showFilterDialog()
+        assertEquals(ResearchFilterOptions(strands = setOf("STEM")), vm.uiState.value.filterDraft)
+        advanceUntilIdle()
+    }
+
+    @Test fun `applying filter choices commits them together and preserves the search and favorites`() = runTest(dispatcher) {
+        val vm = filterViewModel()
+        vm.onSearchQueryChanged("digital")
+        vm.setFavoritesOnly(true)
+        vm.showFilterDialog()
+        vm.onStrandCheckedChange("HUMSS", true)
+        vm.onResearchTypeSelected(ResearchType.QUANTITATIVE)
+        vm.onSortOptionSelected(SortOption.TitleAZ)
+        vm.applyFilters()
+        val state = vm.uiState.value
+        assertEquals(ResearchType.QUANTITATIVE, state.selectedResearchType)
+        assertEquals(setOf("HUMSS"), state.strands.filter { it.isSelected }.map { it.name }.toSet())
+        assertEquals(SortOption.TitleAZ, state.selectedSortOption)
+        assertEquals("digital", state.searchQuery)
+        assertTrue(state.showFavoritesOnly)
+        assertFalse(state.isFilterDialogVisible)
+        assertNull(state.filterDraft)
+        advanceUntilIdle()
+    }
+
+    @Test fun `resetting the filter draft preserves query and favorites and can be canceled`() = runTest(dispatcher) {
+        val vm = filterViewModel()
+        vm.onSearchQueryChanged("digital")
+        vm.setFavoritesOnly(true)
+        vm.onResearchTypeSelected(ResearchType.QUALITATIVE)
+        vm.showFilterDialog()
+        vm.resetFilterDraft()
+        assertEquals(ResearchFilterOptions(), vm.uiState.value.filterDraft)
+        assertEquals("digital", vm.uiState.value.searchQuery)
+        assertTrue(vm.uiState.value.showFavoritesOnly)
+        vm.dismissFilterDialog()
+        assertEquals(ResearchType.QUALITATIVE, vm.uiState.value.selectedResearchType)
+        vm.showFilterDialog()
+        vm.resetFilterDraft()
+        vm.applyFilters()
+        assertNull(vm.uiState.value.selectedResearchType)
+        assertEquals("digital", vm.uiState.value.searchQuery)
+        assertTrue(vm.uiState.value.showFavoritesOnly)
+        advanceUntilIdle()
+    }
+
     @Test fun `initial requests run concurrently`() = runTest(dispatcher) {
         val qualitative = CompletableDeferred<QuerySnapshot>()
         val quantitative = CompletableDeferred<QuerySnapshot>()

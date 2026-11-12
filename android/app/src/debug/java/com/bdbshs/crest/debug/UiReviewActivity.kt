@@ -104,6 +104,9 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
     var favoriteIds by remember { mutableStateOf(if (firstPage == "favorites" && firstMode == "data") setOf("paper-1") else emptySet<String>()) }
     var favoritesOnly by remember { mutableStateOf(false) }
     var strandFilter by remember { mutableStateOf(emptySet<String>()) }
+    var researchType by remember { mutableStateOf<ResearchType?>(null) }
+    var researchSort by remember { mutableStateOf(SortOption.DateNewest) }
+    var filterDraft by remember { mutableStateOf<ResearchFilterOptions?>(null) }
     var selectedPaper by remember { mutableStateOf(reviewPapers.first()) }
     var selectedGroup by remember { mutableStateOf(reviewGroups.first()) }
     var formTitle by remember(page, mode) { mutableStateOf(if (mode == "data") reviewPapers.first().title else "") }
@@ -230,20 +233,39 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                         }; done()
                     })
             }
-            "research", "favorites" -> ResearchLibraryContent(
-                ResearchesUiState(isLoading = loading, searchQuery = query, error = error,
+            "research", "favorites" -> {
+                val libraryState = ResearchesUiState(isLoading = loading, searchQuery = query, error = error,
                     strands = listOf("STEM", "HUMSS", "ABM", "TVL", "GAS").map { Strand(it, it in strandFilter) },
-                    favoriteResearchIds = favoriteIds, showFavoritesOnly = favoritesOnly || page == "favorites"),
-                papers.filter { (strandFilter.isEmpty() || it.strand in strandFilter) && (query.isBlank() || it.title.contains(query, true) || it.members.any { name -> name.contains(query, true) }) &&
-                    (!(favoritesOnly || page == "favorites") || it.id in favoriteIds) },
+                    selectedResearchType = researchType, selectedSortOption = researchSort, filterDraft = filterDraft,
+                    favoriteResearchIds = favoriteIds, showFavoritesOnly = favoritesOnly || page == "favorites")
+                filterDraft?.let { draft ->
+                    FilterBottomSheet(
+                        uiState = libraryState,
+                        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                        onDismiss = { filterDraft = null },
+                        onResearchTypeSelected = { filterDraft = draft.copy(researchType = if (it == draft.researchType) null else it) },
+                        onStrandCheckedChange = { name, selected -> filterDraft = draft.copy(strands = if (selected) draft.strands + name else draft.strands - name) },
+                        onSortOptionSelected = { filterDraft = draft.copy(sortOption = it) },
+                        onApplyClick = {
+                            researchType = draft.researchType; strandFilter = draft.strands; researchSort = draft.sortOption; filterDraft = null
+                        },
+                        onResetClick = { filterDraft = ResearchFilterOptions() }
+                    )
+                }
+                ResearchLibraryContent(
+                libraryState,
+                com.bdbshs.crest.domain.usecase.GetFilteredResearchesUseCase()(
+                    papers, query, researchType, libraryState.strands, researchSort, favoriteIds, libraryState.showFavoritesOnly
+                ),
                 page == "favorites", true,
-                { query = it }, { notice("Filter and sort controls are available in the signed-in app") },
-                { favoritesOnly = !favoritesOnly }, { query = ""; favoritesOnly = false }, retry,
+                { query = it }, { filterDraft = ResearchFilterOptions(researchType, strandFilter, researchSort) },
+                { favoritesOnly = !favoritesOnly }, { query = ""; favoritesOnly = false; strandFilter = emptySet(); researchType = null; researchSort = SortOption.DateNewest }, retry,
                 { selectedPaper = it; page = "paper" },
                 { favoriteIds = if (it.id in favoriteIds) favoriteIds - it.id else favoriteIds + it.id },
                 null, bodyModifier,
                 onStrandToggle = { name, on -> strandFilter = if (on) strandFilter + name else strandFilter - name }
             )
+            }
             "documents" -> DocumentsContent(
                 DocumentsUiState(isLoading = loading, error = error, searchQuery = query, allDocuments = documents, userRole = role),
                 documents.filter { it.name.contains(query, true) || it.description.contains(query, true) },

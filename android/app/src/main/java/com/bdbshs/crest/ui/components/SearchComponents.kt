@@ -40,7 +40,7 @@ import androidx.compose.ui.semantics.selected
 import com.bdbshs.crest.ui.theme.*
 
 /**
- * Modern search bar with animated focus states
+ * Search field with a clear focus outline and an independent clear action.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,18 +57,19 @@ fun ModernSearchBar(
     modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    var showRecentSearches by remember { mutableStateOf(false) }
+    val showRecentSearches = isFocused && query.isEmpty() && recentSearches.isNotEmpty()
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     
     Column(modifier = modifier) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = CircleShape,
+            shape = MaterialTheme.shapes.medium,
             shadowElevation = 0.dp,
             tonalElevation = 0.dp,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            border = if (isFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            border = BorderStroke(if (isFocused) 2.dp else 1.dp,
+                if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
         ) {
             Row(
                 modifier = Modifier
@@ -76,7 +77,7 @@ fun ModernSearchBar(
                     .heightIn(min = 56.dp)
                     .padding(start = 16.dp, end = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Search icon
                 Icon(
@@ -95,11 +96,11 @@ fun ModernSearchBar(
                         onValueChange = onQueryChange,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(vertical = 14.dp)
                             .semantics { contentDescription = placeholder }
                             .focusRequester(focusRequester)
                             .onFocusChanged { 
                                 isFocused = it.isFocused
-                                showRecentSearches = it.isFocused && query.isEmpty() && recentSearches.isNotEmpty()
                             },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
@@ -134,7 +135,7 @@ fun ModernSearchBar(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
-                            contentDescription = "Clear",
+                            contentDescription = "Clear search",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -145,12 +146,12 @@ fun ModernSearchBar(
                 onFilterClick?.let { onClick ->
                     Box {
                         IconButton(
-                            onClick = onClick,
+                            onClick = { focusManager.clearFocus(); onClick() },
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Tune,
-                                contentDescription = "Filter",
+                                contentDescription = if (activeFilterCount > 0) "Filter, $activeFilterCount active" else "Filter",
                                 tint = if (activeFilterCount > 0)
                                     MaterialTheme.colorScheme.primary
                                 else

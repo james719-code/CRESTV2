@@ -48,10 +48,17 @@ enum class SortOption(val displayName: String) {
     TitleZA("Title (Z-A)")
 }
 
+data class ResearchFilterOptions(
+    val researchType: ResearchType? = null,
+    val strands: Set<String> = emptySet(),
+    val sortOption: SortOption = SortOption.DateNewest
+)
+
 data class ResearchesUiState(
     val currentUserRole: UserType? = null,
     val searchQuery: String = "",
     val isFilterDialogVisible: Boolean = false,
+    val filterDraft: ResearchFilterOptions? = null,
     val qualitativeResearches: List<ResearchItem> = emptyList(),
     val quantitativeResearches: List<ResearchItem> = emptyList(),
     val isLoading: Boolean = true,
@@ -256,11 +263,19 @@ class ResearchesViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    fun showFilterDialog() = _uiState.update { it.copy(isFilterDialogVisible = true) }
-    fun dismissFilterDialog() = _uiState.update { it.copy(isFilterDialogVisible = false) }
+    fun showFilterDialog() = _uiState.update {
+        it.copy(isFilterDialogVisible = true, filterDraft = ResearchFilterOptions(
+            it.selectedResearchType, it.strands.filter { strand -> strand.isSelected }.map { strand -> strand.name }.toSet(),
+            it.selectedSortOption
+        ))
+    }
+    fun dismissFilterDialog() = _uiState.update { it.copy(isFilterDialogVisible = false, filterDraft = null) }
 
     fun onResearchTypeSelected(type: ResearchType) {
         _uiState.update { current ->
+            current.filterDraft?.let { draft ->
+                return@update current.copy(filterDraft = draft.copy(researchType = if (draft.researchType == type) null else type))
+            }
             val newType = if (current.selectedResearchType == type) null else type
             current.copy(selectedResearchType = newType)
         }
@@ -268,12 +283,32 @@ class ResearchesViewModel @Inject constructor(
 
     fun onStrandCheckedChange(strandName: String, isChecked: Boolean) {
         _uiState.update { current ->
+            current.filterDraft?.let { draft ->
+                return@update current.copy(filterDraft = draft.copy(strands = if (isChecked) draft.strands + strandName else draft.strands - strandName))
+            }
             current.copy(strands = current.strands.map { if (it.name == strandName) it.copy(isSelected = isChecked) else it })
         }
     }
 
-    fun applyFilters() = dismissFilterDialog()
-    fun onSortOptionSelected(option: SortOption) = _uiState.update { it.copy(selectedSortOption = option) }
+    fun applyFilters() = _uiState.update { current ->
+        val draft = current.filterDraft ?: return@update current
+        current.copy(
+            selectedResearchType = draft.researchType,
+            strands = current.strands.map { it.copy(isSelected = it.name in draft.strands) },
+            selectedSortOption = draft.sortOption,
+            isFilterDialogVisible = false,
+            filterDraft = null
+        )
+    }
+
+    fun resetFilterDraft() = _uiState.update { current ->
+        if (current.filterDraft == null) current else current.copy(filterDraft = ResearchFilterOptions())
+    }
+
+    fun onSortOptionSelected(option: SortOption) = _uiState.update { current ->
+        current.filterDraft?.let { current.copy(filterDraft = it.copy(sortOption = option)) }
+            ?: current.copy(selectedSortOption = option)
+    }
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }

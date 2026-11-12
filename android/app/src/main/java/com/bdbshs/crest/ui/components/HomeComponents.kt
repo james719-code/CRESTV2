@@ -1,6 +1,7 @@
 package com.bdbshs.crest.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.MenuBook
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.ui.viewmodels.ResearchItem
 import com.bdbshs.crest.ui.viewmodels.ResearchType
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HomeSummary(name: String, workspace: String, metrics: List<Pair<String, String>>) {
     Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -34,11 +36,26 @@ internal fun HomeSummary(name: String, workspace: String, metrics: List<Pair<Str
             modifier = Modifier.semantics { heading() }
         )
         if (metrics.isNotEmpty()) {
-            Text(
-                metrics.joinToString("  ·  ") { (value, label) -> "$value ${label.lowercase()}" },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            FlowRow(
+                Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                metrics.forEach { (value, label) ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(value, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -50,15 +67,18 @@ internal fun AdaptivePair(
     second: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (LocalDensity.current.fontScale > 1.3f) {
-        Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            first(Modifier.fillMaxWidth())
-            second(Modifier.fillMaxWidth())
-        }
-    } else {
-        Row(modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            first(Modifier.weight(1f).fillMaxHeight())
-            second(Modifier.weight(1f).fillMaxHeight())
+    val largeText = LocalDensity.current.fontScale > 1.3f
+    BoxWithConstraints(modifier) {
+        if (largeText || maxWidth < 320.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                first(Modifier.fillMaxWidth())
+                second(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                first(Modifier.weight(1f).fillMaxHeight())
+                second(Modifier.weight(1f).fillMaxHeight())
+            }
         }
     }
 }

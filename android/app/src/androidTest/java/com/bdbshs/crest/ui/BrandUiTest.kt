@@ -122,7 +122,7 @@ class BrandUiTest {
         compose.onNodeWithText(paper.title).assertIsDisplayed()
         capture("research-light")
         compose.onNodeWithContentDescription("Search title or author").performTextInput("climate")
-        compose.onNodeWithContentDescription("Clear").performClick()
+        compose.onNodeWithContentDescription("Clear search").performClick()
         compose.onNodeWithText("Search title or author").assertExists()
     }
 
@@ -136,6 +136,45 @@ class BrandUiTest {
         compose.setContent { Library(largeText = true) }
         compose.onNodeWithText(paper.title).performScrollTo().assertIsDisplayed()
         capture("research-large-text")
+    }
+
+    @Test fun searchSuggestionsReturnAfterClearingTheFocusedQuery() {
+        compose.setContent {
+            CRESTTheme {
+                var query by remember { mutableStateOf("climate") }
+                ModernSearchBar(
+                    query, { query = it }, placeholder = "Search title or author",
+                    recentSearches = listOf("Biodiversity"), onRecentSearchClick = { query = it }
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Search title or author").performClick().performTextClearance()
+        compose.onNodeWithText("Recent searches").assertIsDisplayed()
+        compose.onNodeWithText("Biodiversity").performClick()
+        compose.onNodeWithContentDescription("Search title or author").assertTextEquals("Biodiversity")
+        compose.onNodeWithText("Recent searches").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test fun filterSheetExposesIndependentCancelAndApplyActions() {
+        var canceled = 0
+        var applied = 0
+        compose.setContent {
+            CRESTTheme(darkTheme = true) {
+                FilterBottomSheet(
+                    uiState = ResearchesUiState(filterDraft = ResearchFilterOptions()),
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    onDismiss = { canceled++ }, onResearchTypeSelected = {},
+                    onStrandCheckedChange = { _, _ -> }, onSortOptionSelected = {},
+                    onApplyClick = { applied++ }, onResetClick = {}
+                )
+            }
+        }
+        compose.onNodeWithText("Apply filters").assertIsDisplayed().performClick()
+        assertEquals(1, applied)
+        assertEquals(0, canceled)
+        compose.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+        assertEquals(1, canceled)
     }
 
     @Test fun teacherHomeReviewAction() {

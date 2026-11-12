@@ -3,17 +3,14 @@ package com.bdbshs.crest.ui.screens
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.annotation.SuppressLint
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -26,7 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,7 +32,6 @@ import com.bdbshs.crest.ui.components.*
 import com.bdbshs.crest.ui.screens.common.ShimmerResearchCardPlaceholder
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.*
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,9 +45,7 @@ fun ResearchesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val papers by viewModel.filteredAndSortedResearches.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val context = LocalContext.current
     val listState = rememberLazyListState()
 
     LaunchedEffect(userRole) { viewModel.setUserRole(userRole) }
@@ -87,13 +82,8 @@ fun ResearchesScreen(
             onResearchTypeSelected = viewModel::onResearchTypeSelected,
             onStrandCheckedChange = viewModel::onStrandCheckedChange,
             onSortOptionSelected = viewModel::onSortOptionSelected,
-            onApplyClick = {
-                scope.launch { sheetState.hide() }.invokeOnCompletion { viewModel.applyFilters() }
-            },
-            onResetClick = {
-                viewModel.resetFilters()
-                if (favoritesOnly) viewModel.setFavoritesOnly(true)
-            }
+            onApplyClick = viewModel::applyFilters,
+            onResetClick = viewModel::resetFilterDraft
         )
     }
     ResearchLibraryContent(
@@ -147,16 +137,14 @@ internal fun ResearchLibraryContent(
         LazyColumn(
             state = listState,
             modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
                 ModernSearchBar(
                     query = uiState.searchQuery,
                     onQueryChange = onQueryChange,
-                    placeholder = "Search title or author",
-                    onFilterClick = onFilterClick,
-                    activeFilterCount = activeCount
+                    placeholder = "Search title or author"
                 )
             }
             item {
@@ -165,12 +153,18 @@ internal fun ResearchLibraryContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    FilterChip(
+                        selected = activeCount > 0,
+                        onClick = onFilterClick,
+                        label = { Text(if (activeCount > 0) "Filters · $activeCount" else "Filter & sort") },
+                        leadingIcon = { Icon(Icons.Outlined.Tune, null, Modifier.size(18.dp)) }
+                    )
                     if (!favoritesOnly && isOnline) {
                         FilterChip(
                             selected = uiState.showFavoritesOnly,
                             onClick = onFavoritesClick,
                             label = { Text("Favorites") },
-                            leadingIcon = { Icon(Icons.Outlined.FavoriteBorder, null, Modifier.size(18.dp)) }
+                            leadingIcon = { Icon(if (uiState.showFavoritesOnly) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, null, Modifier.size(18.dp)) }
                         )
                     }
                     if (onStrandToggle != null) {
@@ -178,7 +172,8 @@ internal fun ResearchLibraryContent(
                             FilterChip(
                                 selected = strand.isSelected,
                                 onClick = { onStrandToggle(strand.name, !strand.isSelected) },
-                                label = { Text(strand.name) }
+                                label = { Text(strand.name) },
+                                leadingIcon = if (strand.isSelected) ({ Icon(Icons.Filled.Check, null, Modifier.size(18.dp)) }) else null
                             )
                         }
                     }
@@ -201,11 +196,26 @@ internal fun ResearchLibraryContent(
                 }
             }
             item {
-                Text(
-                    if (uiState.isLoading) "Loading papers…" else if (uiState.error != null && papers.isEmpty()) "Paper count unavailable" else "${papers.size} ${if (papers.size == 1) "paper" else "papers"} · ${uiState.selectedSortOption.displayName}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            if (hasSearchFilters) "Search results" else if (uiState.showFavoritesOnly || favoritesOnly) "Favorite papers" else "Research papers",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f).semantics { heading() }
+                        )
+                        if (!uiState.isLoading && (uiState.error == null || papers.isNotEmpty())) MetadataBadge("${papers.size}")
+                    }
+                    Text(
+                        if (uiState.isLoading) "Loading papers…" else if (uiState.error != null && papers.isEmpty()) "Paper count unavailable" else when (uiState.selectedSortOption) {
+                            SortOption.DateNewest -> "Newest first"
+                            SortOption.DateOldest -> "Oldest first"
+                            SortOption.TitleAZ -> "Title, A to Z"
+                            SortOption.TitleZA -> "Title, Z to A"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             if (!isOnline) {
                 item {
@@ -227,17 +237,18 @@ internal fun ResearchLibraryContent(
                         message = if (hasSearchFilters) "Try another title or clear the filters." else if (!isOnline) "Connect to the internet and browse Research to save paper details. Open a PDF while online to make it available for offline reading." else if (uiState.showFavoritesOnly) "Tap the heart on a paper in Research to save it here." else "Teacher papers and approved student research appear here. Groups can prepare a submission from Home.",
                         actionLabel = if (hasSearchFilters) "Clear filters" else "Refresh papers",
                         onAction = if (hasSearchFilters) onClearFilters else onRefresh,
+                        icon = if (hasSearchFilters) Icons.Outlined.SearchOff else if (uiState.showFavoritesOnly) Icons.Outlined.FavoriteBorder else Icons.Outlined.MenuBook,
                         guidance = if (isOnline && !hasSearchFilters && !uiState.showFavoritesOnly) listOf(
                             "For students" to "Create or join a group from Home, then submit your research PDF for teacher review.",
                             "For teachers" to "Add research from Home or approve a submitted group paper."
                         ) else emptyList()
                     )
                 }
-                else -> itemsIndexed(papers, key = { _, paper -> paper.id }) { index, paper ->
+                else -> items(papers, key = { paper -> paper.id }) { paper ->
                     ModernResearchCard(
                         research = paper,
                         onClick = { onPaperClick(paper) },
-                        onLongClick = { onManageClick?.invoke(paper) },
+                        onLongClick = onManageClick?.let { manage -> { manage(paper) } },
                         onFavoriteClick = if (isOnline) ({ onFavoriteClick(paper) }) else null,
                         isFavorite = paper.id in uiState.favoriteResearchIds,
                         isFavoriteUpdating = paper.id in uiState.favoriteUpdateInProgressIds,
@@ -269,7 +280,7 @@ private fun calculateActiveFilterCount(uiState: ResearchesUiState): Int =
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun FilterBottomSheet(
+internal fun FilterBottomSheet(
     uiState: ResearchesUiState,
     sheetState: SheetState,
     onDismiss: () -> Unit,
@@ -279,6 +290,9 @@ private fun FilterBottomSheet(
     onApplyClick: () -> Unit,
     onResetClick: () -> Unit,
 ) {
+    val filters = uiState.filterDraft ?: ResearchFilterOptions(
+        uiState.selectedResearchType, uiState.strands.filter { it.isSelected }.map { it.name }.toSet(), uiState.selectedSortOption
+    )
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -299,22 +313,25 @@ private fun FilterBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "Filter & Sort",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Filter & sort", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
                 TextButton(
                     onClick = onResetClick,
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Reset All", fontWeight = FontWeight.SemiBold)
+                    Text("Reset", fontWeight = FontWeight.SemiBold)
                 }
             }
 
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 20.dp),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            Text(
+                "Choose your filters, then apply to update the library.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
             )
 
             // --- Scrollable Filter Options ---
@@ -332,7 +349,7 @@ private fun FilterBottomSheet(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             ResearchType.entries.forEach { type ->
-                                val isSelected = uiState.selectedResearchType == type
+                                val isSelected = filters.researchType == type
                                 ModernFilterChip(
                                     label = type.name.lowercase().replaceFirstChar { it.titlecase() },
                                     isSelected = isSelected,
@@ -354,8 +371,8 @@ private fun FilterBottomSheet(
                             uiState.strands.forEach { strand ->
                                 ModernFilterChip(
                                     label = strand.name,
-                                    isSelected = strand.isSelected,
-                                    onClick = { onStrandCheckedChange(strand.name, !strand.isSelected) }
+                                    isSelected = strand.name in filters.strands,
+                                    onClick = { onStrandCheckedChange(strand.name, strand.name !in filters.strands) }
                                 )
                             }
                         }
@@ -367,7 +384,7 @@ private fun FilterBottomSheet(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         FilterSectionTitle(icon = Icons.AutoMirrored.Filled.Sort, title = "Sort By")
                         SortByDropdown(
-                            selectedOption = uiState.selectedSortOption,
+                            selectedOption = filters.sortOption,
                             onOptionSelected = onSortOptionSelected
                         )
                     }
@@ -380,17 +397,11 @@ private fun FilterBottomSheet(
                 tonalElevation = 0.dp,
                 shadowElevation = 0.dp
             ) {
-                Button(
-                    onClick = onApplyClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                        .heightIn(min = 48.dp),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Icon(Icons.Default.FilterList, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Apply Filters", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.heightIn(min = 48.dp)) { Text("Cancel") }
+                    Button(onClick = onApplyClick, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                        Text("Apply filters", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
         }
