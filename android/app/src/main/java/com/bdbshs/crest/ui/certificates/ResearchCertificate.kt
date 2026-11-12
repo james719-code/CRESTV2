@@ -9,6 +9,8 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.graphics.text.LineBreaker
+import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -164,13 +166,18 @@ internal object ResearchCertificateRenderer {
             letterSpacing = tracking
         }
         var candidateSize = size
+        val breakStrategy = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            LineBreaker.BREAK_STRATEGY_BALANCED
+        } else {
+            Layout.BREAK_STRATEGY_BALANCED
+        }
         while (candidateSize >= minimumSize) {
             paint.textSize = candidateSize
             val layout = StaticLayout.Builder.obtain(content, 0, content.length, paint, bounds.width().toInt())
                 .setAlignment(Layout.Alignment.ALIGN_CENTER)
                 .setIncludePad(false)
                 .setLineSpacing(2f, 1f)
-                .setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED)
+                .setBreakStrategy(breakStrategy)
                 .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
                 .build()
             if (layout.height <= bounds.height()) {
