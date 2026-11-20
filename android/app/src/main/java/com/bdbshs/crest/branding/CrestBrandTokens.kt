@@ -1,4 +1,4 @@
-// Generated from brand.tokens.json v1.0.0. Do not edit directly.
+// Generated from brand.tokens.json v1.1.0. Do not edit directly.
 // Uses the bundled inter_* font resources in the Android app.
 package com.bdbshs.crest.branding
 
@@ -17,7 +17,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bdbshs.crest.R
 
-const val CrestBrandVersion = "1.0.0"
+const val CrestBrandVersion = "1.1.0"
+const val CrestBrandName = "CREST"
+const val CrestBrandDescriptor = "School research library"
+const val CrestBrandTagline = "School research, shared."
+const val CrestWordmarkTrackingEm = 0.06f
 
 val CrestInter = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),

@@ -4,13 +4,13 @@
     <!-- Base application theme with SplashScreen support -->
     <style name="Theme.CREST" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Match splash screen background with app background -->
-        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowBackground">@color/crest_splash_background</item>
     </style>
 
     <!-- Splash screen theme - used before MainActivity starts -->
     <style name="Theme.CREST.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/splash_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenBackground">@color/crest_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/crest_splash</item>
         <item name="postSplashScreenTheme">@style/Theme.CREST</item>
     </style>
 
