@@ -17,7 +17,6 @@ import { displayDate, initials, studentAccountStatus, type Workspace } from '../
 import { StudentAccountActions, type ReviewStudent } from './student-account-actions'
 import { EmptyState, LabeledFilter, SearchInput, StrandBadge } from './workspace'
 import type { ReaderTarget } from '../routing'
-import { ResearchArt } from './research-art'
 import { ListPagination } from './list-pagination'
 import { pageWindow } from '../workspace-index'
 import { useCardLayout } from './use-card-layout'
@@ -81,22 +80,12 @@ export function ResearchLibrary({
         <div className="paper-grid">
           {pagination.rows.map((paper) => (
             <article className="research-card" key={`${paper.type}-${paper.id}`}>
-              <div className={`research-cover tone-${paper.strand.toLowerCase()}`}>
-                <div>
-                  <span className="card-eyebrow">The CREST collection</span>
-                  <strong>
-                    Ideas worth
-                    <br />
-                    sharing.
-                  </strong>
-                  <span className="cover-format">Research paper · PDF</span>
-                </div>
-                <ResearchArt />
+              <div className="research-card-top">
                 <StrandBadge strand={paper.strand} />
+                <Badge variant="outline" className="research-type">
+                  {paper.type}
+                </Badge>
               </div>
-              <Badge variant="outline" className="research-type">
-                {paper.type}
-              </Badge>
               <h3>{paper.title}</h3>
               <p>{paper.members.join(', ') || 'Authors not recorded'}</p>
               <div className="research-card-bottom">

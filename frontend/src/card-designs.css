@@ -9,17 +9,24 @@
   color: var(--muted-foreground);
 }
 .tone-stem {
-  --folio-color: var(--crest-color-primary);
-  --folio-tint: var(--crest-color-primary-container);
+  --folio-color: var(--crest-color-on-strand-stem);
+  --folio-tint: var(--crest-color-strand-stem);
 }
 .tone-humss {
-  --folio-color: var(--crest-color-tertiary);
-  --folio-tint: var(--crest-color-tertiary-container);
+  --folio-color: var(--crest-color-on-strand-humss);
+  --folio-tint: var(--crest-color-strand-humss);
 }
-.tone-abm,
+.tone-abm {
+  --folio-color: var(--crest-color-on-strand-abm);
+  --folio-tint: var(--crest-color-strand-abm);
+}
 .tone-tvl {
-  --folio-color: var(--crest-color-secondary);
-  --folio-tint: var(--crest-color-secondary-container);
+  --folio-color: var(--crest-color-on-strand-tvl);
+  --folio-tint: var(--crest-color-strand-tvl);
+}
+.tone-gas {
+  --folio-color: var(--crest-color-on-strand-gas);
+  --folio-tint: var(--crest-color-strand-gas);
 }
 .student-card-list {
   grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
@@ -91,6 +98,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: 0.4rem;
   color: var(--muted-foreground);
   font-size: 0.75rem;
@@ -112,7 +120,7 @@
   height: 1.5rem;
   border: 1px solid var(--border);
   border-radius: 50%;
-  font-size: 0.6875rem;
+  font-size: var(--crest-type-label-medium-size);
   font-weight: 600;
 }
 .research-steps .step-current {

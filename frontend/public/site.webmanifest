@@ -1,0 +1,23 @@
+{
+  "name": "CREST",
+  "short_name": "CREST",
+  "description": "School research library",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#2457D6",
+  "background_color": "#F5F7FB",
+  "icons": [
+    {
+      "src": "/crest-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/crest-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

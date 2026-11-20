@@ -27,7 +27,7 @@ body:has(.reader-unavailable) {
   align-items: center;
   gap: 10px;
   font-size: 1.125rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.025em;
 }
 .reader-brand small {
@@ -51,10 +51,10 @@ body:has(.reader-unavailable) {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--crest-radius-card);
   overflow: hidden;
   background: var(--card);
-  box-shadow: 0 3px 16px rgb(10 30 60 / 4%);
+  box-shadow: none;
 }
 .reader-toolbar {
   display: flex;
@@ -67,8 +67,8 @@ body:has(.reader-unavailable) {
   background: var(--card);
 }
 .reader-toolbar [data-slot='button'] {
-  min-height: 40px;
-  font-size: 0.8125rem;
+  min-height: var(--control-height);
+  font-size: var(--crest-type-label-large-size);
 }
 .reader-page-controls,
 .reader-zoom-controls {
@@ -89,9 +89,9 @@ body:has(.reader-unavailable) {
 }
 .reader-page-form input {
   width: 3.6rem;
-  min-height: 38px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  min-height: var(--crest-size-touch-minimum);
+  border: 1px solid var(--crest-color-outline);
+  border-radius: var(--crest-radius-control);
   padding: 4px;
   background: var(--background);
   color: var(--foreground);
@@ -117,10 +117,10 @@ body:has(.reader-unavailable) {
   flex: 1;
   min-height: 0;
   position: relative;
-  background: #e5e8ee;
+  background: var(--crest-color-surface-container-highest);
 }
 :root[data-theme='dark'] .reader-viewport {
-  background: #202733;
+  background: var(--crest-color-surface-container-highest);
 }
 .reader-scroll {
   position: absolute;
@@ -211,7 +211,7 @@ body:has(.reader-unavailable) {
 }
 .reader-info h1 {
   font-size: clamp(1.2rem, 1.4vw, 1.5rem);
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.55;
   overflow-wrap: anywhere;
   letter-spacing: -0.02em;
@@ -349,7 +349,7 @@ body:has(.reader-unavailable) {
 }
 .reader-unavailable h1 {
   font-size: 1.5rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 .reader-unavailable p {
   color: var(--muted-foreground);
@@ -441,7 +441,7 @@ body:has(.reader-unavailable) {
     margin-left: 0;
   }
   .reader-bottom-status {
-    font-size: 0.6875rem;
+    font-size: var(--crest-type-label-medium-size);
     padding: 10px;
   }
   .reader-find > span {

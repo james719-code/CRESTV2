@@ -7,13 +7,14 @@
   flex-wrap: wrap;
 }
 .planning-heading h2 {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: var(--crest-type-title-large-size);
+  font-weight: var(--crest-type-title-large-weight);
+  line-height: var(--crest-type-title-large-line-height);
   margin: 0 0 0.4rem;
 }
 .planning-heading p {
   color: var(--muted-foreground);
-  font-size: 0.9rem;
+  font-size: var(--crest-type-body-medium-size);
   margin: 0;
   max-width: 45rem;
 }
@@ -62,24 +63,26 @@
   color: var(--muted-foreground);
 }
 button.deadline-label {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  min-height: var(--control-height);
+  padding: var(--crest-space-sm) var(--crest-space-compact);
+  border: 1px solid var(--crest-color-outline);
+  border-radius: var(--crest-radius-control);
 }
 button.deadline-label[aria-pressed='true'] {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  border-color: var(--primary);
+  background: var(--accent);
+  color: var(--accent-foreground);
 }
 .deadline-label.overdue {
   color: var(--destructive);
   font-weight: 700;
 }
 .deadline-label.today {
-  color: var(--foreground);
+  color: var(--crest-color-on-warning);
   font-weight: 700;
 }
 .deadline-label.completed {
-  color: var(--primary);
+  color: var(--crest-color-on-success);
 }
 .milestone-list,
 .inbox-list {
@@ -101,8 +104,9 @@ button.deadline-label[aria-pressed='true'] {
   flex: 1 1 17rem;
 }
 .milestone-main h3 {
-  font-weight: 650;
-  font-size: 1rem;
+  font-weight: var(--crest-type-title-medium-weight);
+  font-size: var(--crest-type-title-medium-size);
+  line-height: var(--crest-type-title-medium-line-height);
   margin: 0.55rem 0 0.3rem;
   overflow-wrap: anywhere;
 }
@@ -151,13 +155,15 @@ button.deadline-label[aria-pressed='true'] {
   min-width: 0;
 }
 .inbox-content h3 {
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: var(--crest-type-title-medium-size);
+  font-weight: var(--crest-type-title-medium-weight);
+  line-height: var(--crest-type-title-medium-line-height);
   margin: 0.35rem 0;
   overflow-wrap: anywhere;
 }
 .inbox-content p {
-  font-size: 0.95rem;
+  font-size: var(--crest-type-body-medium-size);
+  line-height: var(--crest-type-body-medium-line-height);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   margin: 0 0 0.5rem;

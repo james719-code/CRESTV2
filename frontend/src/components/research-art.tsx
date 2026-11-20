@@ -83,7 +83,7 @@ export function ResearchSteps({ status }: { status?: GroupStatus }) {
       className={`research-steps steps-${status || 'unassigned'}`}
       aria-label="Group submission stages"
     >
-      {['Preparing', status === 'changes' ? 'Revising' : 'Review', 'Approved'].map(
+      {['Not submitted', status === 'changes' ? 'Changes requested' : 'Pending review', 'Approved'].map(
         (label, index) => (
           <li
             key={label}

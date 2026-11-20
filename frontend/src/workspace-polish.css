@@ -11,7 +11,7 @@
   border-right-color: var(--hairline);
 }
 .brand-lockup .wordmark {
-  color: var(--primary);
+  color: var(--foreground);
 }
 .workspace-switch {
   border-color: var(--hairline);
@@ -50,7 +50,7 @@
   border-radius: 999px;
   background: var(--primary);
   color: var(--primary-foreground);
-  font-weight: 650;
+  font-weight: 600;
 }
 .neutral-count {
   background: color-mix(in srgb, var(--foreground) 10%, transparent);
@@ -77,7 +77,7 @@
   border-bottom-color: var(--hairline);
 }
 .breadcrumb strong {
-  font-weight: 650;
+  font-weight: 600;
 }
 .global-search {
   padding: 0.55rem 0.9rem;
@@ -117,7 +117,7 @@
 }
 .page-heading h1 {
   font-size: 2.125rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: -0.035em;
 }
 .page-heading p {
@@ -166,7 +166,7 @@
 }
 .stat-bottom strong {
   font-size: 2.5rem;
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: -0.04em;
 }
 
@@ -185,16 +185,16 @@
 }
 .progress-card-footer {
   color: var(--crest-color-secondary);
-  font-weight: 550;
+  font-weight: 600;
 }
 
 /* ---------- Tables, filters, badges ---------- */
 .filter-tabs[data-slot='tabs-list'] {
-  border-radius: 999px;
+  border-radius: var(--crest-radius-card);
   background: var(--background);
 }
 .filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger'] {
-  border-radius: 999px;
+  border-radius: var(--crest-radius-control);
 }
 .filter-tabs[data-slot='tabs-list'] [data-slot='tabs-trigger'][data-state='active'] {
   border-color: var(--primary);
@@ -209,7 +209,7 @@
 }
 [data-slot='table-head'] {
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -217,20 +217,20 @@
   background: var(--tile-blue);
 }
 .status-badge {
-  gap: 0.4rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
+  gap: var(--crest-space-xs);
+  padding: var(--crest-space-xs) var(--crest-space-sm);
+  border-radius: var(--crest-radius-pill);
 }
 .status-dot {
   width: 7px;
   height: 7px;
 }
 .strand-badge {
-  border-radius: 999px;
-  padding: 0.2rem 0.65rem;
+  border-radius: var(--crest-radius-pill);
+  padding: var(--crest-space-xs) var(--crest-space-sm);
 }
 .row-action {
-  border-radius: 0.6rem;
+  border-radius: var(--crest-radius-control);
 }
 .row-action:hover {
   background: var(--tile-blue);
@@ -245,10 +245,8 @@
     background-color 150ms;
 }
 .research-card:hover {
-  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
-  box-shadow:
-    0 1px 2px rgb(16 28 54 / 6%),
-    0 8px 20px -10px rgb(16 28 54 / 18%);
+  border-color: var(--crest-color-outline);
+  box-shadow: none;
 }
 .recent-paper:hover {
   background: var(--tile-blue);
@@ -263,7 +261,7 @@
   border-radius: 1rem;
 }
 .page-footer .wordmark {
-  color: var(--primary);
+  color: var(--foreground);
 }
 
 /* ---------- Dialogs and menus ---------- */

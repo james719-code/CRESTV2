@@ -89,13 +89,13 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
               MADE FOR YOUR SCHOOL COMMUNITY
             </Badge>
             <h1>
-              Your school’s research.
+              School research,
               <br />
-              <span>Always within reach.</span>
+              <span>shared.</span>
             </h1>
             <p>
-              Download CREST for Android to find research, read papers, and work with your group.
-              Teachers can follow progress and guide the next step right here on the web.
+              CREST helps students and teachers find, submit, review, and preserve school research.
+              Read and submit papers in the Android app, or manage research in the teacher workspace.
             </p>
             <div className="landing-hero-actions">
               <Button size="lg" asChild>
@@ -201,15 +201,15 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
                   <div className="preview-legend">
                     <span>
                       <i />
-                      Preparing
+                      Not submitted
                     </span>
                     <span>
                       <i />
-                      In review
+                      Pending review
                     </span>
                     <span>
                       <i />
-                      Revising
+                      Changes requested
                     </span>
                     <span>
                       <i />
@@ -319,9 +319,9 @@ export function LandingPage({ isDemo, signedIn, onSignIn, onWorkspace }: Landing
                 for review, making changes, or ready for the library.
               </p>
               <div className="feature-statuses">
-                <span>Preparing</span>
+                <span>Not submitted</span>
                 <ArrowRight size={13} />
-                <span>In review</span>
+                <span>Pending review</span>
                 <ArrowRight size={13} />
                 <span>
                   <Check size={13} />

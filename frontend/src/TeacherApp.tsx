@@ -412,6 +412,8 @@ function TeacherApp({
           error={service.error}
           signingIn={signingIn}
           authError={authError}
+          account={service.account}
+          onRegister={service.register}
           onLogin={login}
           onRetry={service.refresh}
           onLogout={() =>

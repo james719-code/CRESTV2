@@ -176,7 +176,7 @@ export interface UploadInput {
 }
 
 export const statusLabels: Record<GroupStatus, string> = {
-  preparing: 'Preparing research',
+  preparing: 'Not submitted',
   pending: 'Pending review',
   changes: 'Changes requested',
   approved: 'Approved',

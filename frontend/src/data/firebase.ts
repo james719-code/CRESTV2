@@ -11,9 +11,11 @@ import {
   arrayUnion,
   collection,
   doc,
+  getDoc,
   getFirestore,
   onSnapshot,
   runTransaction,
+  setDoc,
   type Unsubscribe,
 } from 'firebase/firestore'
 import type {
@@ -27,6 +29,7 @@ import type {
 } from '../domain'
 import { validateReview } from '../domain'
 import { mapGroup, WorkspaceSnapshot, type WorkspaceSource } from './workspace-snapshot'
+import type { AccountInfo, SessionState } from './session'
 import { reviewStudentAccount } from './student-accounts'
 import { deleteDeclinedStudent, deleteResearchGroup } from './workspace-deletion'
 import { clearSchoolFileCache, deleteFile, uploadFile } from './storage'
@@ -59,10 +62,11 @@ const paths = {
 } as const
 
 const string = (value: unknown) => (typeof value === 'string' ? value : '')
-export type SessionState = 'loading' | 'signed-out' | 'ready' | 'denied' | 'error'
+export type { AccountInfo, SessionState } from './session'
 
 export function observeWorkspace(callbacks: {
   session: (status: SessionState, teacher: Teacher | null) => void
+  account?: (account: AccountInfo | null) => void
   data: (workspace: Workspace) => void
   error: (message: string) => void
 }) {
@@ -81,10 +85,13 @@ export function observeWorkspace(callbacks: {
       clearData()
       if (!user) {
         void clearSchoolFileCache()
+        callbacks.account?.(null)
         callbacks.session('signed-out', null)
         return
       }
+      callbacks.account?.({ name: user.displayName ?? '', email: user.email ?? '' })
       callbacks.session('loading', null)
+      let roleVersion = 0
       let watching = false
       let ready = false
       stopRole = onSnapshot(
@@ -95,9 +102,25 @@ export function observeWorkspace(callbacks: {
             clearData()
             watching = false
             ready = false
-            callbacks.session('denied', null)
+            const version = ++roleVersion
+            if (role.exists()) {
+              callbacks.session('pending', null)
+              return
+            }
+            // No teacher profile: tell new people apart from student accounts.
+            getDoc(doc(db, paths.students, user.uid))
+              .then((student) => {
+                if (version !== roleVersion) return
+                callbacks.session(student.exists() ? 'student' : 'unregistered', null)
+              })
+              .catch(() => {
+                if (version !== roleVersion) return
+                callbacks.error('Your account could not be checked. Check your connection and try again.')
+                callbacks.session('error', null)
+              })
             return
           }
+          roleVersion++
           const data = role.data()
           const teacher: Teacher = {
             id: user.uid,
@@ -165,6 +188,28 @@ export function observeWorkspace(callbacks: {
 
 export async function login() {
   await signInWithPopup(auth, new GoogleAuthProvider())
+}
+
+/**
+ * Creates the signed-in person's own pending teacher profile. The email always comes from
+ * the Google account (the security rules require them to match), never from a form.
+ */
+export async function registerTeacher(name: string) {
+  const user = auth.currentUser
+  if (!user) throw new Error('Sign in again before registering.')
+  const cleanName = name.trim()
+  if (!cleanName) throw new Error('Enter your full name.')
+  if (cleanName.length > 200) throw new Error('Use a shorter name.')
+  if (!user.email) throw new Error('This Google account has no email address. Use a different account.')
+  if ((await getDoc(doc(db, paths.students, user.uid))).exists())
+    throw new Error('This account is registered as a student. Use a teacher account.')
+  await setDoc(doc(db, paths.teachers, user.uid), {
+    name: cleanName,
+    email: user.email,
+    access: false,
+    upload_count: 0,
+    uid: user.uid,
+  })
 }
 
 export async function logout() {

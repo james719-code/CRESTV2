@@ -43,7 +43,7 @@ import {
 import { indexWorkspace, pageWindow } from '../workspace-index'
 import { useCardLayout } from './use-card-layout'
 import { ListPagination } from './list-pagination'
-import { ResearchArt, ResearchSteps } from './research-art'
+import { ResearchSteps } from './research-art'
 import type { GroupDeletionOperation } from '../data/group-deletions'
 
 function GroupDeletionNotice({
@@ -96,7 +96,7 @@ export function EmptyState({
 }) {
   return (
     <div className="empty-state">
-      <ResearchArt variant="empty" />
+      <span className="empty-icon" aria-hidden="true"><FileMagnifyingGlass size={32} /></span>
       <h3>{title}</h3>
       <p>{description}</p>
       {action}
@@ -170,7 +170,7 @@ const groupFilters: { value: 'all' | GroupStatus; label: string }[] = [
   { value: 'pending', label: statusLabels.pending },
   { value: 'changes', label: statusLabels.changes },
   { value: 'approved', label: statusLabels.approved },
-  { value: 'preparing', label: 'Preparing' },
+  { value: 'preparing', label: statusLabels.preparing },
 ]
 
 export function GroupTable({
@@ -803,7 +803,7 @@ export function SummaryStrip({
       description: pending ? 'Ready for your feedback' : 'You’re all caught up',
       icon: FileMagnifyingGlass,
       page: 'reviews' as const,
-      color: 'amber',
+      color: 'blue',
     },
     {
       title: 'Approved research',

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { GroupDeletionTracker, withGroupDeletions } from './group-deletions'
 import { createDemoWorkspace } from './demo'
 import { readDemoFile, saveDemoFile } from './demoFiles'
-import type { SessionState } from './firebase'
+import { lacksTeacherAccess, type AccountInfo, type SessionState } from './session'
 import { isDemo, validConfig } from './config'
 import { checkMilestoneVersion, validateMilestone } from './milestones'
 import { identifyNotifications, inboxCandidates, mergeNotifications } from './inbox'
@@ -59,6 +59,7 @@ export function useWorkspace() {
     isDemo ? createDemoWorkspace().teachers[0] : null,
   )
   const [session, setSession] = useState<SessionState>(isDemo ? 'ready' : 'loading')
+  const [account, setAccount] = useState<AccountInfo | null>(null)
   const [error, setError] = useState('')
   const [inboxError, setInboxError] = useState('')
   const [inboxRetry, setInboxRetry] = useState(0)
@@ -115,15 +116,16 @@ export function useWorkspace() {
             // Reconnecting after the public page is not an account change.
             const nextAccount =
               currentTeacher?.id ??
-              (state === 'signed-out' || state === 'denied' ? null : accountId.current)
+              (state === 'signed-out' || lacksTeacherAccess(state) ? null : accountId.current)
             if (accountId.current !== nextAccount) {
               accountId.current = nextAccount
               groupDeletionTracker.reset()
             }
             setSession(state)
             setTeacher(currentTeacher)
-            if (state === 'denied' || state === 'signed-out') setWorkspace(emptyWorkspace)
+            if (lacksTeacherAccess(state) || state === 'signed-out') setWorkspace(emptyWorkspace)
           },
+          account: setAccount,
           data: (data) => {
             setWorkspace(data)
             setError('')
@@ -298,6 +300,7 @@ export function useWorkspace() {
     groupDeletions: groupDeletions.operations,
     teacher,
     session,
+    account,
     isDemo,
     error,
     inboxError,
@@ -309,6 +312,7 @@ export function useWorkspace() {
       setRetry((value) => value + 1)
     },
     login: async () => (await import('./firebase')).login(),
+    register: async (name: string) => (await import('./firebase')).registerTeacher(name),
     logout: async () => (await import('./firebase')).logout(),
     review,
     approveAccount,

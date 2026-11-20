@@ -10,13 +10,13 @@
   top: 6.5rem;
   padding: 1.25rem;
   border: 1px solid var(--hairline);
-  border-radius: 1.25rem;
+  border-radius: var(--crest-radius-card);
   background: var(--card);
 }
 .help-contents > p {
   margin: 0 0 0.5rem 0.5rem;
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted-foreground);
@@ -31,7 +31,8 @@
 .help-contents button {
   width: 100%;
   padding: 0.55rem 0.75rem;
-  border-radius: 0.6rem;
+  min-height: var(--control-height);
+  border-radius: var(--crest-radius-control);
   text-align: left;
   font-size: 0.875rem;
   color: var(--muted-foreground);
@@ -51,7 +52,7 @@
   justify-items: start;
   padding: 1.75rem;
   border: 1px solid var(--hairline);
-  border-radius: 1.5rem;
+  border-radius: var(--crest-radius-card);
   background: var(--card);
   scroll-margin-top: 6.5rem;
 }
@@ -62,14 +63,15 @@
 }
 .help-card-heading h2 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: var(--crest-type-title-large-size);
+  font-weight: var(--crest-type-title-large-weight);
+  line-height: var(--crest-type-title-large-line-height);
 }
 .help-card-heading p {
   margin: 0.375rem 0 0;
   color: var(--muted-foreground);
-  line-height: 1.7;
+  font-size: var(--crest-type-body-medium-size);
+  line-height: var(--crest-type-body-medium-line-height);
 }
 .help-icon {
   display: grid;
@@ -253,6 +255,6 @@
 @media (max-width: 600px) {
   .help-card {
     padding: 1.25rem;
-    border-radius: 1.25rem;
+    border-radius: var(--crest-radius-card);
   }
 }

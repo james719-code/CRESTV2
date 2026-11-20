@@ -38,7 +38,7 @@ export function Overview({
   const pendingAngle = approvedAngle + (total ? (counts.pending / total) * 360 : 0)
   const changesAngle = pendingAngle + (total ? (counts.changes / total) * 360 : 0)
   const ring = total
-    ? `conic-gradient(var(--crest-color-secondary) 0deg ${approvedAngle}deg, var(--primary) ${approvedAngle}deg ${pendingAngle}deg, #d29a35 ${pendingAngle}deg ${changesAngle}deg, var(--crest-color-outline-variant) ${changesAngle}deg 360deg)`
+    ? `conic-gradient(var(--crest-color-on-success) 0deg ${approvedAngle}deg, var(--primary) ${approvedAngle}deg ${pendingAngle}deg, var(--crest-color-on-warning) ${pendingAngle}deg ${changesAngle}deg, var(--crest-color-outline-variant) ${changesAngle}deg 360deg)`
     : 'var(--border)'
   return (
     <>

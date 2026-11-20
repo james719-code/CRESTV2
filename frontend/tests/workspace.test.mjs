@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createDemoWorkspace } from '../src/data/demo.ts'
-import { groupStatus, studentGroup, researchType, reviewWorkspace, toCsv } from '../src/domain.ts'
+import { groupStatus, statusLabels, studentGroup, researchType, reviewWorkspace, toCsv } from '../src/domain.ts'
 
 test('submission state takes precedence over old revision feedback', () => {
   const group = createDemoWorkspace().groups[0]
@@ -9,6 +9,15 @@ test('submission state takes precedence over old revision feedback', () => {
   assert.equal(groupStatus({ ...group, comments: ['Revise'], uploaded: false }), 'changes')
   assert.equal(groupStatus({ ...group, comments: ['Revise'], uploaded: true }), 'pending')
   assert.equal(groupStatus({ ...group, comments: ['Revise'], accepted: true }), 'approved')
+})
+
+test('submission labels follow the shared CREST brand vocabulary', () => {
+  assert.deepEqual(statusLabels, {
+    preparing: 'Not submitted',
+    pending: 'Pending review',
+    changes: 'Changes requested',
+    approved: 'Approved',
+  })
 })
 
 test('legacy group IDs and membership both resolve student progress', () => {

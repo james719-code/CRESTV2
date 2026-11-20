@@ -165,7 +165,7 @@ const sections: Section[] = [
         <span className="help-legend">
           <span className="status-badge status-preparing">
             <span className="status-dot" />
-            Preparing research
+            Not submitted
           </span>
           <span className="status-badge status-pending">
             <span className="status-dot" />
