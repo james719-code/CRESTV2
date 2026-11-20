@@ -62,25 +62,27 @@ Use four bundled upright weights: Regular 400, Medium 500, Semibold 600, and Bol
 
 All fifteen Material typography roles are defined in the token file for complete platform mapping. Use the roles above for normal product screens; reserve display sizes for marketing/introductory content. Avoid text smaller than 12 for essential information. Respect system font scaling; use rem on web and sp on Android.
 
-For the text wordmark, use Inter Bold with modest tracking (`0.06em`). Keep it as “CREST,” not five disconnected initials. This is a typographic treatment, not final master logo artwork.
+For the text wordmark, use Inter Bold with modest tracking (`0.06em`). Keep it as “CREST,” not five disconnected initials. The portable lockups contain the outlined Inter Bold letters so they are consistent even on a machine without Inter installed.
 
 Font source: [Inter official release](https://github.com/rsms/inter/releases/tag/v4.1). License and source hashes are kept beside the font files. Retain the bundled license when redistributing them.
 
-## Logo direction
+## Product logo
 
-The existing app icon combines a document, magnifying glass, and a detailed connected outer ring. Keep the document/search idea as continuity with the current identity. A proposed refresh should simplify the outer ring and reduce fine details so the mark is recognizable at small sizes.
+Use the original CREST icon: the blue document-and-magnifying-glass artwork with its connected outer ring. Preserve its original colors, detail and proportions. The legacy mark is the chosen product identity, not a new school seal.
 
-Prepare these deliverables in a future logo pass:
+The original identity is implemented in the website and Android source alongside the refreshed v1.1.0 color and typography system. The master and its platform exports are in [assets/logos/](assets/logos/). The [visual brand board](preview/index.html) demonstrates the system:
 
-1. A simple document/search symbol with strong silhouette and even stroke weight.
-2. A horizontal symbol-plus-CREST lockup, using the Inter wordmark treatment.
-3. One-color ink and reversed white versions.
-4. A favicon/small-symbol export verified at 16px, 24px, and 32px.
-5. Android adaptive foreground/background layers and monochrome artwork, verified under launcher masks.
+| Artwork | When to use it |
+| --- | --- |
+| [Full-color symbol](assets/logos/crest-symbol.svg) | Navigation, sign-in, About and small branding surfaces |
+| [Primary lockup](assets/logos/crest-lockup.svg) | Light backgrounds, presentations and printed materials |
+| [Dark-background lockup](assets/logos/crest-lockup-on-dark.svg) | Dark backgrounds, retaining the blue symbol and reversing the wordmark |
+| [Ink wordmark](assets/logos/crest-wordmark-ink.svg) / [white wordmark](assets/logos/crest-wordmark-white.svg) | One-color text-only use; do not flatten or recolor the detailed legacy icon |
+| [512px app icon](assets/logos/crest-app-icon-512.png) | Store listing and square app icon artwork |
 
-This kit does not replace or redraw the current logo. The preview labels its existing icon as a legacy reference. Do not treat the image as an approved simplified mark.
+Leave clear space of at least half the symbol's height around the horizontal lockup in standalone materials. For UI, prefer 36px/dp or larger to preserve the legacy icon's detail and use a 144px/dp or wider horizontal lockup. Browser favicons are the small-size exception: exports at 16, 24, 32, 48 and 96px use the same artwork. Android launcher layers center the circular artwork inside the central 66dp safe circle; the operating system supplies the launcher mask.
 
-For the proposed lockup, leave clear space of at least half the symbol's height on all sides. Start with a minimum 24px/dp symbol and a 112px/dp horizontal lockup, then validate with final artwork. Do not stretch, rotate, add glow/shadow, recolor arbitrarily, or put the logo over busy content. Use a text wordmark when a symbol is too detailed at its intended size.
+Do not stretch, crop the connected ring, rotate, add glow/shadow, recolor arbitrarily, or put the logo over busy content. Preserve the original light circular base in product UI. Use only the supplied variants and keep institutional artwork separate.
 
 Keep school seals separate from the product mark. Use only approved school artwork when attribution requires it.
 
@@ -107,11 +109,14 @@ Use sentence case, concise labels, and direct verbs. State what happened and the
 | Unreviewed submission | Pending review |
 | Requested changes | Changes requested |
 | Accepted submission | Approved |
+| Not yet submitted | Not submitted |
 | Empty search | No papers match your search. Try another title or clear the filters. |
 | Upload failure | Your file could not be uploaded. Check your connection and try again. |
 | Upload completion | Research submitted for review. |
 | Offline notice | You're offline. Saved papers are available. |
 
 “Upload” refers to transferring a file; “Submit” refers to sending research for review. Keep backend status values unchanged and map them to accurate display labels. “Documents” means school resources/templates; “Research” means research papers. Spell out qualitative and quantitative rather than using QL/QN. Do not label a download count as views unless it actually measures viewing.
+
+Use the same status colors on web and Android: **Pending review** = info (blue), **Changes requested** = warning (amber), **Approved** = success (green), **Not submitted** = neutral. Reserve error red for actual errors, rather than normal revision requests.
 
 Avoid grand claims such as “academic excellence,” ambiguous “Success!” messages, and technical exception details in the interface. Localized versions should preserve meaning rather than translate labels word for word.

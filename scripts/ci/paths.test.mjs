@@ -21,6 +21,7 @@ for (const [label, files, expected] of [
   ['generated web styles only', ['branding/generated/web/crest-tokens.css'], { ...none, web: true }],
   ['generated Android styles only', ['branding/generated/android/CrestBrandTokens.kt'], { ...none, android: true }],
   ['shared font source', ['branding/assets/fonts/Inter-Regular.ttf'], { ...none, android: true, web: true }],
+  ['shared logo master', ['branding/assets/logos/mark.json'], { ...none, android: true, web: true }],
   ['Firebase rules only', ['firebase/firestore.rules'], { ...none, backend: true }],
   ['Supabase function only', ['supabase/functions/crest-storage/index.ts'], { ...none, backend: true }],
   ['backend tests stored under frontend', ['frontend/backend-tests/firestore.rules.test.mjs'], { ...none, backend: true }],

@@ -16,6 +16,7 @@ Share identity, language, color meanings, type hierarchy, and component intent. 
 | Shape | `--crest-radius-control`, `-card`, `-sheet` | `CrestRadii` / `CrestShapes` |
 | Interaction size | `--crest-size-touch-minimum` | `CrestSizes.touchMinimum` |
 | Motion | `--crest-motion-fast`, `-standard` | `CrestMotion.fast`, `standard` in milliseconds |
+| Product logo | `public/crest-logo.svg` and generated browser icons | `R.drawable.crest_mark`, adaptive and fallback launcher resources |
 
 ## Web installation
 
@@ -45,6 +46,8 @@ body {
 
 Use semantic HTML, actual labels, visible keyboard focus, and buttons/links with the correct behavior. The generated CSS supplies values, not a component library. Define hover, focus, disabled, loading, and error states in the components. Use the `outline` color for meaningful input/control boundaries; `outlineVariant` is for decorative separators and should not be relied on to identify a control.
 
+The website uses the React primitives in `frontend/src/components/ui/` with the shared role mappings in `index.css`, `appearance.css`, `modern.css`, and `workspace-modern.css`. The baseline control minimum is 48 CSS pixels (larger in easy-reading mode), controls have 12px corners, cards have 16px corners, and dialogs have 24px corners. Use the existing primitives when adding a new page. The research cards share the brand board's metadata, title, authors, and action hierarchy; do not replace the actual research title with decorative cover copy. The PDF viewer uses the same interface colors and controls while keeping the paper itself unchanged.
+
 ## Android installation
 
 The Android application now uses this baseline. The generator writes both the shared Kotlin reference and its installed copy under `android/app/src/main/java/com/bdbshs/crest/branding/`. The steps below describe the integration and how to maintain it.
@@ -54,7 +57,7 @@ The Android application now uses this baseline. The generator writes both the sh
 3. Change `ui/theme/Theme.kt` to pass the generated light/dark scheme, `CrestTypography`, and `CrestShapes` into `MaterialTheme`.
 4. Provide the matching extended color set through a theme `CompositionLocal`. Status and strand badges should consume that theme value; never choose a light-only color directly.
 5. Migrate existing spacing/dimension providers to the generated values or map them explicitly. Remove old aliases only after auditing active call sites.
-6. Update `AppLogo.kt` and the About/sign-in copy to the agreed descriptor and type treatment. Keep existing launcher artwork until replacement masters are prepared.
+6. Use `CrestMark` and `AppLogo` in Compose; the latter uses the generated name, descriptor and wordmark tracking. The manifest selects the generated `crest_launcher` resources, with density PNGs for API 24–25 and adaptive full-color layers for API 26+. Keep the legacy artwork in color rather than flattening its details for a monochrome layer. The system splash has its own safely padded drawable and light/dark background colors.
 7. Build and check real screenshots before removing the old theme definitions.
 
 ```kotlin
@@ -68,6 +71,12 @@ MaterialTheme(
 
 The app bundles all four `R.font.inter_*` resources and the Inter license at `assets/licenses/Inter-OFL.txt`. Its theme consumes the generated schemes and typography and provides extended colors through `MaterialTheme.crestColors`. The generator's `--check` validates the installed Kotlin copy too. Dynamic wallpaper colors are disabled to preserve the branded palette.
 
+Native product screens use the shared wrappers in `ui/components/CrestControls.kt`: `CrestButton`, `CrestOutlinedButton`, `CrestTextButton`, `CrestTonalButton`, `CrestTextField`, `CrestFilterChip`, `CrestCard`, and `CrestOutlinedCard`. Existing call sites may import them as Material names to preserve their familiar signatures. These keep Material accessibility behavior while applying CREST's control sizes, card outlines, and shape roles. Use `PageHeading` / `ContentHeader` for page headings, `StrandBadge` and `SubmissionStatusBadge` for metadata, and `crestScreenGutter()` for the 16dp compact and 32dp wide screen gutters. The legacy color aliases in `ui/theme/Color.kt` now reference generated values; new composables should use the active theme and extended colors instead.
+
+## Shared identity artwork
+
+Maintain the original artwork referenced by `assets/logos/mark.json` and regenerate using `node branding/scripts/generate-logos.mjs`. Do not redraw the logo in CSS or Compose, use the padded launcher artwork in app UI, or add a second mask/shadow. React's `CrestLogo` and Android's `CrestMark` use identical original vector paths and transforms. The generated website manifest, favicon and Apple touch icon use the corresponding original artwork. The existing frontend `npm run logo:sync` and `npm run logo:check` commands forward to the shared generator.
+
 ## Component agreement
 
 | Component | Shared rule | Device adaptation |
@@ -77,7 +86,7 @@ The app bundles all four `R.font.inter_*` resources and the Inter license at `as
 | Research item | Title first, authors second, labeled strand/type metadata; separate favorite action | Full-width phone row; regular grid or wider list on web/tablet when titles remain readable |
 | Search/filter | Search field plus a compact filter/sort entry; show current filters and clear action | Sheet on phones; popover/sidebar where suitable on desktop |
 | Navigation | Stable labeled destinations, consistent names and selected state | Bottom bar on phones; rail or top/side navigation in wider windows |
-| Status badge | Text plus theme-specific paired colors; no color-only meaning | Can wrap or expand with text scaling |
+| Status badge | Approved = success, Pending review = info, Changes requested = warning, Not submitted = neutral; visible text plus paired colors | Can wrap or expand with text scaling |
 | Form field | Persistent label, short help text, specific inline error; meaningful outline | Keyboard insets on Android; keyboard navigation and visible focus on web |
 | Feedback state | Specific title, short explanation, working recovery action when available | Preserve readable width and logical screen-reader order |
 | Dialog/sheet | Clear title, specific action verbs, consequence for destructive actions | Native focus/back behavior; no background interaction while modal |

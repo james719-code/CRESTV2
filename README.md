@@ -63,7 +63,7 @@ For more detail, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Shared Branding
 
-The Android app uses the shared identity in [branding/README.md](branding/README.md): bundled Inter fonts, CREST blue, teal accents, and matching light/dark themes. One token source generates CSS and the app's Compose values. The existing launcher artwork is retained. See [the UI validation report](docs/UI_UPGRADE.md) for the implementation and checks.
+The Android app and website use the shared identity in [branding/README.md](branding/README.md): bundled Inter fonts, CREST blue, teal accents, matching light/dark themes, and the original CREST document/search logo. One token source generates CSS and the app's Compose values; the original artwork generates the logo, browser icons, splash and Android launcher resources. Open the [brand board](branding/preview/index.html) to see the logo variations, palette and components.
 
 ## Tech Stack
 

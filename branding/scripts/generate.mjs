@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
-// Run from any directory. All outputs stay inside this branding folder.
+// Run from any directory. Regenerate the shared references and installed Android copy.
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checking = process.argv.includes('--check');
 const tokens = JSON.parse(await readFile(path.join(root, 'tokens/brand.tokens.json'), 'utf8'));
@@ -85,6 +85,29 @@ for (const name of requiredFonts) {
   if (actual !== record.sha256) fail(`Font hash mismatch: ${name}.`);
   if (name.endsWith('.woff2') && bytes.subarray(0, 4).toString() !== 'wOF2') fail('Invalid WOFF2 signature.');
   if (name.endsWith('.ttf') && bytes.readUInt32BE(0) !== 0x00010000) fail(`Invalid TTF signature: ${name}.`);
+}
+
+// Verify installed Android fonts and distributed license copies as well.
+const installedFonts = {
+  'Inter-Regular.ttf': ['../android/app/src/main/res/font/inter_regular.ttf'],
+  'Inter-Medium.ttf': ['../android/app/src/main/res/font/inter_medium.ttf'],
+  'Inter-SemiBold.ttf': ['../android/app/src/main/res/font/inter_semibold.ttf'],
+  'Inter-Bold.ttf': ['../android/app/src/main/res/font/inter_bold.ttf'],
+  'LICENSE.txt': [
+    '../android/app/src/main/assets/licenses/Inter-OFL.txt',
+    '../frontend/public/licenses/Inter-OFL.txt'
+  ]
+};
+for (const [name, destinations] of Object.entries(installedFonts)) {
+  const source = await readFile(path.join(root, 'assets/fonts', name));
+  for (const destination of destinations) {
+    const installed = await readFile(path.join(root, destination)).catch(() => null);
+    if (!installed?.equals(source)) {
+      if (checking) fail(`Installed font/license is out of date: ${destination}`);
+      await mkdir(path.dirname(path.join(root, destination)), { recursive: true });
+      await writeFile(path.join(root, destination), source);
+    }
+  }
 }
 
 const declaration = (key, value) => `  --crest-${key}: ${value};`;
@@ -175,6 +198,10 @@ import androidx.compose.ui.unit.sp
 import com.bdbshs.crest.R
 
 const val CrestBrandVersion = "${tokens.version}"
+const val CrestBrandName = "${tokens.brand.name}"
+const val CrestBrandDescriptor = "${tokens.brand.descriptor}"
+const val CrestBrandTagline = "${tokens.brand.tagline}"
+const val CrestWordmarkTrackingEm = ${tokens.brand.wordmarkTrackingEm}f
 
 val CrestInter = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
@@ -233,5 +260,5 @@ for (const [name, output] of [
 }
 if (drift) process.exitCode = 1;
 console.log(`${pairCount} contrast pairs passed; lowest text contrast ${minimum.ratio.toFixed(2)}:1 (${minimum.description}).`);
-console.log('Six font/license hashes verified.');
+console.log('Six font/license hashes and installed copies verified.');
 if (checking && !drift) console.log(`Brand v${tokens.version}: generated files are in sync.`);

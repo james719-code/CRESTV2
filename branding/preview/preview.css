@@ -15,7 +15,6 @@ button, .primary { display: inline-flex; align-items: center; justify-content: c
 .topbar { max-width: 1280px; margin: auto; padding: var(--crest-space-lg) var(--crest-space-xl); display: flex; justify-content: space-between; align-items: center; gap: var(--crest-space-md); border-bottom: 1px solid var(--crest-color-outline-variant); }
 .wordmark, .mini-wordmark, .large-wordmark { font-weight: var(--crest-wordmark-weight); letter-spacing: var(--crest-wordmark-tracking); }
 .wordmark { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--crest-color-on-surface); text-decoration: none; font-size: 1.5rem; line-height: 1.5; }
-.brand-dot { background: var(--crest-color-secondary); width: 0.5rem; height: 0.5rem; border-radius: 50%; }
 .topbar-actions { display: flex; align-items: center; gap: var(--crest-space-lg); }
 .edition { font-size: var(--crest-type-body-small-size); color: var(--crest-color-on-surface-variant); }
 .secondary { border: 1px solid var(--crest-color-outline); background: var(--crest-color-surface); color: var(--crest-color-on-surface); }
@@ -32,7 +31,19 @@ h1 span { color: var(--crest-color-primary); }
 .hero-caption { font-size: var(--crest-type-body-small-size); color: var(--crest-color-on-surface-variant); }
 .identity-note { padding: var(--crest-space-xl); border-radius: var(--crest-radius-sheet); background: var(--crest-color-primary-container); color: var(--crest-color-on-primary-container); }
 .number { font-size: var(--crest-type-label-medium-size); font-weight: 500; }
-.large-wordmark { font-size: clamp(2.5rem, 4vw, 3.5rem); line-height: 1.3; margin-top: 2rem; }
+.large-wordmark { display: flex; align-items: center; gap: var(--crest-space-md); font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.3; margin-top: 2rem; color: var(--crest-color-on-surface); }
+.logo-gallery-section { margin-block: var(--crest-space-xxl); }
+.logo-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--crest-space-md); }
+.logo-gallery figure { margin: 0; border: 1px solid var(--crest-color-outline-variant); border-radius: var(--crest-radius-card); overflow: hidden; background: var(--crest-color-surface); }
+.logo-sample { min-height: 9rem; display: flex; align-items: center; justify-content: center; padding: var(--crest-space-lg); gap: var(--crest-space-lg); }
+.logo-sample > img:first-child:last-child { width: min(100%, 13rem); height: auto; }
+.logo-light { background: var(--crest-brand-paper); }
+.logo-dark { background: var(--crest-brand-ink); }
+.logo-gallery figcaption { padding: var(--crest-space-compact) var(--crest-space-md); font-size: var(--crest-type-body-small-size); border-top: 1px solid var(--crest-color-outline-variant); }
+.launcher-masks span { width: 4.5rem; height: 4.5rem; background: var(--crest-brand-paper); border: 1px solid var(--crest-color-outline-variant); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.launcher-masks span img { width: 7.36rem; max-width: none; height: 7.36rem; flex-shrink: 0; }
+.launcher-circle { border-radius: 50%; }
+.launcher-square { border-radius: 23%; }
 .descriptor { margin: var(--crest-space-xs) 0; font-size: var(--crest-type-body-medium-size); }
 .identity-rule { height: 1px; background: currentColor; opacity: .2; margin: var(--crest-space-lg) 0; }
 .identity-note > p:last-of-type { font-size: var(--crest-type-body-medium-size); line-height: 1.6; }
@@ -69,6 +80,7 @@ input::placeholder { color: var(--crest-color-on-surface-variant); opacity: 1; }
 .info { background: var(--crest-color-info); color: var(--crest-color-on-info); }
 .success { background: var(--crest-color-success); color: var(--crest-color-on-success); }
 .warning { background: var(--crest-color-warning); color: var(--crest-color-on-warning); }
+.neutral { background: var(--crest-color-surface-container); color: var(--crest-color-on-surface-variant); }
 .research-type { margin-left: var(--crest-space-sm); font-size: var(--crest-type-label-medium-size); color: var(--crest-color-on-surface-variant); }
 h4 { margin: var(--crest-space-compact) 0 var(--crest-space-xs); font-size: var(--crest-type-title-medium-size); line-height: var(--crest-type-title-medium-line-height); font-weight: 600; }
 .research-row > p { margin: 0; color: var(--crest-color-on-surface-variant); font-size: var(--crest-type-body-medium-size); }
@@ -88,7 +100,7 @@ h4 { margin: var(--crest-space-compact) 0 var(--crest-space-xs); font-size: var(
 .badges { display: flex; flex-wrap: wrap; gap: var(--crest-space-sm); margin-top: var(--crest-space-md); }
 .status-panel > p:last-child { margin-bottom: 0; }
 .logo-panel { display: flex; gap: var(--crest-space-md); align-items: center; }
-.logo-panel img { flex-shrink: 0; border-radius: var(--crest-radius-control); }
+.logo-panel img { flex-shrink: 0; }
 .logo-panel strong { font-size: var(--crest-type-label-large-size); }
 .logo-panel p { margin: var(--crest-space-xs) 0 0; font-size: var(--crest-type-body-small-size); }
 .footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--crest-space-lg); border-top: 1px solid var(--crest-color-outline-variant); margin-top: var(--crest-space-hero); padding: var(--crest-space-xl) 0; }
@@ -97,6 +109,7 @@ h4 { margin: var(--crest-space-compact) 0 var(--crest-space-xs); font-size: var(
 .footer p { color: var(--crest-color-on-surface); }
 .footer p span { color: var(--crest-color-on-surface-variant); }
 @media (max-width: 850px) {
+  .logo-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero { gap: var(--crest-space-xl); grid-template-columns: 1.1fr 1fr; padding: var(--crest-space-xxl) 0; }
   .hero-caption { display: none; }
   .identity-note { padding: var(--crest-space-lg); }
@@ -105,6 +118,7 @@ h4 { margin: var(--crest-space-compact) 0 var(--crest-space-xs); font-size: var(
   .specimen-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
+  .logo-gallery { grid-template-columns: 1fr; }
   main { padding: 0 var(--crest-space-md); }
   .topbar { padding: var(--crest-space-md); }
   .edition { display: none; }

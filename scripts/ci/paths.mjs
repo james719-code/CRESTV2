@@ -12,7 +12,7 @@ export function classifyPaths(paths) {
     if (path === 'netlify.toml') changed.web = true
 
     // These are shared design inputs; generated platform files are independent.
-    if (['branding/tokens/', 'branding/scripts/', 'branding/assets/fonts/'].some(prefix => path.startsWith(prefix))) {
+    if (['branding/tokens/', 'branding/scripts/', 'branding/assets/fonts/', 'branding/assets/logos/'].some(prefix => path.startsWith(prefix))) {
       changed.android = changed.web = true
     }
     if (path.startsWith('branding/generated/android/')) changed.android = true

@@ -18,8 +18,19 @@ No italic face is bundled. Request and include the matching upstream italic face
 
 ## Logo artwork
 
-The current logo stays at `android/app/src/main/ic_launcher-playstore.png` with its existing Android resource versions. The preview reads that file directly; there is no duplicate master in this kit.
+The v1.1.0 kit retains the project's original CREST icon at the user's request. `legacy-symbol.svg` is the previous website export of all 180 paths from the original Android launcher foreground, including its original colors and circular UI transforms. `legacy-symbol-raster.png` is a transparent 512px render of that SVG for bitmap exports. `legacy-original.png` is the original, unchanged 512px store artwork. The wordmark outlines are formed from Inter Bold 4.1 with 0.06em tracking. No third-party logo, school seal or stock artwork was introduced.
 
-This branding proposal defines a simplified document/search direction in the brand guide. Final SVG lockups, monochrome artwork, favicons, and Android adaptive layers remain a separate logo-design deliverable. Do not use CSS text treatments as a substitute for final asset exports in store listings.
+| Files | Use |
+| --- | --- |
+| `mark.json` | References to original artwork and the outlined wordmark |
+| `legacy-symbol.svg`, `legacy-symbol-raster.png`, `legacy-original.png` | Original vector symbol, corresponding raster and original store source |
+| `crest-symbol.svg` | Full-color original circular symbol |
+| `crest-lockup*.svg` | Horizontal primary/light and primary/dark lockups |
+| `crest-wordmark*.svg` | Text-only ink and reversed white wordmarks |
+| `crest-adaptive-*.svg` | Portable 108-unit Android foreground and light background layers |
+| `favicon-*.png`, `favicon.ico` | 16/24/32/48/96px browser artwork; ICO includes 16/32/48px |
+| `apple-touch-icon.png` | 180px Apple touch icon |
+| `web-maskable-*.png` | 192 and 512px full-bleed, mask-safe website icons |
+| `crest-app-icon-512.png` | Square 512px store/source export |
 
-When adding final artwork, create `logos/` here and record its author/source, intended variants, export sizes, and revision. Keep institutional school seals separate from CREST product artwork.
+Keep the original artwork unchanged. Regenerate using `node branding/scripts/generate-logos.mjs` from the repository root. The script preserves all 180 original paths and their colors while producing SVGs, raster images, Android density resources, vectors and launcher configuration, website copies and manifest. It centers the full circle within the adaptive safe area. No alternate monochrome launcher is supplied because flattening the detailed icon would lose its identity. School artwork is unchanged.
