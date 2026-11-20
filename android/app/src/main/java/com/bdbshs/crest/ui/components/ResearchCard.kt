@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.components
 
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -17,6 +19,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.ui.theme.crestColors
+import com.bdbshs.crest.branding.CrestSpacing
+import com.bdbshs.crest.branding.CrestSizes
 import com.bdbshs.crest.ui.viewmodels.ResearchItem
 import com.bdbshs.crest.ui.viewmodels.ResearchType
 import java.text.SimpleDateFormat
@@ -40,36 +44,35 @@ fun ModernResearchCard(
 ) {
     val large = LocalDensity.current.fontScale > 1.3f
     val date = remember(research.createdAt) {
-        if (research.createdAt > 0) SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(research.createdAt)) else null
+        if (research.createdAt > 0) SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(research.createdAt)) else null
     }
     Surface(
         modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             Modifier.combinedClickable(
-                onClickLabel = "View paper", onClick = onClick,
+                onClickLabel = "Read paper", onClick = onClick,
                 onLongClickLabel = if (onManageClick != null || onLongClick != null) "Manage research" else null,
                 onLongClick = onManageClick ?: onLongClick
-            ).padding(start = 20.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            ).padding(CrestSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(CrestSpacing.compact)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 FlowRow(
                     Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(CrestSpacing.sm), verticalArrangement = Arrangement.spacedBy(CrestSpacing.xs)
                 ) {
                     if (research.strand.isNotBlank()) {
-                        val strandColors = strandStyle(research.strand)
-                        MetadataBadge(research.strand, strandColors.container, strandColors.content)
+                        StrandBadge(research.strand)
                     }
                     MetadataBadge(if (research.type == ResearchType.QUALITATIVE) "Qualitative" else "Quantitative")
                     if (research.unfinished) MetadataBadge("In progress", MaterialTheme.crestColors.warning, MaterialTheme.crestColors.onWarning)
                 }
                 onFavoriteClick?.let {
-                    IconButton(onClick = it, enabled = !isFavoriteUpdating, modifier = Modifier.size(48.dp)) {
+                    IconButton(onClick = it, enabled = !isFavoriteUpdating, modifier = Modifier.size(CrestSizes.touchMinimum)) {
                         if (isFavoriteUpdating) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         else Icon(
                             if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -101,9 +104,9 @@ fun ModernResearchCard(
                     "${research.downloads} ${if (research.downloads == 1) "download" else "downloads"}")
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(end = 8.dp))
-            Row(Modifier.fillMaxWidth().heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("View paper", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("Read paper", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 }
                 onManageClick?.let {

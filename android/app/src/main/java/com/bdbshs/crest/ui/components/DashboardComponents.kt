@@ -1,5 +1,9 @@
 package com.bdbshs.crest.ui.components
 
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestCard as Card
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -210,12 +214,13 @@ data class StatTrend(
 
 @Composable
 private fun TrendBadge(trend: StatTrend) {
+    val palette = MaterialTheme.crestColors
+    val (container, content) = if (trend.isPositive) palette.success to palette.onSuccess
+        else MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = if (trend.isPositive) 
-            SuccessGreen.copy(alpha = 0.1f) 
-        else 
-            ErrorRed.copy(alpha = 0.1f)
+        shape = RoundedCornerShape(50),
+        color = container,
+        contentColor = content
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -229,13 +234,13 @@ private fun TrendBadge(trend: StatTrend) {
                     Icons.AutoMirrored.Filled.TrendingDown,
                 contentDescription = null,
                 modifier = Modifier.size(12.dp),
-                tint = if (trend.isPositive) SuccessGreen else ErrorRed
+                tint = content
             )
             Text(
                 text = trend.value,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (trend.isPositive) SuccessGreen else ErrorRed
+                color = content
             )
         }
     }
@@ -361,29 +366,18 @@ fun AnnouncementCard(
     onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val palette = MaterialTheme.crestColors
     val (backgroundColor, iconColor) = when (type) {
-        AnnouncementType.INFO -> Pair(
-            InfoBlue.copy(alpha = 0.1f),
-            InfoBlue
-        )
-        AnnouncementType.SUCCESS -> Pair(
-            SuccessGreen.copy(alpha = 0.1f),
-            SuccessGreen
-        )
-        AnnouncementType.WARNING -> Pair(
-            WarningAmber.copy(alpha = 0.1f),
-            WarningAmber
-        )
-        AnnouncementType.ERROR -> Pair(
-            ErrorRed.copy(alpha = 0.1f),
-            ErrorRed
-        )
+        AnnouncementType.INFO -> palette.info to palette.onInfo
+        AnnouncementType.SUCCESS -> palette.success to palette.onSuccess
+        AnnouncementType.WARNING -> palette.warning to palette.onWarning
+        AnnouncementType.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     }
     
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = backgroundColor, contentColor = iconColor)
     ) {
         Row(
             modifier = Modifier
@@ -465,11 +459,11 @@ fun GroupStatusCard(
     onViewDetails: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val statusColor = when (status) {
-        GroupStatus.PENDING -> WarningAmber
-        GroupStatus.APPROVED -> SuccessGreen
-        GroupStatus.NEEDS_ACTION -> InfoBlue
-        GroupStatus.NO_SUBMISSION -> Gray500
+    val displayStatus = when (status) {
+        GroupStatus.PENDING -> com.bdbshs.crest.branding.CrestSubmissionStatus.PENDING
+        GroupStatus.APPROVED -> com.bdbshs.crest.branding.CrestSubmissionStatus.APPROVED
+        GroupStatus.NEEDS_ACTION -> com.bdbshs.crest.branding.CrestSubmissionStatus.CHANGES
+        GroupStatus.NO_SUBMISSION -> com.bdbshs.crest.branding.CrestSubmissionStatus.NOT_SUBMITTED
     }
     
     Card(
@@ -497,13 +491,13 @@ fun GroupStatusCard(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(PrimaryIndigo.copy(alpha = 0.1f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Groups,
                             contentDescription = null,
-                            tint = PrimaryIndigo,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -523,18 +517,7 @@ fun GroupStatusCard(
                 }
                 
                 // Status badge
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = statusColor.copy(alpha = 0.1f)
-                ) {
-                    Text(
-                        text = status.displayName,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
+                SubmissionStatusBadge(displayStatus)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -544,15 +527,15 @@ fun GroupStatusCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("View Details")
+                Text("View details")
             }
         }
     }
 }
 
 enum class GroupStatus(val displayName: String) {
-    PENDING("Pending Review"),
+    PENDING("Pending review"),
     APPROVED("Approved"),
-    NEEDS_ACTION("Needs Action"),
-    NO_SUBMISSION("No Submission")
+    NEEDS_ACTION("Changes requested"),
+    NO_SUBMISSION("Not submitted")
 }

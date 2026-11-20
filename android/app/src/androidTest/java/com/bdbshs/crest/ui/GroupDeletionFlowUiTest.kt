@@ -84,7 +84,7 @@ class GroupDeletionFlowUiTest {
         compose.onNodeWithText("Delete group", substring = false).performClick()
         compose.onNodeWithText("Research groups").assertIsDisplayed()
         compose.onNodeWithText("Deleting group…").assertExists()
-        compose.onNodeWithText("Group Information").assertDoesNotExist()
+        compose.onNodeWithText("Group information").assertDoesNotExist()
         compose.onNodeWithText("View group details").performScrollTo().assertIsEnabled()
         compose.runOnIdle { completion.complete(Unit) }
         compose.waitUntil(5_000) { deletion.uiState.value.deletedIds.contains("science") }

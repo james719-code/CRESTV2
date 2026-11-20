@@ -1,5 +1,8 @@
 package com.bdbshs.crest.ui.components
 
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,13 +23,12 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
+import com.bdbshs.crest.branding.CrestSpacing
+import com.bdbshs.crest.ui.theme.crestScreenGutter
 
 @Composable
 fun ContentHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-        if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+    PageHeading(title, subtitle.takeIf { it.isNotBlank() }, modifier)
 }
 
 @Composable
@@ -40,7 +42,7 @@ fun FeedbackPanel(
 ) {
     Surface(
         modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.small,
+        shape = MaterialTheme.shapes.medium,
         color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -69,15 +71,7 @@ fun EmptyCollectionPanel(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            Modifier.size(104.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                Modifier.size(72.dp).background(MaterialTheme.colorScheme.surface, CircleShape),
-                contentAlignment = Alignment.Center
-            ) { Icon(icon, null, Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary) }
-        }
+        IconBadge(icon, size = 64.dp)
         Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
         Text(
             message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -87,7 +81,7 @@ fun EmptyCollectionPanel(
         if (guidance.isNotEmpty()) {
             Surface(
                 Modifier.fillMaxWidth().padding(top = 8.dp),
-                shape = MaterialTheme.shapes.large,
+                shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
@@ -134,9 +128,9 @@ internal fun <T> CollectionLayout(
     val refresh = rememberPullRefreshState(isRefreshing, onRefresh)
     Box(modifier.fillMaxSize().pullRefresh(refresh)) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            modifier = Modifier.align(Alignment.TopCenter).widthIn(max = 840.dp).fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = crestScreenGutter(), vertical = CrestSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(CrestSpacing.md)
         ) {
             item { ContentHeader(title, subtitle) }
             item { controls() }

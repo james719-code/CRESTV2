@@ -1,5 +1,13 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestOutlinedButton as OutlinedButton
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestCard as Card
+import com.bdbshs.crest.ui.components.CrestOutlinedCard as OutlinedCard
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.animation.AnimatedVisibility
@@ -80,7 +88,7 @@ fun StorageManagementScreen(
                             val allSelected = uiState.cachedResearches.all { it.isSelected }
                             Icon(
                                 if (allSelected) Icons.Default.Deselect else Icons.Default.SelectAll,
-                                contentDescription = if (allSelected) "Deselect All" else "Select All"
+                                contentDescription = if (allSelected) "Deselect all" else "Select all"
                             )
                         }
                     }
@@ -123,7 +131,7 @@ internal fun StorageContent(
     onToggleSelection: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+    com.bdbshs.crest.ui.components.CrestPageList(modifier, spacing = 20.dp) {
         item {
             com.bdbshs.crest.ui.components.ContentHeader(
                 "Saved paper storage",
@@ -194,7 +202,7 @@ private fun StorageSummaryCard(
                 }
                 Column {
                     Text(
-                        text = "Storage Usage",
+                        text = "Storage usage",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -215,13 +223,13 @@ private fun StorageSummaryCard(
             ) {
                 StorageStatItem(
                     icon = Icons.Outlined.PictureAsPdf,
-                    label = "PDF Cache",
+                    label = "PDF cache",
                     value = FileCache.formatSize(pdfCacheSize),
                     color = MaterialTheme.colorScheme.primary
                 )
                 StorageStatItem(
                     icon = Icons.Outlined.Folder,
-                    label = "Total Cache",
+                    label = "Total cache",
                     value = FileCache.formatSize(totalAppCacheSize),
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -251,7 +259,7 @@ private fun StorageSummaryCard(
                 ) {
                     Icon(Icons.Default.DeleteForever, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Clear All")
+                    Text("Clear all")
                 }
             }
         }
@@ -313,7 +321,7 @@ private fun CachedResearchCard(
                 Icon(
                     Icons.Default.PictureAsPdf,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(28.dp)
                 )
                 Text(item.formattedSize, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
@@ -406,17 +414,17 @@ private fun ConfirmationDialog(
 ) {
     val (title, message, icon) = when (dialogType) {
         ConfirmDialogType.DELETE_SELECTED -> Triple(
-            "Delete Selected Files?",
+            "Delete selected files?",
             "This will delete $selectedCount cached file(s) (${FileCache.formatSize(selectedSize)}). You can re-download them later.",
             Icons.Default.Delete
         )
         ConfirmDialogType.CLEAR_PDF_CACHE -> Triple(
-            "Clear PDF Cache?",
+            "Clear PDF cache?",
             "This will delete all cached research PDFs. You can re-download them later.",
             Icons.Default.DeleteSweep
         )
         ConfirmDialogType.CLEAR_ALL_CACHE -> Triple(
-            "Clear All Cache?",
+            "Clear all cache?",
             "This will delete all app cache including PDFs and temporary files. This action cannot be undone.",
             Icons.Default.DeleteForever
         )
@@ -454,7 +462,7 @@ private fun ConfirmationDialog(
 
 private fun formatDate(timestamp: Long): String {
     return try {
-        val sdf = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+        val sdf = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
         sdf.format(Date(timestamp))
     } catch (e: Exception) {
         "Unknown date"

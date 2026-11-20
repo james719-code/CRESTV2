@@ -212,6 +212,7 @@ private fun CrestNavHost(
                         }
                     }
                 },
+                onSignOut = mainViewModel::onSignOut,
                 viewModel = signUpDetailsViewModel
             )
         }

@@ -1,5 +1,10 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.net.Uri
@@ -18,6 +23,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.components.FilePicker
+import com.bdbshs.crest.ui.components.CrestFormPage
+import com.bdbshs.crest.ui.components.FormSection
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import com.bdbshs.crest.ui.viewmodels.*
 import com.bdbshs.crest.utils.getFileNameFromUri
 
@@ -84,24 +93,23 @@ internal fun GroupUploadContent(
     modifier: Modifier = Modifier
 ) {
     val ready = state.title.isNotBlank() && state.researchType != null && !state.selectedFileName.isNullOrBlank()
-    Column(
-        modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    CrestFormPage(modifier) {
         com.bdbshs.crest.ui.components.ContentHeader("Submit your group's research", "Your teacher will review the paper and share feedback with your group.")
-        Text("1. Research details", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
-            value = state.title, onValueChange = onTitle,
-            label = { Text("Research title · required") },
-            supportingText = { Text("Use the complete title printed on your paper.") },
-            modifier = Modifier.fillMaxWidth(), enabled = !state.isLoading,
-            isError = state.error != null && state.title.isBlank()
-        )
-        ResearchTypeDropdown(state.researchType, onType)
-        Text("2. Research file", style = MaterialTheme.typography.titleMedium)
-        Text("Select one PDF containing your complete research paper.",
-            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FilePicker(state.selectedFileName, onPickFile, onClearFile, enabled = !state.isLoading)
+        FormSection("1. Research details", Icons.Outlined.Description) {
+            OutlinedTextField(
+                value = state.title, onValueChange = onTitle,
+                label = { Text("Research title · required") },
+                supportingText = { Text("Use the complete title printed on your paper.") },
+                modifier = Modifier.fillMaxWidth(), enabled = !state.isLoading,
+                isError = state.error != null && state.title.isBlank()
+            )
+            ResearchTypeDropdown(state.researchType, onType)
+        }
+        FormSection("2. Research file", Icons.Outlined.PictureAsPdf) {
+            Text("Select one PDF containing your complete research paper.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FilePicker(state.selectedFileName, onPickFile, onClearFile, enabled = !state.isLoading)
+        }
         if (state.error != null) {
             com.bdbshs.crest.ui.components.FeedbackPanel("Submission needs attention", state.error, "Try submission again", onSubmit)
         }

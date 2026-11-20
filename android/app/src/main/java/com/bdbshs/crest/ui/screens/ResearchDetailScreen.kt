@@ -1,5 +1,10 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.content.Context
@@ -300,7 +305,7 @@ fun ResearchDetailScreen(
                     Scaffold(
                         topBar = {
                             TopAppBar(
-                                title = { Text("Research Details") },
+                                title = { Text("Research details") },
                                 navigationIcon = {
                                     IconButton(onClick = onNavigateBack) {
                                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
@@ -332,11 +337,11 @@ fun ResearchDetailScreen(
 private fun ResearchMetadata(researchItem: ResearchItem, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (researchItem.strand.isNotBlank()) com.bdbshs.crest.ui.components.MetadataBadge(researchItem.strand)
+            if (researchItem.strand.isNotBlank()) com.bdbshs.crest.ui.components.StrandBadge(researchItem.strand)
             com.bdbshs.crest.ui.components.MetadataBadge(researchItem.type.name.lowercase().replaceFirstChar { it.titlecase(Locale.ROOT) })
             if (researchItem.unfinished) com.bdbshs.crest.ui.components.MetadataBadge("In progress")
         }
-        Text(researchItem.title, style = MaterialTheme.typography.headlineMedium)
+        Text(researchItem.title, style = MaterialTheme.typography.headlineLarge)
         Text("Authors", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.secondary)
         Text(researchItem.members.joinToString(", ").ifBlank { "Author names not provided" }, style = MaterialTheme.typography.bodyLarge)
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -344,7 +349,7 @@ private fun ResearchMetadata(researchItem: ResearchItem, modifier: Modifier = Mo
             com.bdbshs.crest.ui.components.InformationLine(
                 Icons.Default.CalendarToday,
                 "Added " + remember(researchItem.createdAt) {
-                    java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(java.util.Date(researchItem.createdAt))
+                    java.text.SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(java.util.Date(researchItem.createdAt))
                 }
             )
         }
@@ -545,10 +550,10 @@ private fun ErrorState(message: String, onBack: () -> Unit) {
             Icons.Default.ErrorOutline, 
             null, 
             modifier = Modifier.size(80.dp), 
-            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+            tint = MaterialTheme.colorScheme.error
         )
         Spacer(Modifier.height(24.dp))
-        Text(text = "Opening Failed", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(text = "This paper could not be opened", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
         Text(
             text = message, 
@@ -571,27 +576,14 @@ internal fun ResearchOverview(
     modifier: Modifier = Modifier,
     readError: String? = null
 ) {
-    LazyColumn(
-        modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    com.bdbshs.crest.ui.components.CrestPageList(modifier, spacing = 20.dp) {
         readError?.let { message ->
             item { com.bdbshs.crest.ui.components.FeedbackPanel("Paper could not open", message, "Try again", onRead) }
         }
         item {
-            val strand = com.bdbshs.crest.ui.components.strandStyle(researchItem.strand)
-            Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.large,
+            Surface(color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                Column {
-                    Box(
-                        Modifier.fillMaxWidth().height(112.dp).background(strand.container),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(strand.icon, null, Modifier.size(56.dp), tint = strand.content)
-                    }
-                    ResearchMetadata(researchItem, Modifier.padding(24.dp))
-                }
+                ResearchMetadata(researchItem, Modifier.padding(16.dp))
             }
         }
         item {

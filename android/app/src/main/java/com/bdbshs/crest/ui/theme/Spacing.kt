@@ -3,8 +3,16 @@ package com.bdbshs.crest.ui.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.bdbshs.crest.branding.CrestSpacing as SharedSpacing
+import com.bdbshs.crest.branding.CrestSizes
+
+/** Compact phones keep 16dp gutters; tablets and wider windows use the wide token. */
+@Composable
+fun crestScreenGutter(): Dp =
+    if (LocalConfiguration.current.screenWidthDp >= 600) CrestSizes.wideGutter else CrestSizes.screenGutter
 
 /**
  * Standardized spacing system for consistent UI layout
@@ -12,31 +20,31 @@ import androidx.compose.ui.unit.dp
  */
 data class Spacing(
     /** 4dp - Minimal spacing, used for tight layouts */
-    val extraSmall: Dp = 4.dp,
+    val extraSmall: Dp = SharedSpacing.xs,
     
     /** 8dp - Small spacing, used between closely related elements */
-    val small: Dp = 8.dp,
+    val small: Dp = SharedSpacing.sm,
     
     /** 12dp - Medium-small, used for compact card padding */
-    val mediumSmall: Dp = 12.dp,
+    val mediumSmall: Dp = SharedSpacing.compact,
     
     /** 16dp - Standard spacing, primary padding value */
-    val medium: Dp = 16.dp,
+    val medium: Dp = SharedSpacing.md,
     
     /** 20dp - Medium-large, used for card internal padding */
-    val mediumLarge: Dp = 20.dp,
+    val mediumLarge: Dp = SharedSpacing.md + SharedSpacing.xs,
     
     /** 24dp - Large spacing, used for section separation */
-    val large: Dp = 24.dp,
+    val large: Dp = SharedSpacing.lg,
     
     /** 32dp - Extra large spacing, used for major sections */
-    val extraLarge: Dp = 32.dp,
+    val extraLarge: Dp = SharedSpacing.xl,
     
     /** 48dp - Huge spacing, used for page-level spacing */
-    val huge: Dp = 48.dp,
+    val huge: Dp = SharedSpacing.xxl,
     
     /** 64dp - Massive spacing, used for hero sections */
-    val massive: Dp = 64.dp
+    val massive: Dp = SharedSpacing.hero
 )
 
 /**
@@ -44,25 +52,25 @@ data class Spacing(
  */
 data class ContentPadding(
     /** Horizontal padding for screen content */
-    val horizontal: Dp = 16.dp,
+    val horizontal: Dp = CrestSizes.screenGutter,
     
     /** Vertical padding for screen content */
-    val vertical: Dp = 16.dp,
+    val vertical: Dp = SharedSpacing.md,
     
     /** Padding inside cards */
-    val card: Dp = 16.dp,
+    val card: Dp = SharedSpacing.md,
     
     /** Padding inside larger cards with more content */
-    val cardLarge: Dp = 20.dp,
+    val cardLarge: Dp = SharedSpacing.lg,
     
     /** Padding for list items */
-    val listItem: Dp = 16.dp,
+    val listItem: Dp = SharedSpacing.md,
     
     /** Padding for dialogs */
-    val dialog: Dp = 24.dp,
+    val dialog: Dp = SharedSpacing.lg,
     
     /** Padding for bottom sheets */
-    val bottomSheet: Dp = 24.dp
+    val bottomSheet: Dp = SharedSpacing.lg
 )
 
 /**
@@ -76,7 +84,7 @@ data class IconSizes(
     val compact: Dp = 20.dp,
     
     /** 24dp - Standard icon size (Material default) */
-    val medium: Dp = 24.dp,
+    val medium: Dp = CrestSizes.icon,
     
     /** 32dp - Large icons for emphasis */
     val large: Dp = 32.dp,
@@ -99,10 +107,10 @@ data class IconSizes(
  */
 data class TouchTargets(
     /** 48dp - Minimum accessible touch target */
-    val minimum: Dp = com.bdbshs.crest.branding.CrestSizes.touchMinimum,
+    val minimum: Dp = CrestSizes.touchMinimum,
     
     /** 48dp - Standard touch target (Material recommendation) */
-    val standard: Dp = 48.dp,
+    val standard: Dp = CrestSizes.touchMinimum,
     
     /** 56dp - Large touch target for primary actions */
     val large: Dp = 56.dp
@@ -119,7 +127,7 @@ data class Dimensions(
     val topAppBarHeight: Dp = 64.dp,
     
     /** Standard button height */
-    val buttonHeight: Dp = 48.dp,
+    val buttonHeight: Dp = CrestSizes.buttonMinimum,
     
     /** Large button height */
     val buttonHeightLarge: Dp = 56.dp,

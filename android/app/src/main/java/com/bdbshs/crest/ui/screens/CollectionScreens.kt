@@ -1,10 +1,18 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.components.CrestFilterChip as FilterChip
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestOutlinedButton as OutlinedButton
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestTonalButton as FilledTonalButton
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -49,7 +57,7 @@ internal fun DocumentsContent(
         modifier = modifier,
         controls = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ModernSearchBar(state.searchQuery, onQuery, placeholder = "Search documents...", onFilterClick = onFilter,
+                ModernSearchBar(state.searchQuery, onQuery, placeholder = "Search documents", onFilterClick = onFilter,
                     activeFilterCount = if (state.selectedSortOption != DocumentSortOption.DateNewest) 1 else 0)
                 Text(if (state.isLoading) "Loading documents…" else if (state.error != null && documents.isEmpty()) "Document count unavailable" else "${documents.size} documents · ${state.selectedSortOption.displayName}", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -60,8 +68,9 @@ internal fun DocumentsContent(
 
 @Composable
 internal fun DocumentRecordCard(document: DocumentItem, canManage: Boolean, onDownload: () -> Unit, onManage: () -> Unit) {
-    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 IconBadge(
                     Icons.Outlined.Description, size = 36.dp,
@@ -76,8 +85,8 @@ internal fun DocumentRecordCard(document: DocumentItem, canManage: Boolean, onDo
             }
             Text(document.description.ifBlank { "A school resource shared by a teacher." },
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 4, overflow = TextOverflow.Ellipsis)
-            FilledTonalButton(onClick = onDownload, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Icon(Icons.Outlined.Download, null, Modifier.size(18.dp))
+            OutlinedButton(onClick = onDownload, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Icon(Icons.Outlined.Download, null, Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Download document")
             }
@@ -85,6 +94,7 @@ internal fun DocumentRecordCard(document: DocumentItem, canManage: Boolean, onDo
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun GroupsContent(
     state: GroupsUiState,
@@ -116,8 +126,8 @@ internal fun GroupsContent(
         modifier = modifier,
         controls = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ModernSearchBar(state.searchQuery, onQuery, placeholder = "Search by group name...", onFilterClick = onFilter)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ModernSearchBar(state.searchQuery, onQuery, placeholder = "Search group name", onFilterClick = onFilter)
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(!state.showPendingOnly && !state.showAcceptedOnly, onClearFilters, label = { Text("All (${state.allGroups.size})") })
                     FilterChip(state.showPendingOnly, { onPending(!state.showPendingOnly) }, label = { Text("Pending review (${state.allGroups.count { it.uploaded && !it.accepted_research }})") })
                     FilterChip(state.showAcceptedOnly, { onAccepted(!state.showAcceptedOnly) }, label = { Text("Approved (${state.allGroups.count { it.accepted_research }})") })
@@ -136,19 +146,18 @@ internal fun GroupRecordCard(
     onRetryDelete: () -> Unit = {}
 ) {
     val deleting = deletion?.isDeleting == true
-    Surface(onClick = onClick, enabled = !deleting, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Surface(onClick = onClick, enabled = !deleting, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 PaperCover(group.strand, size = 56.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(group.group_name.ifBlank { "Unnamed group" }, style = MaterialTheme.typography.titleMedium)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (group.strand.isNotBlank()) MetadataBadge(group.strand)
-                        when {
-                            group.accepted_research -> SubmissionStatusBadge("approved")
-                            group.uploaded -> SubmissionStatusBadge("pending")
-                            else -> MetadataBadge("Not submitted")
-                        }
+                        if (group.strand.isNotBlank()) com.bdbshs.crest.ui.components.StrandBadge(group.strand)
+                        SubmissionStatusBadge(com.bdbshs.crest.branding.CrestSubmissionStatus.from(
+                            group.accepted_research, group.uploaded, group.comments.isNotEmpty()
+                        ))
                     }
                 }
             }
@@ -189,6 +198,7 @@ internal fun GroupRecordCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AccountsContent(
     state: AccountsUiState,
@@ -227,7 +237,7 @@ internal fun AccountsContent(
         controls = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ModernSearchBar(state.searchQuery, onQuery, placeholder = "Search name or email", onFilterClick = onFilter)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(state.selectedStatus == AccountStatus.Pending, { onStatus(AccountStatus.Pending) }, label = { Text("Pending ($pending)") })
                     FilterChip(state.selectedStatus == AccountStatus.Accepted, { onStatus(AccountStatus.Accepted) }, label = { Text("Approved (${state.allAccounts.size - pending - declined})") })
                     FilterChip(state.selectedStatus == AccountStatus.Declined, { onStatus(AccountStatus.Declined) }, label = { Text("Declined ($declined)") })
@@ -237,11 +247,13 @@ internal fun AccountsContent(
     ) { account -> AccountRecordCard(account, { onAccount(account) }) }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AccountRecordCard(account: AccountItem, onClick: () -> Unit) {
     val approved = accountIsApproved(account)
-    Surface(onClick = onClick, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Surface(onClick = onClick, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val isStudent = account is AccountItem.Student
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 InitialsAvatar(
@@ -251,11 +263,11 @@ internal fun AccountRecordCard(account: AccountItem, onClick: () -> Unit) {
                 )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(account.name.ifBlank { "Name not provided" }, style = MaterialTheme.typography.titleMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MetadataBadge(if (isStudent) "Student" else "Teacher")
                         if (approved) MetadataBadge("Approved", MaterialTheme.crestColors.success, MaterialTheme.crestColors.onSuccess)
                         else if (account is AccountItem.Student && account.declined) MetadataBadge("Declined", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
-                        else MetadataBadge("Pending approval", MaterialTheme.crestColors.warning, MaterialTheme.crestColors.onWarning)
+                        else MetadataBadge("Pending approval", MaterialTheme.crestColors.info, MaterialTheme.crestColors.onInfo)
                     }
                 }
             }
@@ -270,7 +282,11 @@ internal fun AccountRecordCard(account: AccountItem, onClick: () -> Unit) {
                     InformationLine(Icons.Outlined.UploadFile, "${account.upload_count} research uploads")
                 }
             }
-            TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = 0.dp)) { Text(if (approved) "Manage access" else "Review account") }
+            // The whole card is the tap target, so this is a label, not a second 48dp button.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (approved) "Manage access" else "Review account", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }
@@ -280,5 +296,5 @@ private fun accountIsApproved(account: AccountItem) =
 
 @Composable
 private fun formattedDate(timestamp: Long) = remember(timestamp) {
-    SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))
+    SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(timestamp))
 }

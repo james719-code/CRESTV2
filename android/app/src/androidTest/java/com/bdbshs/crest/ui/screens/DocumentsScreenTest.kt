@@ -41,7 +41,7 @@ class DocumentsScreenTest {
         }
         
         // Verify search bar is displayed
-        composeTestRule.onNodeWithText("Search documents...").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Search documents").assertIsDisplayed()
     }
 
     @Test
@@ -57,7 +57,7 @@ class DocumentsScreenTest {
         composeTestRule.waitForIdle()
         
         // Perform search
-        composeTestRule.onNodeWithText("Search documents...")
+        composeTestRule.onNodeWithText("Search documents")
             .performClick()
         
         composeTestRule.waitForIdle()
@@ -103,7 +103,7 @@ class DocumentsScreenTest {
         composeTestRule.waitForIdle()
         
         // Verify filter/sort bottom sheet is shown
-        composeTestRule.onNodeWithText("Sort Documents")
+        composeTestRule.onNodeWithText("Sort documents")
             .assertIsDisplayed()
     }
 
@@ -121,7 +121,7 @@ class DocumentsScreenTest {
         
         // Note: Pull to refresh is difficult to test in instrumented tests
         // This test verifies the screen loads without crashing
-        composeTestRule.onNodeWithText("Search documents...")
+        composeTestRule.onNodeWithText("Search documents")
             .assertIsDisplayed()
     }
 
@@ -138,7 +138,7 @@ class DocumentsScreenTest {
         composeTestRule.waitForIdle()
         
         // Verify screen renders correctly for teacher role
-        composeTestRule.onNodeWithText("Search documents...")
+        composeTestRule.onNodeWithText("Search documents")
             .assertIsDisplayed()
     }
 
@@ -155,7 +155,7 @@ class DocumentsScreenTest {
         composeTestRule.waitForIdle()
         
         // Verify screen renders correctly for student role
-        composeTestRule.onNodeWithText("Search documents...")
+        composeTestRule.onNodeWithText("Search documents")
             .assertIsDisplayed()
     }
 }

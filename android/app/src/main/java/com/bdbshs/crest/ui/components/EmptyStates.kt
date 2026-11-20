@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.components
 
+import com.bdbshs.crest.ui.components.CrestButton as Button
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll

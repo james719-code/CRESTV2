@@ -1,5 +1,8 @@
 package com.bdbshs.crest.ui.components
 
+import com.bdbshs.crest.ui.components.CrestOutlinedButton as OutlinedButton
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -48,7 +51,7 @@ fun ModernSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: (String) -> Unit = {},
-    placeholder: String = "Search...",
+    placeholder: String = "Search…",
     onFilterClick: (() -> Unit)? = null,
     activeFilterCount: Int = 0,
     recentSearches: List<String> = emptyList(),
@@ -64,12 +67,12 @@ fun ModernSearchBar(
     Column(modifier = modifier) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
+            shape = MaterialTheme.shapes.small,
             shadowElevation = 0.dp,
             tonalElevation = 0.dp,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(if (isFocused) 2.dp else 1.dp,
-                if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
+                if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
         ) {
             Row(
                 modifier = Modifier
@@ -184,7 +187,7 @@ fun ModernSearchBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.small,
                 shadowElevation = 4.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
@@ -306,7 +309,7 @@ fun ModernFilterChip(
     Surface(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp).semantics { selected = isSelected },
-        shape = RoundedCornerShape(18.dp),
+        shape = MaterialTheme.shapes.small,
         color = containerColor
     ) {
         Row(
@@ -367,8 +370,8 @@ fun SortDropdown(
         Surface(
             modifier = Modifier
                 .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
-                .height(40.dp),
-            shape = RoundedCornerShape(20.dp),
+                .heightIn(min = 48.dp),
+            shape = MaterialTheme.shapes.small,
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             Row(

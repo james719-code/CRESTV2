@@ -163,7 +163,7 @@ class GroupDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(isUpdating = false) }
 
             } catch (e: Exception) {
-                _uiState.update { it.copy(isUpdating = false, error = "Approval failed. An internet connection is required.") }
+                _uiState.update { it.copy(isUpdating = false, error = "The approval could not be saved. Check your connection and try again.") }
             }
         }
     }
@@ -182,7 +182,7 @@ class GroupDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isUpdating = false,
-                        error = "Denial failed. An internet connection may be required."
+                        error = "Your change request could not be sent. Check your connection and try again."
                     )
                 }
             }
@@ -209,6 +209,7 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toGroupItem(): GroupI
         accepted_research = getBoolean("accepted_research") ?: false,
         research_title = getString("research_title").orEmpty(),
         research_type = getString("research_type").orEmpty(),
-        file_link = getString("file_link").orEmpty()
+        file_link = getString("file_link").orEmpty(),
+        comments = (get("comments") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
     )
 }

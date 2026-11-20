@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -39,8 +40,11 @@ import coil.compose.AsyncImage
 import com.bdbshs.crest.ui.theme.*
 import com.bdbshs.crest.ui.viewmodels.UserType
 import com.bdbshs.crest.data.ThemeMode
+import com.bdbshs.crest.branding.CrestBrandName
+import com.bdbshs.crest.branding.CrestWordmarkTrackingEm
 
-private val MainTabTitles = listOf("Home", "Research", "Documents", "Groups")
+/** Top-level pages whose own heading names the page; the bar shows the CREST wordmark instead of repeating it. */
+private val HeadedPageTitles = setOf("Home", "Research", "Documents", "Groups", "Favorites", "Accounts", "Milestones", "Notifications", "About")
 
 /**
  * Standard Material top app bar. Main tabs carry the CREST mark; secondary screens use a back arrow and their own title.
@@ -60,22 +64,24 @@ fun CrestTopAppBar(
     modifier: Modifier = Modifier,
     unreadNotifications: Int = 0
 ) {
-    val isMainTab = title in MainTabTitles
     TopAppBar(
         navigationIcon = {
             if (onNavigationClick != null) {
                 IconButton(onClick = onNavigationClick, Modifier.padding(start = 8.dp)) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-            } else if (isMainTab) {
-                CrestMark(36.dp, Modifier.padding(start = 20.dp, end = 4.dp))
+            } else if (title in HeadedPageTitles) {
+                CrestMark(32.dp, Modifier.padding(start = 16.dp, end = 6.dp))
             }
         },
         title = {
             Column {
                 Text(
-                    text = if (title == "Home") "CREST" else title,
-                    style = MaterialTheme.typography.titleLarge,
+                    text = if (title in HeadedPageTitles) CrestBrandName else title,
+                    style = if (title in HeadedPageTitles) MaterialTheme.typography.titleLarge.copy(
+                        letterSpacing = CrestWordmarkTrackingEm.em,
+                        fontWeight = FontWeight.Bold
+                    ) else MaterialTheme.typography.titleLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -126,7 +132,7 @@ fun CrestTopAppBar(
             Spacer(Modifier.width(14.dp))
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background,
+            containerColor = MaterialTheme.colorScheme.surface,
             scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
             navigationIconContentColor = MaterialTheme.colorScheme.onSurface,

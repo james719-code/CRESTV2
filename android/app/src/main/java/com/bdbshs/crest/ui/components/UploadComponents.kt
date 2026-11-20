@@ -1,5 +1,8 @@
 package com.bdbshs.crest.ui.components
 
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestCard as Card
+
 import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -85,7 +88,7 @@ private fun StepItem(
 ) {
     val animatedColor by animateColorAsState(
         targetValue = when {
-            isCompleted -> SuccessGreen
+            isCompleted -> MaterialTheme.crestColors.success
             isActive -> MaterialTheme.colorScheme.primary
             else -> MaterialTheme.colorScheme.surfaceVariant
         },
@@ -93,7 +96,7 @@ private fun StepItem(
     )
     
     val contentColor = when {
-        isCompleted -> Color.White
+        isCompleted -> MaterialTheme.crestColors.onSuccess
         isActive -> MaterialTheme.colorScheme.onPrimary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -174,7 +177,7 @@ private fun StepConnector(
                 .fillMaxWidth(animatedProgress)
                 .height(3.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(SuccessGreen)
+                .background(MaterialTheme.crestColors.onSuccess)
                 .align(Alignment.CenterStart)
         )
     }
@@ -225,7 +228,7 @@ fun FilePicker(
             }
             if (fileName != null) {
                 IconButton(onClick = onClearFileClick, enabled = enabled && !isLoading) {
-                    Icon(Icons.Outlined.Close, "Remove selected file", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Outlined.Close, "Remove selected file", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 Icon(Icons.Outlined.Add, null, tint = MaterialTheme.colorScheme.primary)
@@ -241,7 +244,7 @@ fun FilePicker(
 fun UploadProgressOverlay(
     isVisible: Boolean,
     progress: Float = -1f, // -1 for indeterminate
-    message: String = "Uploading...",
+    message: String = "Uploading…",
     modifier: Modifier = Modifier
 ) {
     if (isVisible) {
@@ -330,25 +333,25 @@ fun UploadSuccessState(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
-                    .background(SuccessGreen.copy(alpha = 0.1f))
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
             )
             Box(
                 modifier = Modifier
                     .size(88.dp)
                     .clip(CircleShape)
-                    .background(SuccessGreen.copy(alpha = 0.2f))
+                    .background(MaterialTheme.crestColors.success)
             )
             Box(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(SuccessGreen),
+                    .background(MaterialTheme.crestColors.success),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.crestColors.onSuccess,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -401,7 +404,7 @@ fun ValidationChip(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         color = if (isValid) 
-            SuccessGreen.copy(alpha = 0.1f) 
+            MaterialTheme.crestColors.success
         else 
             MaterialTheme.colorScheme.surfaceVariant
     ) {
@@ -414,13 +417,13 @@ fun ValidationChip(
                 imageVector = if (isValid) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = if (isValid) SuccessGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (isValid) MaterialTheme.crestColors.onSuccess else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelMedium,
                 color = if (isValid) 
-                    SuccessGreen 
+                    MaterialTheme.crestColors.onSuccess
                 else 
                     MaterialTheme.colorScheme.onSurfaceVariant
             )

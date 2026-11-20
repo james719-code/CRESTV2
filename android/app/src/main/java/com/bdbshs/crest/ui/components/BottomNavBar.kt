@@ -29,7 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bdbshs.crest.navigation.AppDestination
 import com.bdbshs.crest.ui.theme.*
@@ -106,8 +106,9 @@ private fun BrandNavigationBar(
     onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val largerLabels = LocalDensity.current.fontScale > 1.3f
     NavigationBar(
-        modifier = modifier,
+        modifier = modifier.heightIn(min = if (largerLabels) 104.dp else 80.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         tonalElevation = 0.dp
     ) {
@@ -161,13 +162,11 @@ fun CrestNavigationRail(
     }
 }
 
-/** Tab labels stay on one line; text beyond 130% would break words in a four-tab bar. */
+/** Preserve the system font size and allow labels to wrap in the taller bar. */
 @Composable
 private fun NavLabel(text: String) {
-    val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(1.3f))) {
-        Text(text, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-    }
+    Text(text, style = MaterialTheme.typography.labelMedium, maxLines = 2,
+        textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable

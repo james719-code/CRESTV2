@@ -34,7 +34,8 @@ data class GroupItem(
     val accepted_research: Boolean = false,
     val research_title: String = "",
     val research_type: String = "",
-    val file_link: String = ""
+    val file_link: String = "",
+    val comments: List<String> = emptyList()
 )
 
 enum class GroupSortOption(val displayName: String) {

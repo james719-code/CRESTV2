@@ -1,5 +1,12 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.components.CrestFilterChip as FilterChip
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestOutlinedCard as OutlinedCard
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.foundation.background
@@ -97,7 +104,7 @@ private fun SearchBarWithFilter(
             value = query,
             onValueChange = onQueryChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("Search name or email...") },
+            placeholder = { Text("Search name or email") },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
             singleLine = true,
             shape = RoundedCornerShape(50)
@@ -214,7 +221,7 @@ private fun AccountsFilterDialog(
                 Spacer(Modifier.height(16.dp))
 
                 // Account Type Section
-                Text("Account Type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("Account type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccountType.entries.forEach { type ->
                         FilterChip(
@@ -236,7 +243,7 @@ private fun AccountsFilterDialog(
                         readOnly = true,
                         value = uiState.selectedSortOption.displayName,
                         onValueChange = {},
-                        label = { Text("Sort By") },
+                        label = { Text("Sort by") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isSortExpanded) },
                     )
                     ExposedDropdownMenu(expanded = isSortExpanded, onDismissRequest = { isSortExpanded = false }) {

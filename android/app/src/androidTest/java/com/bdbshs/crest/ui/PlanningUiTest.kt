@@ -1,6 +1,10 @@
 package com.bdbshs.crest.ui
 
 import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -20,6 +24,31 @@ class PlanningUiTest {
     @get:Rule val compose = createComposeRule()
     private val group = PlanningGroup("g", "Science Group")
     private val milestone = ResearchMilestone("m", "g", "Research proposal", MilestoneStage.PROPOSAL, PlanningDates.today().minusDays(1).toString())
+
+    @Test fun compactOverviewKeepsEveryStatusVisibleAndFiltersByCompletion() {
+        val completed = milestone.copy(id = "done", title = "Completed chapter", completedAt = 1)
+        compose.setContent {
+            CRESTTheme {
+                Box(Modifier.width(320.dp)) {
+                    MilestonesContent(PlanningUiState(PlanningRecords(
+                        groups = listOf(group), milestones = listOf(milestone, completed), loading = false
+                    ), teacher = true))
+                }
+            }
+        }
+        MilestoneStatus.entries.forEach {
+            compose.onNode(hasText(it.label) and hasClickAction()).assertIsDisplayed()
+        }
+        val completedStatus = hasText("Completed") and hasClickAction()
+        compose.onNode(completedStatus).performClick().assertIsSelected()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Completed chapter"))
+        compose.onNodeWithText("Completed chapter").assertIsDisplayed()
+        compose.onNodeWithText("Research proposal").assertDoesNotExist()
+        compose.onNode(hasScrollAction()).performScrollToNode(completedStatus)
+        compose.onNode(completedStatus).performClick().assertIsNotSelected()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Research proposal"))
+        compose.onNodeWithText("Research proposal").assertIsDisplayed()
+    }
 
     @Test fun teacherCompletesAndReopensAMilestone() {
         compose.setContent {
@@ -56,10 +85,10 @@ class PlanningUiTest {
             CRESTTheme { NotificationInboxContent(PlanningUiState(PlanningRecords(groups = listOf(group), notifications = notices, loading = false), teacher = true),
                 onRead = { ids, read, done -> notices = notices.map { if (it.id in ids) it.copy(read = read) else it }; done() }) }
         }
-        compose.onNodeWithText("Mark all as read").performClick()
-        compose.onNodeWithText("Unread only").performClick()
+        compose.onNodeWithText("Mark all read").performClick()
+        compose.onNodeWithText("Unread").performClick()
         compose.onNodeWithText("You’re all caught up").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("All notifications").performScrollTo().performClick()
+        compose.onNodeWithText("All").performScrollTo().performClick()
         compose.onNodeWithText("A new submission").performScrollTo().assertIsDisplayed()
     }
 }

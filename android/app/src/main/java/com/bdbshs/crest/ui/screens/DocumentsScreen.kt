@@ -1,5 +1,9 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.annotation.SuppressLint
@@ -151,7 +155,7 @@ private fun DocumentFilterSortBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "Sort Documents",
+                    "Sort documents",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -205,11 +209,11 @@ private fun DocumentFilterSortBottomSheet(
                         .fillMaxWidth()
                         .padding(20.dp)
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Icon(Icons.Default.FilterList, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Apply Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Apply changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -247,14 +251,14 @@ private fun DocumentEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Document") },
+        title = { Text("Edit document") },
         text = {
             com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(
                     value = editedName,
                     onValueChange = onEditedNameChange,
-                    label = { Text("Document Name") },
+                    label = { Text("Document name") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !isUpdating

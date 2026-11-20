@@ -1,5 +1,7 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -16,10 +18,9 @@ import com.bdbshs.crest.ui.viewmodels.UserType
 
 @Composable
 fun AboutUsScreen(modifier: Modifier = Modifier, userRole: UserType? = null) {
-    LazyColumn(
-        modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+    com.bdbshs.crest.ui.components.CrestPageList(
+        modifier,
+        spacing = 20.dp,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item { AppLogo(Modifier.padding(vertical = 16.dp)) }

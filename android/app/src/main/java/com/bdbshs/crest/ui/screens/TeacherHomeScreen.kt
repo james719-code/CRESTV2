@@ -1,5 +1,12 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestTonalButton as FilledTonalButton
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.content.Context
@@ -119,7 +126,7 @@ internal fun TeacherHomeContent(
         val paperColumns = if (maxWidth >= 760.dp) 2 else 1
         LazyColumn(
             Modifier.widthIn(max = 840.dp).fillMaxSize().align(Alignment.TopCenter),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+            contentPadding = PaddingValues(horizontal = crestScreenGutter(), vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
@@ -280,7 +287,7 @@ private fun RecentResearchCard(research: SimpleResearch, onClick: () -> Unit) {
         Text(research.title, style = MaterialTheme.typography.titleLarge)
         if (research.date > 0) {
             Text(
-                remember(research.date) { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(research.date)) },
+                remember(research.date) { SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(research.date)) },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -352,7 +359,7 @@ private fun UploadDocumentDialog(
                     }
                     Column {
                         Text(
-                            text = "New Document",
+                            text = "New document",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -369,22 +376,22 @@ private fun UploadDocumentDialog(
                     OutlinedTextField(
                         value = uiState.uploadDocumentName,
                         onValueChange = onDocumentNameChange,
-                        label = { Text("Document Name") },
+                        label = { Text("Document name") },
                         placeholder = { Text("e.g. Research Proposal Template") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         enabled = !uiState.isUploadingDocument,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     )
                     OutlinedTextField(
                         value = uiState.uploadDocumentDescription,
                         onValueChange = onDocumentDescriptionChange,
                         label = { Text("Description") },
-                        placeholder = { Text("Describe what this document is for...") },
+                        placeholder = { Text("Describe what this document is for") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         enabled = !uiState.isUploadingDocument,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     )
                     
                     // Improved File Picker Area
@@ -452,7 +459,7 @@ private fun UploadDocumentDialog(
                                     onClick = onFileCleared,
                                     modifier = Modifier.size(48.dp)
                                 ) {
-                                    Icon(Icons.Default.Close, "Clear file", tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.Close, "Clear file", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -467,7 +474,7 @@ private fun UploadDocumentDialog(
                             trackColor = MaterialTheme.colorScheme.primaryContainer
                         )
                         Text(
-                            text = "Uploading...",
+                            text = "Uploading…",
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
@@ -505,7 +512,7 @@ private fun UploadDocumentDialog(
                         modifier = Modifier.weight(1f),
                         onClick = onDismiss,
                         enabled = !uiState.isUploadingDocument,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Text("Cancel")
                     }
@@ -516,7 +523,7 @@ private fun UploadDocumentDialog(
                                 uiState.uploadDocumentName.isNotBlank() &&
                                 uiState.uploadDocumentDescription.isNotBlank() &&
                                 uiState.uploadSelectedFileUri != null,
-                        shape = MaterialTheme.shapes.medium
+                        shape = MaterialTheme.shapes.small
                     ) {
                         Icon(Icons.Default.CloudUpload, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))

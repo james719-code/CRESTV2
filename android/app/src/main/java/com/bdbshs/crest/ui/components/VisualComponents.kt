@@ -31,12 +31,12 @@ import java.util.Calendar
 
 private val ColorScheme.isDark: Boolean get() = background.luminance() < 0.5f
 
-/** Light: solid CREST blue. Dark: the deeper blue container, so the hero does not glare on a dark page. */
+/** Quiet themed brand surface, rather than a saturated page background. */
 @Composable
-fun heroContainer(): Color = MaterialTheme.colorScheme.let { if (it.isDark) it.primaryContainer else it.primary }
+fun heroContainer(): Color = MaterialTheme.colorScheme.primaryContainer
 
 @Composable
-fun heroContent(): Color = MaterialTheme.colorScheme.let { if (it.isDark) it.onPrimaryContainer else it.onPrimary }
+fun heroContent(): Color = MaterialTheme.colorScheme.onPrimaryContainer
 
 /** Original book-stack artwork for hero cards and empty states. Not a replacement for the app icon. */
 @Composable
@@ -77,7 +77,7 @@ fun BrandHero(
 ) {
     Surface(
         modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = MaterialTheme.shapes.medium,
         color = heroContainer(),
         contentColor = heroContent()
     ) {
@@ -258,10 +258,10 @@ fun ActionTile(
     onClick: () -> Unit
 ) {
     Surface(
-        onClick = onClick, modifier = modifier, color = container, shape = MaterialTheme.shapes.large,
+        onClick = onClick, modifier = modifier, color = container, shape = MaterialTheme.shapes.medium,
         border = if (container == MaterialTheme.colorScheme.surface) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconBadge(icon, container = iconContainer, content = iconContent)
                 Spacer(Modifier.weight(1f))

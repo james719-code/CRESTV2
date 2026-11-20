@@ -1,5 +1,10 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestOutlinedCard as OutlinedCard
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +36,8 @@ import com.bdbshs.crest.ui.screens.common.ShimmerListItemPlaceholder
 import com.bdbshs.crest.ui.components.ModernSearchBar
 import com.bdbshs.crest.ui.components.ModernFilterChip
 import com.bdbshs.crest.ui.components.FilterSectionTitle
+import com.bdbshs.crest.ui.components.SubmissionStatusBadge
+import com.bdbshs.crest.branding.CrestSubmissionStatus
 import com.bdbshs.crest.ui.viewmodels.GroupItem
 import com.bdbshs.crest.ui.viewmodels.GroupSortOption
 import com.bdbshs.crest.ui.viewmodels.GroupsUiState
@@ -135,7 +142,7 @@ private fun FilterSortBottomSheet(
                     onShowAcceptedOnlyToggled(false)
                     onSortOptionSelected(GroupSortOption.NameAZ)
                 }) {
-                    Text("Reset All", fontWeight = FontWeight.SemiBold)
+                    Text("Reset all", fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -158,12 +165,12 @@ private fun FilterSortBottomSheet(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             ModernFilterChip(
-                                label = "Pending Only",
+                                label = "Pending review",
                                 isSelected = uiState.showPendingOnly,
                                 onClick = { onShowPendingOnlyToggled(!uiState.showPendingOnly) }
                             )
                             ModernFilterChip(
-                                label = "Accepted Only",
+                                label = "Approved",
                                 isSelected = uiState.showAcceptedOnly,
                                 onClick = { onShowAcceptedOnlyToggled(!uiState.showAcceptedOnly) }
                             )
@@ -204,11 +211,11 @@ private fun FilterSortBottomSheet(
                         .fillMaxWidth()
                         .padding(20.dp)
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Icon(Icons.Default.FilterList, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Apply Changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Apply changes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -238,35 +245,8 @@ private fun GroupCard(group: GroupItem, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            StatusChip(
-                isAccepted = group.accepted_research,
-                isUploaded = group.uploaded
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatusChip(isAccepted: Boolean, isUploaded: Boolean) {
-    when {
-        isAccepted -> {
-            AssistChip(
-                onClick = {},
-                label = { Text("Accepted") },
-                leadingIcon = { Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary) }
-            )
-        }
-        isUploaded -> {
-            AssistChip(
-                onClick = {},
-                label = { Text("Pending Review") },
-                leadingIcon = { Icon(Icons.Default.Pending, null, tint = MaterialTheme.colorScheme.tertiary) }
-            )
-        }
-        else -> {
-            AssistChip(
-                onClick = {},
-                label = { Text("Not Submitted") }
+            SubmissionStatusBadge(
+                CrestSubmissionStatus.from(group.accepted_research, group.uploaded, group.comments.isNotEmpty())
             )
         }
     }
@@ -290,7 +270,7 @@ private fun GroupActionDialog(
             com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "Reviewing Submission:",
+                    text = "Reviewing submission:",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -304,7 +284,7 @@ private fun GroupActionDialog(
                     value = comment,
                     onValueChange = onCommentChange,
                     label = { Text("Reason for Denial (if any)") },
-                    placeholder = { Text("e.g., Incorrect format...") },
+                    placeholder = { Text("For example, the citation format needs fixing") },
                     modifier = Modifier.fillMaxWidth()
                 )
 

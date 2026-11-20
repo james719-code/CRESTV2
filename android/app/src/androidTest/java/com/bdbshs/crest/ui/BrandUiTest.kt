@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
@@ -72,6 +73,31 @@ class BrandUiTest {
         compose.onNode(hasText("Groups") and hasClickAction()).performClick().assertIsSelected()
         assertEquals(AppDestination.Groups.route, clicked)
         compose.onNodeWithText("Home").assertIsNotSelected()
+    }
+
+    @Test fun sharedControlsAndBadgesUseBrandedTouchTargets() {
+        compose.setContent {
+            CRESTTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        PageHeading("Research controls", "Shared Android design tokens")
+                        CrestButton({}, Modifier.testTag("primary-control")) { Text("Submit research") }
+                        CrestOutlinedButton({}, Modifier.testTag("secondary-control")) { Text("Clear filters") }
+                        CrestTextField("", {}, Modifier.fillMaxWidth().testTag("search-control"), label = { Text("Search papers") })
+                        CrestFilterChip(true, {}, { Text("STEM") }, Modifier.testTag("filter-control"))
+                        StrandBadge("HUMSS")
+                        SubmissionStatusBadge(com.bdbshs.crest.branding.CrestSubmissionStatus.PENDING)
+                        SubmissionStatusBadge(com.bdbshs.crest.branding.CrestSubmissionStatus.CHANGES)
+                        SubmissionStatusBadge(com.bdbshs.crest.branding.CrestSubmissionStatus.APPROVED)
+                    }
+                }
+            }
+        }
+        listOf("primary-control", "secondary-control", "search-control", "filter-control").forEach {
+            compose.onNodeWithTag(it).assertHeightIsAtLeast(48.dp)
+        }
+        listOf("Pending review", "Changes requested", "Approved").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        capture("brand-controls")
     }
 
     @Test fun paperActionsRemainIndependent() {

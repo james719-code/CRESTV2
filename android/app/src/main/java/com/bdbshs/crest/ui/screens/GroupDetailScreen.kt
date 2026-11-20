@@ -1,5 +1,14 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestOutlinedButton as OutlinedButton
+import com.bdbshs.crest.ui.components.CrestCard as Card
+import com.bdbshs.crest.ui.components.CrestOutlinedCard as OutlinedCard
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.content.Context
@@ -17,6 +26,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.viewmodels.GroupDetailViewModel
 import kotlinx.coroutines.Dispatchers
@@ -103,7 +120,7 @@ fun GroupDetailScreen(
                 navigationIcon = { IconButton(onClick = onNavigateBack, enabled = !uiState.isUpdating) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 actions = {
                     if (uiState.group != null) IconButton(onClick = { confirmDelete = true }, enabled = !uiState.isUpdating) {
-                        Icon(Icons.Default.Delete, "Delete group", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Outlined.Delete, "Delete group", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             )
@@ -126,7 +143,7 @@ internal fun GroupDetailsContent(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+    com.bdbshs.crest.ui.components.CrestPageList(modifier, spacing = 20.dp) {
         item { com.bdbshs.crest.ui.components.ContentHeader(state.group?.group_name ?: "Group details", "Submission, members, and teacher review.") }
         if (state.isLoading) {
             item {
@@ -185,7 +202,7 @@ private fun PdfViewerScreen(pdfFilePath: String, onNavigateBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Document Viewer") },
+                title = { Text("Document viewer") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 }
@@ -198,40 +215,41 @@ private fun PdfViewerScreen(pdfFilePath: String, onNavigateBack: () -> Unit) {
 
 @Composable
 private fun GroupInfoSection(group: com.bdbshs.crest.ui.viewmodels.GroupItem) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Text("Group Information", style = MaterialTheme.typography.titleLarge)
-            HorizontalDivider()
-            InfoRow(icon = Icons.Default.Info, label = "Strand", value = group.strand)
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Group information", style = MaterialTheme.typography.titleLarge)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            InfoRow(icon = Icons.Outlined.School, label = "Strand", value = group.strand)
             InfoRow(
-                icon = Icons.Default.Bookmark,
-                label = "Research Type",
-                value = group.research_type.ifBlank { "Not specified" }
+                icon = Icons.Outlined.Bookmark,
+                label = "Research type",
+                value = group.research_type.lowercase().replaceFirstChar { it.titlecase() }.ifBlank { "Not specified" }
             )
-            InfoRow(
-                icon = Icons.Default.CheckCircle,
-                label = "Submission Status",
-                value = when {
-                    group.accepted_research -> "Accepted"
-                    group.uploaded -> "Pending Review"
-                    else -> "Not Submitted"
-                }
+            val status = com.bdbshs.crest.branding.CrestSubmissionStatus.from(
+                group.accepted_research, group.uploaded, group.comments.isNotEmpty()
             )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Submission status", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                com.bdbshs.crest.ui.components.SubmissionStatusBadge(status)
+            }
         }
     }
 }
 
 @Composable
 private fun GroupMembersSection(memberNames: List<String>) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Members (${memberNames.size})", style = MaterialTheme.typography.titleLarge)
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             if (memberNames.isEmpty()) {
-                InfoRow(icon = Icons.Default.Person, value = "Member names are not available.")
+                InfoRow(icon = Icons.Outlined.Person, value = "Member names are not available.")
             } else {
                 memberNames.forEach { name ->
-                    InfoRow(icon = Icons.Default.Person, value = name)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        com.bdbshs.crest.ui.components.InitialsAvatar(name)
+                        Text(name, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         }
@@ -251,44 +269,43 @@ private fun ReviewSection(
 ) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Review Submission", style = MaterialTheme.typography.titleLarge)
-            InfoRow(icon = Icons.Default.Title, label = "Research Title", value = researchTitle)
+            Text("Review submission", style = MaterialTheme.typography.titleLarge)
+            InfoRow(icon = Icons.Outlined.Description, label = "Research title", value = researchTitle)
 
             if (isPdfLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             } else {
-                Button(onClick = onViewPdfClick, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.PictureAsPdf, null, Modifier.size(ButtonDefaults.IconSize))
-                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("View Submitted PDF")
+                OutlinedButton(onClick = onViewPdfClick, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.PictureAsPdf, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Read submitted paper")
                 }
             }
-            HorizontalDivider()
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             OutlinedTextField(
                 value = comment,
                 onValueChange = onCommentChange,
-                label = { Text("Reason for Denial (Required)") },
+                label = { Text("Feedback for the group") },
+                supportingText = { Text("Required when you request changes.") },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isUpdating,
                 minLines = 3
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (isUpdating && !isPdfLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp).semantics { contentDescription = "Saving review" })
                 } else {
-                    TextButton(onClick = onDeny, enabled = comment.isNotBlank() && !isUpdating,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
-                        Text("Deny")
+                    OutlinedButton(onClick = onDeny, enabled = comment.isNotBlank() && !isUpdating) {
+                        Text("Request changes")
                     }
-                    Spacer(Modifier.width(8.dp))
                     Button(onClick = onApprove, enabled = !isUpdating) {
                         Text("Approve")
                     }
@@ -300,13 +317,13 @@ private fun ReviewSection(
 
 @Composable
 private fun InfoRow(icon: ImageVector, value: String, label: String? = null) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
-        Column {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             if (label != null) {
                 Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(value, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -320,7 +337,7 @@ private fun ErrorState(message: String) {
     ) {
         Icon(Icons.Default.ErrorOutline, null, Modifier.size(64.dp), tint = MaterialTheme.colorScheme.error)
         Spacer(Modifier.height(16.dp))
-        Text("An Error Occurred", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("This PDF could not be opened", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         Text(message, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
     }
@@ -366,23 +383,23 @@ private fun NativePdfViewer(pdfFilePath: String, modifier: Modifier = Modifier) 
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 CircularProgressIndicator()
-                Text("Processing PDF...")
+                Text("Opening PDF…")
             }
         }
     } else if (bitmaps.isEmpty()){
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            ErrorState(message = "Could not render the PDF file. It may be corrupted.")
+            ErrorState(message = "The file may be damaged. Ask the group to submit it again.")
         }
     } else {
         LazyColumn(
-            modifier = modifier.fillMaxSize().background(Color.Gray.copy(alpha = 0.2f)),
+            modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
             itemsIndexed(bitmaps, key = { index, _ -> index }) { index, bitmap ->
                 Image(
                     bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "PDF Page ${index + 1}",
+                    contentDescription = "Page ${index + 1}",
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier
                         .fillMaxWidth()

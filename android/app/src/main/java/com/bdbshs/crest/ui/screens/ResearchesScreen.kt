@@ -1,5 +1,14 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.components.CrestFilterChip as FilterChip
+
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestOutlinedButton as OutlinedButton
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.annotation.SuppressLint
@@ -108,7 +117,7 @@ fun ResearchesScreen(
     )
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun ResearchLibraryContent(
     uiState: ResearchesUiState,
@@ -137,9 +146,15 @@ internal fun ResearchLibraryContent(
         LazyColumn(
             state = listState,
             modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            contentPadding = PaddingValues(horizontal = crestScreenGutter(), vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                ContentHeader(
+                    if (favoritesOnly) "Favorite papers" else "Research papers",
+                    if (favoritesOnly) "Papers you saved to read again." else "Discover research from your school community."
+                )
+            }
             item {
                 ModernSearchBar(
                     query = uiState.searchQuery,
@@ -148,10 +163,10 @@ internal fun ResearchLibraryContent(
                 )
             }
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     FilterChip(
                         selected = activeCount > 0,
@@ -182,7 +197,7 @@ internal fun ResearchLibraryContent(
                         uiState.selectedSortOption.takeIf { it != SortOption.DateNewest }?.displayName
                     )
                     if (typeAndSort.isNotEmpty() || (onStrandToggle == null && uiState.strands.any { it.isSelected })) {
-                        InputChip(
+                        FilterChip(
                             selected = true, onClick = onFilterClick,
                             label = { Text((typeAndSort + listOfNotNull(
                                 uiState.strands.filter { it.isSelected }.joinToString(", ")
@@ -199,8 +214,8 @@ internal fun ResearchLibraryContent(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            if (hasSearchFilters) "Search results" else if (uiState.showFavoritesOnly || favoritesOnly) "Favorite papers" else "Research papers",
-                            style = MaterialTheme.typography.titleMedium,
+                            if (hasSearchFilters) "Search results" else if (uiState.showFavoritesOnly || favoritesOnly) "Saved papers" else "All papers",
+                            style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.weight(1f).semantics { heading() }
                         )
                         if (!uiState.isLoading && (uiState.error == null || papers.isNotEmpty())) MetadataBadge("${papers.size}")
@@ -343,7 +358,7 @@ internal fun FilterBottomSheet(
                 // Research Type Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterSectionTitle(icon = Icons.Default.Category, title = "Research Type")
+                        FilterSectionTitle(icon = Icons.Default.Category, title = "Research type")
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -382,7 +397,7 @@ internal fun FilterBottomSheet(
                 // Sort By Section
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterSectionTitle(icon = Icons.AutoMirrored.Filled.Sort, title = "Sort By")
+                        FilterSectionTitle(icon = Icons.AutoMirrored.Filled.Sort, title = "Sort by")
                         SortByDropdown(
                             selectedOption = filters.sortOption,
                             onOptionSelected = onSortOptionSelected
@@ -437,7 +452,7 @@ private fun SortByDropdown(
             readOnly = true,
             value = selectedOption.displayName,
             onValueChange = {},
-            label = { Text("Sort By") },
+            label = { Text("Sort by") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isExpanded) },
         )
         ExposedDropdownMenu(
@@ -469,7 +484,7 @@ private fun ActionDialog(
     // No changes needed.
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manage Research") },
+        title = { Text("Manage research") },
         text = {
             com.bdbshs.crest.ui.theme.CrestDialogSystemBars()
             Column {

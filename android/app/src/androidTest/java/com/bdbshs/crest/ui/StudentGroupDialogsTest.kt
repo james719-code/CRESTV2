@@ -41,7 +41,7 @@ class StudentGroupDialogsTest(private val dark: Boolean) {
         val vm = show()
         compose.onNodeWithText("Create a group").performScrollTo().performClick()
         compose.onNodeWithText("Create").assertIsNotEnabled()
-        compose.onNodeWithText("Group Name").performTextInput("  New Research Team  ")
+        compose.onNodeWithText("Group name").performTextInput("  New Research Team  ")
         compose.onNodeWithText("Create").assertIsEnabled().performClick()
         verify(exactly = 1) { vm.createGroup("New Research Team") }
         compose.onNodeWithText("Create a New Group").assertDoesNotExist()
@@ -56,7 +56,7 @@ class StudentGroupDialogsTest(private val dark: Boolean) {
         compose.onNodeWithText("Group ID").performTextReplacement(" ABCDEF ")
         compose.onNodeWithText("Join").assertIsEnabled()
         compose.onNodeWithText("Cancel").performClick()
-        compose.onNodeWithText("Join an Existing Group").assertDoesNotExist()
+        compose.onNodeWithText("Join an existing group").assertDoesNotExist()
         verify(exactly = 0) { vm.joinGroup(any()) }
     }
 }

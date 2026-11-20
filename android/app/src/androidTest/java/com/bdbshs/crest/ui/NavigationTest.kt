@@ -53,7 +53,7 @@ class NavigationTest {
         composeTestRule.waitForIdle()
 
         // Verify search bar is displayed
-        composeTestRule.onNodeWithText("Search documents...")
+        composeTestRule.onNodeWithText("Search documents")
             .assertIsDisplayed()
     }
 
@@ -72,7 +72,7 @@ class NavigationTest {
         composeTestRule.waitForIdle()
 
         // Verify search bar is displayed for teachers
-        composeTestRule.onNodeWithText("Search documents...")
+        composeTestRule.onNodeWithText("Search documents")
             .assertIsDisplayed()
     }
 
@@ -114,7 +114,7 @@ class NavigationTest {
         composeTestRule.waitForIdle()
 
         // Verify sort sheet content is displayed
-        composeTestRule.onNodeWithText("Sort Documents")
+        composeTestRule.onNodeWithText("Sort documents")
             .assertIsDisplayed()
     }
 
@@ -158,7 +158,7 @@ class NavigationTest {
 
         // Verify search is accessible for all roles
         val searchExists = try {
-            composeTestRule.onAllNodes(hasText("Search documents..."))
+            composeTestRule.onAllNodes(hasText("Search documents"))
                 .fetchSemanticsNodes().isNotEmpty()
         } catch (e: Exception) {
             false

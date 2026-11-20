@@ -27,9 +27,9 @@ sealed class UserDetails {
         val groupId: String = "" // Optional, can be set later
     ) : UserDetails()
 
+    /** The email always comes from the signed-in Google account, never from the form. */
     data class Teacher(
-        val name: String,
-        val email: String
+        val name: String
     ) : UserDetails()
 }
 
@@ -38,6 +38,9 @@ data class SignUpDetailsUiState(
     val selectedRole: UserType? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
+    // Google account the person signed in with; shown in the form and never typed again.
+    val accountName: String = "",
+    val accountEmail: String = "",
     // Fields for strand dropdown
     val selectedStrand: String = "", // Holds the selected strand text
     val isStrandDropdownExpanded: Boolean = false, // Controls dropdown expansion
@@ -52,7 +55,14 @@ class SignUpDetailsViewModel @Inject constructor(
     private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SignUpDetailsUiState())
+    private val _uiState = MutableStateFlow(
+        authRepository.getCurrentUser().let { user ->
+            SignUpDetailsUiState(
+                accountName = user?.displayName.orEmpty().trim(),
+                accountEmail = user?.email.orEmpty().trim()
+            )
+        }
+    )
     val uiState = _uiState.asStateFlow()
 
     // Changed: This flow now emits a LoginResult to indicate the post-signup navigation.
@@ -122,10 +132,17 @@ class SignUpDetailsViewModel @Inject constructor(
                     }
 
                     is UserDetails.Teacher -> {
+                        val email = user.email.orEmpty().trim()
+                        if (email.isEmpty()) {
+                            _uiState.update {
+                                it.copy(error = "Your Google account has no email address. Sign in with a different account.")
+                            }
+                            return@launch
+                        }
                         val input = TeacherProfileInput(
                             uid = user.uid,
                             name = details.name,
-                            email = details.email
+                            email = email
                         )
 
                         withContext(Dispatchers.IO) {

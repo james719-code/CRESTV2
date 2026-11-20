@@ -1,5 +1,13 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestOutlinedButton as OutlinedButton
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestCard as Card
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.content.ClipData
@@ -148,7 +156,7 @@ internal fun StudentHomeContent(
         val paperColumns = if (maxWidth >= 760.dp) 2 else 1
         LazyColumn(
             Modifier.widthIn(max = 840.dp).fillMaxSize().align(Alignment.TopCenter),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+            contentPadding = PaddingValues(horizontal = crestScreenGutter(), vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
@@ -251,7 +259,8 @@ private fun GroupDetailsCard(
     val context = LocalContext.current
     var detailsExpanded by rememberSaveable(groupId) { mutableStateOf(false) }
     Surface(
-        shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp
+        shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -271,12 +280,12 @@ private fun GroupDetailsCard(
                 modifier = Modifier.padding(vertical = 8.dp)
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (groupDetails.strand.isNotBlank()) com.bdbshs.crest.ui.components.MetadataBadge(groupDetails.strand)
-                when {
-                    groupDetails.accepted_research -> com.bdbshs.crest.ui.components.SubmissionStatusBadge("approved")
-                    groupDetails.uploaded -> com.bdbshs.crest.ui.components.SubmissionStatusBadge("pending")
-                    else -> com.bdbshs.crest.ui.components.MetadataBadge("Not submitted")
-                }
+                if (groupDetails.strand.isNotBlank()) com.bdbshs.crest.ui.components.StrandBadge(groupDetails.strand)
+                com.bdbshs.crest.ui.components.SubmissionStatusBadge(
+                    com.bdbshs.crest.branding.CrestSubmissionStatus.from(
+                        groupDetails.accepted_research, groupDetails.uploaded, groupDetails.comments.isNotEmpty()
+                    )
+                )
                 if (groupDetails.research_type.isNotBlank()) com.bdbshs.crest.ui.components.MetadataBadge(
                     groupDetails.research_type.lowercase().replaceFirstChar { it.titlecase() }
                 )
@@ -337,7 +346,7 @@ private fun GroupDetailsCard(
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         clipboard.setPrimaryClip(ClipData.newPlainText("Group ID", groupId))
                         Toast.makeText(context, "Group ID copied", Toast.LENGTH_SHORT).show()
-                    }) { Icon(Icons.Outlined.ContentCopy, "Copy Group ID") }
+                    }) { Icon(Icons.Outlined.ContentCopy, "Copy group ID") }
                 }
             }
             if (!groupDetails.accepted_research) {
@@ -354,11 +363,11 @@ private fun UnsubmitConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> U
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.Default.Warning, contentDescription = null) },
-        title = { Text("Unsubmit Research?") },
+        title = { Text("Unsubmit research?") },
         text = { Text("This will withdraw your submission for review. You can upload it again later. Your teacher's comments will be kept.") },
         confirmButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                Text("Confirm Unsubmit")
+                Text("Unsubmit")
             }
         },
         dismissButton = {
@@ -406,7 +415,7 @@ private fun CreateGroupDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit)
     var groupName by remember { mutableStateOf("") }
     val isNameValid = groupName.isNotBlank()
     AlertDialog(onDismissRequest = onDismiss, icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.Default.GroupAdd, null) }, title = { Text("Create a New Group") },
-        text = { OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") }, singleLine = true, keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)) },
+        text = { OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group name") }, singleLine = true, keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)) },
         confirmButton = { Button(onClick = { onCreate(groupName.trim()) }, enabled = isNameValid) { Text("Create") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
@@ -416,7 +425,7 @@ private fun CreateGroupDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit)
 private fun JoinGroupDialog(onDismiss: () -> Unit, onJoin: (String) -> Unit) {
     var groupId by remember { mutableStateOf("") }
     val isIdValid = groupId.trim().length > 5
-    AlertDialog(onDismissRequest = onDismiss, icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.AutoMirrored.Filled.Login, "Join Group") }, title = { Text("Join an Existing Group") },
+    AlertDialog(onDismissRequest = onDismiss, icon = { com.bdbshs.crest.ui.theme.CrestDialogSystemBars(); Icon(Icons.AutoMirrored.Filled.Login, "Join group") }, title = { Text("Join an existing group") },
         text = { OutlinedTextField(value = groupId, onValueChange = { groupId = it }, label = { Text("Group ID") }, placeholder = { Text("Enter the ID from your group leader") }, singleLine = true, keyboardOptions = KeyboardOptions.Default, modifier = Modifier.fillMaxWidth()) },
         confirmButton = { Button(onClick = { onJoin(groupId.trim()) }, enabled = isIdValid) { Text("Join") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })

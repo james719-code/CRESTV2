@@ -1,28 +1,14 @@
 package com.bdbshs.crest.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Shapes
+import com.bdbshs.crest.branding.CrestRadii
+import com.bdbshs.crest.branding.CrestShapes as SharedCrestShapes
 import androidx.compose.ui.unit.dp
 
 // ==================== CUSTOM SHAPE SYSTEM ====================
 // Consistent corner radiuses throughout the app
 
-val CrestShapes = Shapes(
-    // Small components: chips, small buttons, text fields
-    extraSmall = RoundedCornerShape(8.dp),
-
-    // Compact cards, list items
-    small = RoundedCornerShape(12.dp),
-
-    // Standard cards, dialogs
-    medium = RoundedCornerShape(16.dp),
-
-    // Large cards, sheets
-    large = RoundedCornerShape(24.dp),
-
-    // Full-width sheets, expanded cards
-    extraLarge = RoundedCornerShape(24.dp)
-)
+val CrestShapes = SharedCrestShapes
 
 // ==================== CUSTOM SHAPE EXTENSIONS ====================
 // Additional shapes for specific use cases
@@ -32,21 +18,21 @@ object CrestShapeTokens {
     val TopSheet = RoundedCornerShape(
         topStart = 0.dp,
         topEnd = 0.dp,
-        bottomStart = 24.dp,
-        bottomEnd = 24.dp
+        bottomStart = CrestRadii.sheet,
+        bottomEnd = CrestRadii.sheet
     )
     val BottomSheet = RoundedCornerShape(
-        topStart = 24.dp,
-        topEnd = 24.dp,
+        topStart = CrestRadii.sheet,
+        topEnd = CrestRadii.sheet,
         bottomStart = 0.dp,
         bottomEnd = 0.dp
     )
-    val CardSmall = RoundedCornerShape(12.dp)
-    val CardMedium = RoundedCornerShape(16.dp)
-    val CardLarge = RoundedCornerShape(20.dp)
-    val Button = RoundedCornerShape(12.dp)
+    val CardSmall = RoundedCornerShape(CrestRadii.control)
+    val CardMedium = RoundedCornerShape(CrestRadii.card)
+    val CardLarge = RoundedCornerShape(CrestRadii.card)
+    val Button = RoundedCornerShape(CrestRadii.control)
     val ButtonPill = RoundedCornerShape(50)
-    val Chip = RoundedCornerShape(8.dp)
-    val Dialog = RoundedCornerShape(28.dp)
-    val FAB = RoundedCornerShape(16.dp)
+    val Chip = RoundedCornerShape(50)
+    val Dialog = RoundedCornerShape(CrestRadii.sheet)
+    val FAB = RoundedCornerShape(CrestRadii.card)
 }

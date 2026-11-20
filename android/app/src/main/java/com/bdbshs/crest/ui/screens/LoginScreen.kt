@@ -1,5 +1,9 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.util.Log
@@ -23,8 +27,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.bdbshs.crest.ui.components.CrestIllustration
 import com.bdbshs.crest.ui.components.IconBadge
-import com.bdbshs.crest.ui.components.heroContainer
-import com.bdbshs.crest.ui.components.heroContent
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
@@ -53,6 +56,10 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.R
+import com.bdbshs.crest.branding.CrestBrandName
+import com.bdbshs.crest.branding.CrestBrandTagline
+import com.bdbshs.crest.branding.CrestRadii
+import com.bdbshs.crest.branding.CrestWordmarkTrackingEm
 import com.bdbshs.crest.ui.components.CrestMark
 import com.bdbshs.crest.ui.components.FeedbackPanel
 import com.bdbshs.crest.ui.theme.CRESTTheme
@@ -148,7 +155,7 @@ internal fun LoginScreenContent(
     ) {
         LoginBrandHeader()
         Column(
-            Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp),
+            Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(horizontal = crestScreenGutter(), vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
@@ -180,8 +187,8 @@ internal fun LoginScreenContent(
 private fun LoginBrandHeader() {
     Box(
         Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp))
-            .background(heroContainer())
+            .clip(RoundedCornerShape(bottomStart = CrestRadii.sheet, bottomEnd = CrestRadii.sheet))
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 20.dp, bottom = 24.dp),
@@ -191,14 +198,14 @@ private fun LoginBrandHeader() {
             CrestMark(72.dp)
             Spacer(Modifier.height(8.dp))
             Text(
-                "CREST",
-                style = MaterialTheme.typography.headlineLarge.copy(letterSpacing = 1.68.sp),
-                color = heroContent()
+                CrestBrandName,
+                style = MaterialTheme.typography.headlineLarge.copy(letterSpacing = CrestWordmarkTrackingEm.em),
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                "School research, shared.",
+                CrestBrandTagline,
                 style = MaterialTheme.typography.titleMedium,
-                color = heroContent().copy(alpha = .85f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() }
             )
@@ -251,7 +258,7 @@ private fun LoginActions(
             FeedbackPanel("Add a Google account", credentialIssue, "Open account settings", onAddAccount)
         }
         Text(
-            "New to CREST? Use your Google account to register. New student registrations require teacher approval.",
+            "First time here? Continue with Google, then choose student or teacher. A teacher reviews every new registration.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

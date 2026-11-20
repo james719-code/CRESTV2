@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -116,9 +117,9 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
     var formMembers by remember(page, mode) { mutableStateOf(if (mode == "data") reviewPapers.first().members else listOf("")) }
     var profileName by remember(page, mode) { mutableStateOf(if (mode == "data") "Andrea Santos" else "") }
     var profileLrn by remember(page, mode) { mutableStateOf(if (mode == "data") "123456789012" else "") }
-    var profileEmail by remember(page, mode) { mutableStateOf(if (mode == "data") "faculty@example.test" else "") }
     var registration by remember(page, mode) { mutableStateOf(SignUpDetailsUiState(
         selectedRole = if (page == "signupStudent") UserType.STUDENT else UserType.TEACHER,
+        accountName = "Jane Santos", accountEmail = "jane.santos@school.edu.ph",
         selectedStrand = if (mode == "data") "STEM" else "", selectedGender = if (mode == "data") "Female" else "",
         isLoading = mode == "loading", error = if (mode == "error") "Registration could not be saved. Try again." else null
     )) }
@@ -144,12 +145,12 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            if (!auditMode || page !in listOf("login", "pending", "signup", "profile")) {
-            Column {
+            if (!auditMode || page !in listOf("login", "pending", "signup", "signupStudent", "signupTeacher", "profile")) {
+            Column(if (!auditMode) Modifier.background(MaterialTheme.colorScheme.secondaryContainer).statusBarsPadding() else Modifier) {
                 if (!auditMode) {
                 Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text("LOCAL DATA · UI REVIEW", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
                             TextButton(onClick = { menu = true }, contentPadding = PaddingValues(0.dp), modifier = Modifier.heightIn(min = 32.dp)) { Text("Screens") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -173,7 +174,7 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                     }
                 }
                 }
-                if (page !in listOf("login", "pending", "signup", "profile")) {
+                if (page !in listOf("login", "pending", "signup", "signupStudent", "signupTeacher", "profile")) {
                     CrestTopAppBar(
                         title = when (page) {
                             "research" -> "Research"
@@ -181,9 +182,9 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                             "documents" -> "Documents"
                             "groups" -> "Groups"
                             "accounts" -> "Accounts"
-                            "paper" -> "Research Details"
-                            "group" -> "Group Details"
-                            "storage" -> "Storage Management"
+                            "paper" -> "Research details"
+                            "group" -> "Group details"
+                            "storage" -> "Storage"
                             "upload" -> "Submit research"
                             "teacherUpload" -> "Add research paper"
                             "signupStudent", "signupTeacher" -> "Complete Your Profile"
@@ -193,7 +194,7 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                             else -> "Home"
                         },
                         userRole = role,
-                        onNavigationClick = if (page in listOf("paper", "group", "storage", "upload", "teacherUpload", "signupStudent", "signupTeacher")) ({ page = "teacher" }) else null
+                        onNavigationClick = if (page in listOf("paper", "group", "storage", "upload", "teacherUpload", "signupStudent", "signupTeacher", "milestones", "studentMilestones", "inbox", "studentInbox")) ({ page = if (role == UserType.STUDENT) "student" else "teacher" }) else null
                     )
                 }
             }
@@ -356,22 +357,29 @@ private fun ReviewApp(firstPage: String, firstMode: String, auditMode: Boolean) 
                 { formMembers = formMembers + "" }, { index -> formMembers = formMembers.filterIndexed { itemIndex, _ -> itemIndex != index } },
                 { formFile = "selected-review-paper.pdf" }, { formFile = null }, { notice("Add research to library") }, bodyModifier
             )
-            "signup" -> Box(bodyModifier) { RoleSelectionScreen({ page = "signupStudent" }, { page = "signupTeacher" }) }
+            "signup" -> Box(bodyModifier) {
+                SignUpFrame(registration.copy(selectedRole = null), null, { notice("Use a different account") }) {
+                    RoleSelectionScreen({ page = "signupStudent" }, { page = "signupTeacher" })
+                }
+            }
             "signupStudent" -> Box(bodyModifier) {
-                StudentSignUpForm(
-                    registration, profileName, { profileName = it }, profileLrn, { profileLrn = it },
-                    listOf("STEM", "HUMSS", "ABM", "TVL", "GAS"),
-                    { registration = registration.copy(selectedStrand = it, isStrandDropdownExpanded = false) },
-                    { registration = registration.copy(isStrandDropdownExpanded = it) },
-                    listOf("Male", "Female", "Other"),
-                    { registration = registration.copy(selectedGender = it, isGenderDropdownExpanded = false) },
-                    { registration = registration.copy(isGenderDropdownExpanded = it) },
-                    mode == "error", mode == "error", mode == "error", mode == "error", { notice("Register student") }
-                )
+                SignUpFrame(registration, { page = "signup" }, { notice("Use a different account") }) {
+                    StudentSignUpForm(
+                        registration, profileName, { profileName = it }, profileLrn, { profileLrn = it },
+                        listOf("STEM", "HUMSS", "ABM", "TVL", "GAS"),
+                        { registration = registration.copy(selectedStrand = it, isStrandDropdownExpanded = false) },
+                        { registration = registration.copy(isStrandDropdownExpanded = it) },
+                        listOf("Male", "Female", "Other"),
+                        { registration = registration.copy(selectedGender = it, isGenderDropdownExpanded = false) },
+                        { registration = registration.copy(isGenderDropdownExpanded = it) },
+                        mode == "error", mode == "error", mode == "error", mode == "error", { notice("Register student") }
+                    )
+                }
             }
             "signupTeacher" -> Box(bodyModifier) {
-                TeacherSignUpForm(registration, profileName, { profileName = it }, profileEmail, { profileEmail = it },
-                    mode == "error", mode == "error", { notice("Register teacher") })
+                SignUpFrame(registration, { page = "signup" }, { notice("Use a different account") }) {
+                    TeacherSignUpForm(registration, profileName, { profileName = it }, mode == "error", { notice("Register teacher") })
+                }
             }
             "about" -> AboutUsScreen(bodyModifier)
             "pending" -> Box(bodyModifier) { PendingApprovalScreen { page = "login" } }

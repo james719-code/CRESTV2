@@ -1,5 +1,11 @@
 package com.bdbshs.crest.ui.screens
 
+import com.bdbshs.crest.ui.theme.crestScreenGutter
+
+import com.bdbshs.crest.ui.components.CrestButton as Button
+import com.bdbshs.crest.ui.components.CrestTextButton as TextButton
+import com.bdbshs.crest.ui.components.CrestTextField as OutlinedTextField
+
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import android.content.Context
@@ -43,6 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.bdbshs.crest.ui.components.FilePicker
+import com.bdbshs.crest.ui.components.CrestFormPage
+import com.bdbshs.crest.ui.components.FormSection
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import com.bdbshs.crest.ui.theme.CrestShapeTokens
 import com.bdbshs.crest.ui.viewmodels.ResearchType
 import com.bdbshs.crest.ui.viewmodels.Strand
@@ -123,26 +134,26 @@ internal fun TeacherUploadContent(
 ) {
     val ready = state.title.isNotBlank() && state.selectedStrand != null && state.selectedType != null &&
         state.members.isNotEmpty() && state.members.all { it.isNotBlank() } && !state.selectedFileName.isNullOrBlank()
-    Column(
-        modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    CrestFormPage(modifier) {
         com.bdbshs.crest.ui.components.ContentHeader("Add research paper", "Share a PDF with complete author and research details in the school library.")
-        Text("Research details", style = MaterialTheme.typography.titleMedium)
-        OutlinedTextField(
-            state.title, onTitle, modifier = Modifier.fillMaxWidth(), label = { Text("Research title · required") },
-            supportingText = { Text("Use the complete title printed on the paper.") }, enabled = !state.isLoading
-        )
-        StrandDropdown(state.selectedStrand, onStrand)
-        ResearchTypeDropdown(state.selectedType, onType)
-        Text("Contributors", style = MaterialTheme.typography.titleMedium)
-        Text("List the authors in the same order as the paper.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        state.members.forEachIndexed { index, member ->
-            MemberInputField(member, { onMember(index, it) }, { onRemoveMember(index) }, state.members.size > 1)
+        FormSection("Research details", Icons.Outlined.Description) {
+            OutlinedTextField(
+                state.title, onTitle, modifier = Modifier.fillMaxWidth(), label = { Text("Research title · required") },
+                supportingText = { Text("Use the complete title printed on the paper.") }, enabled = !state.isLoading
+            )
+            StrandDropdown(state.selectedStrand, onStrand)
+            ResearchTypeDropdown(state.selectedType, onType)
         }
-        TextButton(onClick = onAddMember) { Text("Add contributor") }
-        Text("Research PDF", style = MaterialTheme.typography.titleMedium)
-        FilePicker(state.selectedFileName, onPickFile, onClearFile, isLoading = state.isLoading)
+        FormSection("Contributors", Icons.Outlined.People) {
+            Text("List the authors in the same order as the paper.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            state.members.forEachIndexed { index, member ->
+                MemberInputField(member, { onMember(index, it) }, { onRemoveMember(index) }, state.members.size > 1)
+            }
+            TextButton(onClick = onAddMember, enabled = !state.isLoading) { Text("Add contributor") }
+        }
+        FormSection("Research PDF", Icons.Outlined.PictureAsPdf) {
+            FilePicker(state.selectedFileName, onPickFile, onClearFile, isLoading = state.isLoading)
+        }
         if (state.error != null) {
             com.bdbshs.crest.ui.components.FeedbackPanel("Paper could not be added", state.error, "Try upload again", onUpload)
         }
@@ -272,7 +283,7 @@ private fun MemberInputField(
                 ) 
             },
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 focusedBorderColor = MaterialTheme.colorScheme.primary
             ),
             singleLine = true
@@ -281,13 +292,13 @@ private fun MemberInputField(
             FilledIconButton(
                 onClick = onRemove,
                 modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                    contentColor = MaterialTheme.colorScheme.error
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Remove Author", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Close, contentDescription = "Remove contributor", modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -306,7 +317,7 @@ private fun StrandDropdown(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Academic Strand",
+            text = "Academic strand",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
@@ -316,7 +327,7 @@ private fun StrandDropdown(
             onExpandedChange = { expanded = !expanded }
         ) {
             OutlinedTextField(
-                value = selectedStrand?.name ?: "Select Strand",
+                value = selectedStrand?.name ?: "Select strand",
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -368,7 +379,7 @@ fun ResearchTypeDropdown(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Research Category",
+            text = "Research category",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
@@ -378,7 +389,7 @@ fun ResearchTypeDropdown(
             onExpandedChange = { expanded = !expanded }
         ) {
             OutlinedTextField(
-                value = selectedType?.name?.replaceFirstChar { it.uppercase() } ?: "Select Category",
+                value = selectedType?.name?.lowercase()?.replaceFirstChar { it.titlecase() } ?: "Select category",
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -407,7 +418,7 @@ fun ResearchTypeDropdown(
             ) {
                 types.forEach { type ->
                     DropdownMenuItem(
-                        text = { Text(type.name.replaceFirstChar { it.uppercase() }) },
+                        text = { Text(type.name.lowercase().replaceFirstChar { it.titlecase() }) },
                         onClick = {
                             onTypeSelected(type)
                             expanded = false
