@@ -4,6 +4,16 @@ All notable project changes should be recorded here.
 
 This project follows a lightweight version of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and uses semantic version tags where practical.
 
+## 2.1.1 — 2026-11-20
+
+Android version name `2.1.1`, version code `4`. Tag: `android-v2.1.1`.
+
+### Fixed
+
+- Signing in with Google works on the first tap after installing the app or
+  signing out. Previously the first attempt could report "No Google account is
+  available on this device" and only a second attempt succeeded.
+
 ## 2.1.0 — 2026-11-20
 
 Android version name `2.1.0`, version code `3`. Tag: `android-v2.1.0`.

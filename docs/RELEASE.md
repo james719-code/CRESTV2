@@ -9,8 +9,9 @@ trigger table, Netlify setup, and required-check configuration.
 ## Android version policy
 
 `android/version.properties` is the source of the APK's version. The current
-release is `versionName=2.1.0` with `versionCode=3`. Earlier releases:
-`android-v2.0.0` (`2.0.0`, code `2`) and `v1.0.0` (`1.0`, code `1`).
+release is `versionName=2.1.1` with `versionCode=4`. Earlier releases:
+`android-v2.1.0` (`2.1.0`, code `3`), `android-v2.0.0` (`2.0.0`, code `2`) and
+`v1.0.0` (`1.0`, code `1`).
 
 Android treats these values separately:
 
@@ -92,8 +93,8 @@ release environment variables described in [`README.md`](../README.md).
 Use semantic version tags:
 
 ```bash
-git tag android-v2.1.0
-git push origin android-v2.1.0
+git tag android-v2.1.1
+git push origin android-v2.1.1
 ```
 
 The workflow builds a signed release APK and attaches it to a GitHub release.
