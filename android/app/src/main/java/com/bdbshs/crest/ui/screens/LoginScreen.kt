@@ -65,7 +65,7 @@ import com.bdbshs.crest.ui.components.FeedbackPanel
 import com.bdbshs.crest.ui.theme.CRESTTheme
 import com.bdbshs.crest.ui.viewmodels.LoginResult
 import com.bdbshs.crest.ui.viewmodels.LoginViewModel
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import kotlinx.coroutines.launch
 
 @Composable
@@ -89,9 +89,11 @@ fun LoginScreen(
             credentialIssue = null
             scope.launch {
                 try {
-                    val option = GetGoogleIdOption.Builder()
-                        .setFilterByAuthorizedAccounts(false)
-                        .setServerClientId(context.getString(R.string.default_web_client_id))
+                    // A button tap uses the explicit "Sign in with Google" flow. Unlike the
+                    // one-tap GetGoogleIdOption, it always shows the account picker and is not
+                    // throttled after sign-out or a dismissed prompt, which previously made
+                    // the first attempt report "no Google account" and only the retry work.
+                    val option = GetSignInWithGoogleOption.Builder(context.getString(R.string.default_web_client_id))
                         .build()
                     val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
                     loginViewModel.signInWithGoogleCredential(credentialManager.getCredential(context, request))
