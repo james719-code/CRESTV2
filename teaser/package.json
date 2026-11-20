@@ -9,9 +9,11 @@
     "assets": "node scripts/prepare-assets.mjs",
     "capture": "node scripts/capture-emulator.mjs",
     "soundtrack": "node scripts/mystery-soundtrack.mjs",
+    "soundtrack:announcement": "node scripts/announcement-soundtrack.mjs",
     "render": "node scripts/render.mjs landscape",
     "render:vertical": "node scripts/render.mjs vertical",
     "render:all": "node scripts/render.mjs all",
+    "render:announcement": "node scripts/render.mjs announcement",
     "stills": "node scripts/render.mjs stills",
     "verify": "node scripts/verify.mjs"
   },

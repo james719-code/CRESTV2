@@ -1,4 +1,26 @@
-# CREST V2 teaser
+# CREST V2 videos
+
+## Launch announcement
+
+The 24-second **CREST V2 is here** video introduces the redesigned Android app,
+then shows research browsing, group submissions, milestones, and teacher review.
+The app screens are native emulator captures with fictional demo records.
+
+| Export | Size | File |
+| --- | --- | --- |
+| Widescreen | 1920 × 1080 | `out/CREST-V2-Announcement.mp4` |
+| Vertical | 1080 × 1920 | `out/CREST-V2-Announcement-Vertical.mp4` |
+
+Both exports are 30 fps, H.264 with stereo AAC. The render command also exports
+an end-card poster for each format. Open the two announcement compositions in
+`npm run studio` to edit or preview them, or run `npm run render:announcement`
+to export both. The captured screens and original soundtrack are bundled.
+The score uses a live-style drum groove with fills on the scene cuts and
+beat-synced motion on screen.
+Run `npm run soundtrack:announcement` with FFmpeg installed to regenerate the
+score. The refreshed `v2-*` screenshots come from the November 8 Android UI review.
+
+## Mystery teaser
 
 A 16-second mystery teaser. A handset turns out of darkness, briefly illuminating
 the actual native Android app before the CREST V2 reveal. The complete screen
