@@ -8,9 +8,9 @@ trigger table, Netlify setup, and required-check configuration.
 
 ## Android version policy
 
-`android/version.properties` is the source of the APK's version. The upcoming
-CREST product relaunch uses `versionName=2.0.0` and `versionCode=2`. The published
-`v1.0.0` source used `versionName=1.0` and `versionCode=1`.
+`android/version.properties` is the source of the APK's version. The current
+release is `versionName=2.1.0` with `versionCode=3`. Earlier releases:
+`android-v2.0.0` (`2.0.0`, code `2`) and `v1.0.0` (`1.0`, code `1`).
 
 Android treats these values separately:
 
@@ -92,8 +92,8 @@ release environment variables described in [`README.md`](../README.md).
 Use semantic version tags:
 
 ```bash
-git tag android-v2.0.0
-git push origin android-v2.0.0
+git tag android-v2.1.0
+git push origin android-v2.1.0
 ```
 
 The workflow builds a signed release APK and attaches it to a GitHub release.
@@ -111,9 +111,7 @@ link. A normal commit does not publish a release.
 The public website links directly to
 [`releases/latest/download/app-release.apk`](https://github.com/james719-code/CRESTV2/releases/latest/download/app-release.apk).
 The latest published GitHub Release supplies the displayed version, file size,
-and version-specific download/notes links. Until `2.0.0` is actually published,
-the website describes the existing `1.0.0` download rather than labeling the old
-APK as the new release. If the public GitHub API is unavailable, the stable
+and version-specific download/notes links. If the public GitHub API is unavailable, the stable
 download link still works and the page points visitors to GitHub for details.
 
 Keep GitHub's **latest** release an Android release with `app-release.apk`.
